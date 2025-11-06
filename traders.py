@@ -37,16 +37,20 @@ gemini_client = AsyncOpenAI(base_url=GEMINI_BASE_URL, api_key=google_api_key)
 
 
 def get_model(model_name: str):
+    """Return a model adapter or the raw model name.
+
+    Preserves the public behavior but makes the decision logic explicit
+    and easier to extend.
+    """
     if "/" in model_name:
         return OpenAIChatCompletionsModel(model=model_name, openai_client=openrouter_client)
-    elif "deepseek" in model_name:
+    if "deepseek" in model_name:
         return OpenAIChatCompletionsModel(model=model_name, openai_client=deepseek_client)
-    elif "grok" in model_name:
+    if "grok" in model_name:
         return OpenAIChatCompletionsModel(model=model_name, openai_client=grok_client)
-    elif "gemini" in model_name:
+    if "gemini" in model_name:
         return OpenAIChatCompletionsModel(model=model_name, openai_client=gemini_client)
-    else:
-        return model_name
+    return model_name
 
 
 async def get_researcher(mcp_servers, model_name) -> Agent:
@@ -64,11 +68,11 @@ async def get_researcher_tool(mcp_servers, model_name) -> Tool:
     return researcher.as_tool(tool_name="Researcher", tool_description=research_tool())
 
 
-class Trader:
-    def __init__(self, name: str, lastname="Trader", model_name="gpt-4o-mini"):
+class StrategyRunner:
+    def __init__(self, name: str, lastname: str = "Trader", model_name: str = "gpt-4o-mini"):
         self.name = name
         self.lastname = lastname
-        self.agent = None
+        self.agent: Agent | None = None
         self.model_name = model_name
         self.do_trade = True
 
@@ -127,5 +131,5 @@ class Trader:
         try:
             await self.run_with_trace()
         except Exception as e:
-            print(f"Error running trader {self.name}: {e}")
+            print(f"Error running runner {self.name}: {e}")
         self.do_trade = not self.do_trade
