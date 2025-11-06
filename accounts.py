@@ -37,15 +37,29 @@ class Account(BaseModel):
     def get(cls, name: str):
         fields = read_account(name.lower())
         if not fields:
+            # Initialize with initial portfolio value
+            initial_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             fields = {
                 "name": name.lower(),
                 "balance": INITIAL_BALANCE,
                 "strategy": "",
                 "holdings": {},
                 "transactions": [],
-                "portfolio_value_time_series": []
+                "portfolio_value_time_series": [(initial_time, INITIAL_BALANCE)]
             }
             write_account(name, fields)
+        else:
+            # Ensure at least one portfolio value entry exists
+            if not fields.get("portfolio_value_time_series"):
+                initial_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                portfolio_value = fields.get("balance", INITIAL_BALANCE)
+                # Calculate portfolio value including holdings if any
+                holdings = fields.get("holdings", {})
+                if holdings:
+                    # If there are holdings, we'd need to calculate, but for now use balance
+                    portfolio_value = fields.get("balance", INITIAL_BALANCE)
+                fields["portfolio_value_time_series"] = [(initial_time, portfolio_value)]
+                write_account(name, fields)
         return cls(**fields)
     
     

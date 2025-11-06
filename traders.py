@@ -30,27 +30,35 @@ OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
 
 MAX_TURNS = 30
 
-openrouter_client = AsyncOpenAI(base_url=OPENROUTER_BASE_URL, api_key=openrouter_api_key)
-deepseek_client = AsyncOpenAI(base_url=DEEPSEEK_BASE_URL, api_key=deepseek_api_key)
-grok_client = AsyncOpenAI(base_url=GROK_BASE_URL, api_key=grok_api_key)
-gemini_client = AsyncOpenAI(base_url=GEMINI_BASE_URL, api_key=google_api_key)
+openrouter_client = AsyncOpenAI(base_url=OPENROUTER_BASE_URL, api_key=openrouter_api_key) if openrouter_api_key else None
+deepseek_client = AsyncOpenAI(base_url=DEEPSEEK_BASE_URL, api_key=deepseek_api_key) if deepseek_api_key else None
+grok_client = AsyncOpenAI(base_url=GROK_BASE_URL, api_key=grok_api_key) if grok_api_key else None
+gemini_client = AsyncOpenAI(base_url=GEMINI_BASE_URL, api_key=google_api_key) if google_api_key else None
 
 
 def get_model(model_name: str):
-    """Return a model adapter or the raw model name.
-
-    Preserves the public behavior but makes the decision logic explicit
-    and easier to extend.
-    """
     if "/" in model_name:
+        if openrouter_client is None:
+            raise ValueError("OPENROUTER_API_KEY is required for OpenRouter models")
         return OpenAIChatCompletionsModel(model=model_name, openai_client=openrouter_client)
-    if "deepseek" in model_name:
+    elif "deepseek" in model_name:
+        if deepseek_client is None:
+            raise ValueError("DEEPSEEK_API_KEY is required for DeepSeek models")
         return OpenAIChatCompletionsModel(model=model_name, openai_client=deepseek_client)
-    if "grok" in model_name:
+    elif "grok" in model_name:
+        if grok_client is None:
+            raise ValueError("GROK_API_KEY is required for Grok models")
         return OpenAIChatCompletionsModel(model=model_name, openai_client=grok_client)
-    if "gemini" in model_name:
+    elif "gemini" in model_name:
+        if gemini_client is None:
+            raise ValueError("GOOGLE_API_KEY is required for Gemini models")
         return OpenAIChatCompletionsModel(model=model_name, openai_client=gemini_client)
-    return model_name
+    else:
+        # Default to OpenAI if no specific client is needed
+        default_client = AsyncOpenAI() if os.getenv("OPENAI_API_KEY") else None
+        if default_client is None:
+            raise ValueError(f"API key required for model {model_name}. Set OPENAI_API_KEY or the appropriate model-specific key.")
+        return OpenAIChatCompletionsModel(model=model_name, openai_client=default_client)
 
 
 async def get_researcher(mcp_servers, model_name) -> Agent:
@@ -68,11 +76,11 @@ async def get_researcher_tool(mcp_servers, model_name) -> Tool:
     return researcher.as_tool(tool_name="Researcher", tool_description=research_tool())
 
 
-class StrategyRunner:
-    def __init__(self, name: str, lastname: str = "Trader", model_name: str = "gpt-4o-mini"):
+class Trader:
+    def __init__(self, name: str, lastname="Trader", model_name="gpt-4o-mini"):
         self.name = name
         self.lastname = lastname
-        self.agent: Agent | None = None
+        self.agent = None
         self.model_name = model_name
         self.do_trade = True
 
@@ -131,5 +139,5 @@ class StrategyRunner:
         try:
             await self.run_with_trace()
         except Exception as e:
-            print(f"Error running runner {self.name}: {e}")
+            print(f"Error running trader {self.name}: {e}")
         self.do_trade = not self.do_trade
