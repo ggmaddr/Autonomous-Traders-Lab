@@ -1,0 +1,19 @@
+[project]
+name = "trading-floor"
+version = "0.1.0"
+description = "Autonomous AI traders on a local Ollama model, built with the OpenAI Agents SDK and MCP servers"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.136.1,<1",
+    "massive>=2.8.0,<3",
+    "mcp>=1.27,<2",
+    # openai-agents 0.15 fails on newer openai releases (InputTokensDetails.cache_write_tokens),
+    # so these two are pinned to the pair this project was tested with.
+    "openai>=2.34.0,<2.35",
+    "openai-agents>=0.15.1,<0.16",
+    "pydantic>=2.13.3,<3",
+    "python-dotenv>=1.2.2,<2",
+    "requests>=2.33.1,<3",
+    "uvicorn[standard]>=0.46.0,<1",
+]
