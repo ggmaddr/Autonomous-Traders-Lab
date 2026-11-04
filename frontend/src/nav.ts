@@ -1,0 +1,112 @@
+// Every view of the lab, in the order of plan §11.2. Views not built yet carry the
+// roadmap phase that builds them (§16) and what they will answer.
+
+export interface NavItem {
+  path: string;
+  label: string;
+  question: string;
+  phase?: number;
+  shows?: string[];
+}
+
+export interface NavGroup {
+  label: string;
+  items: NavItem[];
+}
+
+export const NAV: NavGroup[] = [
+  {
+    label: "Desk",
+    items: [
+      { path: "/", label: "Money", question: "Where is the money and how is it doing?" },
+      { path: "/trades", label: "Trades", question: "What do we hold and what did each trade earn?" },
+    ],
+  },
+  {
+    label: "Why it traded",
+    items: [
+      {
+        path: "/researcher",
+        label: "Researcher",
+        phase: 2,
+        question: "What did the researcher find, and did it help?",
+        shows: [
+          "Each research request and its answer, with the trader who asked",
+          "Sources with links",
+          "Which findings were used in a decision and which were ignored",
+          "P&L of the trades that cited each piece of research",
+          "Research cost in calls, tokens and time",
+        ],
+      },
+      {
+        path: "/decisions",
+        label: "Decisions",
+        phase: 2,
+        question: "Why did this trade happen?",
+        shows: [
+          "The research the decision used and the quotes it saw",
+          "The strategy text in force at the time",
+          "The agent's justification, the order and the fill",
+          "The portfolio before and after",
+          "A link to the SDK trace with the raw model and tool calls",
+        ],
+      },
+      {
+        path: "/lessons",
+        label: "Lessons",
+        phase: 3,
+        question: "What have the agents learned, and is it still true?",
+        shows: [
+          "Lessons written after each cycle, linked to their trades and P&L",
+          "How often each lesson recurs",
+          "Lessons that later trades contradicted",
+          "Which lessons the agent recalled before trading",
+        ],
+      },
+      {
+        path: "/memory",
+        label: "Memory",
+        phase: 3,
+        question: "What does each agent's long-term memory contain?",
+        shows: [
+          "Entities, relations and observations from memory/<name>.db as a graph",
+          "When each observation was written, and which decisions used it",
+          "Two traders' graphs side by side",
+        ],
+      },
+    ],
+  },
+  {
+    label: "Lab",
+    items: [
+      {
+        path: "/experiments",
+        label: "Experiments",
+        phase: 4,
+        question: "Which configuration is better, by how much, at what cost?",
+        shows: [
+          "Scenarios and agent setups to run side by side",
+          "Paired comparisons with confidence intervals",
+          "The return against cost frontier",
+        ],
+      },
+      {
+        path: "/failures",
+        label: "Failures",
+        phase: 5,
+        question: "How does the system behave when something breaks?",
+        shows: [
+          "A catalogue of faults: feed down, stale prices, researcher timeout, broker rejection",
+          "Expected against actual outcome, with the trace",
+          "How V1 behaved against how it behaves now",
+        ],
+      },
+      {
+        path: "/health",
+        label: "Health",
+        question: "Is the infrastructure OK?",
+        shows: ["MCP servers, model speed and queue", "Market feed freshness", "Database size and errors"],
+      },
+    ],
+  },
+];
