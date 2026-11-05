@@ -1,4 +1,4 @@
-# Trading Floor
+# Autonomous Traders Lab 2
 
 Four autonomous AI traders (Warren, George, Ray, Cathie) that research the market, buy and sell stocks, and report to a live web dashboard. The agents run on a **local Ollama model** (no model API costs) and use [MCP](https://modelcontextprotocol.io) servers as their tools.
 
