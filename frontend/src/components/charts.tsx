@@ -8,7 +8,7 @@ import type { Fill } from "../lib/ledger";
 import { money, pct, price, shortDay, signedPct, stamp } from "../lib/format";
 import { hueVar } from "../lib/traders";
 
-function useWidth<T extends HTMLElement>(): [React.RefObject<T>, number] {
+export function useWidth<T extends HTMLElement>(): [React.RefObject<T>, number] {
   const ref = useRef<T>(null);
   const [width, setWidth] = useState(0);
   useLayoutEffect(() => {
@@ -20,7 +20,7 @@ function useWidth<T extends HTMLElement>(): [React.RefObject<T>, number] {
   return [ref, width];
 }
 
-function niceTicks(min: number, max: number, count = 4): number[] {
+export function niceTicks(min: number, max: number, count = 4): number[] {
   if (max === min) {
     max = min + 1;
   }

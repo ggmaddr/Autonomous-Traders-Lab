@@ -34,17 +34,7 @@ export const NAV: NavGroup[] = [
   {
     label: "Lab",
     items: [
-      {
-        path: "/experiments",
-        label: "Experiments",
-        phase: 4,
-        question: "Which configuration is better, by how much, at what cost?",
-        shows: [
-          "Scenarios and agent setups to run side by side",
-          "Paired comparisons with confidence intervals",
-          "The return against cost frontier",
-        ],
-      },
+      { path: "/experiments", label: "Experiments", question: "Which configuration is better, by how much, at what cost?" },
       {
         path: "/failures",
         label: "Failures",

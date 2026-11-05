@@ -13,7 +13,7 @@ from datetime import datetime
 from .database import read_run, read_runs, read_researcher_trace_ids, read_spans, read_tool_spans
 
 RESEARCHER = "Researcher"
-SEARCH_TOOLS = {"tavily_search"}
+SEARCH_TOOLS = {"tavily_search", "search"}  # search: the lab's frozen corpus
 FETCH_TOOLS = {"fetch"}
 ORDER_TOOLS = {"buy_shares", "sell_shares"}
 ACCOUNT_TOOLS = {"get_balance", "get_holdings", "change_strategy", "push"}

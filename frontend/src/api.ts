@@ -287,3 +287,251 @@ export function getMemory(trader: string): Promise<MemoryGraph> {
 export function getMemoryNode(trader: string, node: string): Promise<MemoryNodeDetail> {
   return get(`/api/memory/${encodeURIComponent(trader)}/node/${encodeURIComponent(node)}`);
 }
+
+// --- Experiment Lab (backend/lab) --------------------------------------------
+
+export interface Baseline {
+  id: "hold" | "spy" | "equal" | "random";
+  label: string;
+  detail: string;
+  return: number;
+  edge: number; // against doing nothing
+  grade: Grade | null;
+  score: number;
+  lo: number | null;
+  hi: number | null;
+}
+
+export type Grade = "pass" | "partial" | "fail";
+
+export interface ScenarioInfo {
+  id: string;
+  version: number;
+  title: string;
+  family: string;
+  question: string;
+  task: "trade" | "rebalance";
+  as_of: string;
+  horizon_days: number;
+  universe: { symbol: string; name: string; price: number; price_end: number; move: number }[];
+  cash: number;
+  positions: Record<string, number>;
+  equity_start: number;
+  documents: { id: string; title: string; url: string; date: string }[];
+  grading: Record<string, Record<string, unknown>[]>;
+  baselines: Baseline[];
+}
+
+export interface DimensionValue {
+  id: string;
+  label: string;
+  detail: string;
+}
+
+export interface Dimension {
+  id: "researcher" | "model" | "prompt" | "strategy";
+  label: string;
+  question: string;
+  values: DimensionValue[];
+  default: string[];
+}
+
+export interface WorkerState {
+  alive: boolean;
+  seen_at: string | null;
+  busy: string | null;
+}
+
+export interface Estimate {
+  seconds: number;
+  measured: number; // finished trials the estimate is the median of; 0 means a guess
+}
+
+export interface LabCatalog {
+  scenarios: ScenarioInfo[];
+  dimensions: Dimension[];
+  worker: WorkerState;
+  estimate: Estimate;
+}
+
+export type Arm = Record<Dimension["id"], string>;
+
+export interface ExperimentSpec {
+  name?: string;
+  scenarios: string[];
+  arms: Record<string, string[]>;
+  trials: number;
+}
+
+export interface ExperimentListItem {
+  id: string;
+  name: string;
+  spec: ExperimentSpec;
+  status: "queued" | "running" | "done" | "cancelled";
+  created_at: string;
+  started_at: string | null;
+  ended_at: string | null;
+  progress: Partial<Record<"queued" | "running" | "done" | "error" | "cancelled", number>>;
+}
+
+export interface Interval {
+  mean: number | null;
+  lo: number | null;
+  hi: number | null;
+  n: number;
+}
+
+export interface ArmSummary {
+  arm_id: string;
+  arm: Arm;
+  n: number;
+  score: Interval;
+  edge: Interval;
+  return: Interval;
+  tokens: Interval;
+  seconds: Interval;
+  research_calls: Interval;
+  violations: Interval;
+  recovered: Interval;
+  loops: Interval;
+  violated: number;
+  completed: number;
+  cited: number;
+  grades: Record<Grade, number>;
+}
+
+export interface Effect {
+  dimension: Dimension["id"];
+  value: string;
+  reference: string;
+  cells: number;
+  score: Interval;
+  edge: Interval;
+  seconds: Interval;
+  tokens: Interval;
+  violations: Interval;
+  token_ratio: number | null;
+}
+
+export interface TrialCell {
+  id: number;
+  seq: number;
+  scenario_id: string;
+  arm_id: string;
+  trial: number;
+  status: "queued" | "running" | "done" | "error" | "cancelled";
+  started_at: string | null;
+  ended_at: string | null;
+  grade: Grade | null;
+  action: string | null;
+  error_kind: string | null;
+}
+
+export interface ScenarioArmCell {
+  score: number;
+  edge: number;
+  trials: { id: number; trial: number; grade: Grade; score: number; action: string; edge: number; return: number;
+    violations: number; tokens: number; seconds: number; error_kind: string | null }[];
+}
+
+export interface Experiment extends ExperimentListItem {
+  manifest: Record<string, unknown>;
+  arms: { arm_id: string; arm: Arm }[];
+  cells: TrialCell[];
+  summary: ArmSummary[];
+  scenarios: Record<string, Record<string, ScenarioArmCell>>;
+  effects: Effect[];
+  worker: WorkerState;
+  estimate: Estimate;
+}
+
+export interface LabOrder {
+  symbol: string;
+  side: "buy" | "sell";
+  quantity: number;
+  price: number | null;
+  status: "filled" | "rejected";
+  reason: string | null;
+  rationale: string;
+}
+
+export interface TrialGrades {
+  grade: Grade;
+  score: number;
+  action: string;
+  return: number;
+  edge: number;
+  attempts: number;
+  filled: number;
+  violations: number;
+  violation_reasons: string[];
+  completed: boolean;
+  error_kind: string | null;
+  model_calls: number;
+  tokens: number;
+  tokens_in: number;
+  tokens_out: number;
+  research_calls: number;
+  research_tokens: number;
+  searches: number;
+  tool_calls: number;
+  lookups: number;
+  loops: number;
+  recovered: number;
+  evidence_cited: boolean;
+  seconds: number;
+}
+
+export interface TrialDetail {
+  id: number;
+  experiment_id: string;
+  scenario_id: string;
+  arm_id: string;
+  arm: Arm;
+  trial: number;
+  status: TrialCell["status"];
+  trace_id: string | null;
+  started_at: string | null;
+  ended_at: string | null;
+  error: string | null;
+  result: { orders: LabOrder[]; lookups: string[]; cash: number; positions: Record<string, number>; output: string | null } | null;
+  grades: TrialGrades | null;
+  run: RunDetail | null;
+}
+
+async function send<T>(path: string, body?: unknown): Promise<T> {
+  const r = await fetch(path, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+  if (!r.ok) {
+    const detail = await r.json().catch(() => null);
+    throw new Error(typeof detail?.detail === "string" ? detail.detail : `${path} failed: ${r.status}`);
+  }
+  return r.json() as Promise<T>;
+}
+
+export function getLabCatalog(): Promise<LabCatalog> {
+  return get("/api/lab/catalog");
+}
+
+export function getExperiments(): Promise<ExperimentListItem[]> {
+  return get("/api/experiments");
+}
+
+export function getExperiment(id: string): Promise<Experiment> {
+  return get(`/api/experiments/${encodeURIComponent(id)}`);
+}
+
+export function getTrial(id: number): Promise<TrialDetail> {
+  return get(`/api/lab/trials/${id}`);
+}
+
+export function createExperiment(spec: ExperimentSpec): Promise<{ id: string; trials: number }> {
+  return send("/api/experiments", spec);
+}
+
+export function cancelExperiment(id: string): Promise<{ id: string }> {
+  return send(`/api/experiments/${encodeURIComponent(id)}/cancel`);
+}

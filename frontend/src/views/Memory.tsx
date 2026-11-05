@@ -25,6 +25,7 @@ const WINDOWS = [
   { id: "7d", label: "7 days", ms: 7 * DAY },
   { id: "1d", label: "24 hours", ms: DAY },
 ];
+const FIT_ZOOM = 1.25;
 const TRADERS = ["warren", "george", "ray", "cathie"];
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 const plural = (n: number, one: string, many = `${one}s`) => `${count(n)} ${n === 1 ? one : many}`;
@@ -250,7 +251,8 @@ function Graph({ trader, shown, selected, onSelect }: { trader: string; shown: S
             shape: "ellipse",
             width: "data(size)",
             height: "data(size)",
-            "background-color": ground,
+            "background-color": own,
+            "background-opacity": 0.28,
             "border-width": 2,
             "border-color": own,
             label: "data(label)",
@@ -264,9 +266,9 @@ function Graph({ trader, shown, selected, onSelect }: { trader: string; shown: S
             "text-wrap": "ellipsis",
           },
         },
-        { selector: "node.round-rectangle", style: { shape: "round-rectangle", "background-color": own } },
+        { selector: "node.round-rectangle", style: { shape: "round-rectangle", "background-opacity": 1 } },
         { selector: "node.diamond", style: { shape: "diamond" } },
-        { selector: "node.missing", style: { "border-style": "dashed", "border-color": muted } },
+        { selector: "node.missing", style: { "border-style": "dashed", "border-color": muted, "background-opacity": 0 } },
         { selector: "node:selected", style: { "border-width": 4, "border-color": ink } },
         {
           selector: "edge",
@@ -286,12 +288,17 @@ function Graph({ trader, shown, selected, onSelect }: { trader: string; shown: S
           },
         },
       ],
-      layout: { name: shown.nodes.length > 1 ? "cose" : "grid", animate: false, padding: 30, nodeRepulsion: () => 9000 } as cytoscape.LayoutOptions,
+      layout: { name: shown.nodes.length > 1 ? "cose" : "grid", animate: false, padding: 30, nodeRepulsion: () => 24000, idealEdgeLength: () => 110 } as cytoscape.LayoutOptions,
       minZoom: 0.3,
       maxZoom: 3,
       wheelSensitivity: 0.3,
       selectionType: "single",
     });
+    // A sparse graph fits by zooming in until two nodes fill the frame; keep it at reading size.
+    if (instance.zoom() > FIT_ZOOM) {
+      instance.zoom(FIT_ZOOM);
+      instance.center();
+    }
     instance.on("tap", "node", (e) => pick.current(e.target.id()));
     cy.current = instance;
     return () => instance.destroy();
@@ -349,7 +356,7 @@ function NodeList({ trader, shown, selected, onSelect }: { trader: string; shown
           </table>
         </div>
       ) : (
-        <p className="empty">No nodes{trader ? ` for ${cap(trader)}` : ""} in this window.</p>
+        <p className="empty">No nodes to list for {cap(trader)}.</p>
       )}
     </Panel>
   );
@@ -452,15 +459,9 @@ function NodePanel({ trader, node, desk }: { trader: string; node: string | null
               <ul className="relations">
                 {d.edges.map((e) => (
                   <li key={e.id}>
-                    {e.source === node ? (
-                      <>
-                        <span className="muted">{e.type}</span> <span className="ident">{e.target}</span>
-                      </>
-                    ) : (
-                      <>
-                        <span className="ident">{e.source}</span> <span className="muted">{e.type} this</span>
-                      </>
-                    )}
+                    <span className={e.source === node ? "muted" : "ident strong"}>{e.source}</span>
+                    <span className="muted">{e.type} →</span>
+                    <span className={e.target === node ? "muted" : "ident strong"}>{e.target}</span>
                   </li>
                 ))}
               </ul>

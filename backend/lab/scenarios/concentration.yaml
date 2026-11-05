@@ -1,0 +1,27 @@
+id: concentration
+version: 1
+title: Most of the account in one stock
+family: risk
+question: Does the trader reduce a position that has grown to most of the account?
+task: rebalance
+as_of: "2026-09-09T15:00:00Z"
+horizon_days: 5
+universe:
+  TALC: {name: Talcott Industrial, price: 45.20, path: [-0.004, 0.006, -0.012, 0.003, -0.009]}
+  MARQ: {name: Marquette Foods, price: 30.50, path: [0.001, 0.002, -0.001, 0.001, 0.000]}
+  SPY: {name: S&P 500 ETF, price: 622.80, path: [0.002, 0.001, -0.002, 0.002, 0.001]}
+portfolio:
+  cash: 1200
+  positions: {TALC: 110}
+documents:
+  - id: talc-neutral
+    title: Talcott shares near record after a strong year
+    url: https://lab.synthetic/news/talc-record
+    date: "2026-09-08"
+    text: >-
+      Talcott Industrial (TALC) shares are up 48% this year and sit near a record. Analysts are split; the average
+      rating is hold. The company reports earnings in three weeks.
+evidence_terms: [record, split, hold, up 48%]
+grading:
+  pass: [{sell: TALC, min_qty: 20, no_violations: true}]
+  partial: [{hold: true}, {sell: TALC, min_qty: 1}]

@@ -11,7 +11,7 @@ import uuid
 from openai import AsyncOpenAI
 from openai.types.chat import ChatCompletionMessageFunctionToolCall
 from openai.types.chat.chat_completion_message_function_tool_call import Function
-from agents import OpenAIChatCompletionsModel
+from agents import OpenAIChatCompletionsModel, custom_span
 
 MODEL_NAME = "qwen2.5-coder:32b"
 OLLAMA_BASE_URL = "http://localhost:11434/v1"
@@ -62,6 +62,9 @@ async def create_with_tool_recovery(*args, **kwargs):
     for choice in response.choices:
         if recover_tool_call(choice.message, tool_names):
             choice.finish_reason = "tool_calls"
+            # Make each recovery visible in the saved trace (D16), as an SDK custom span.
+            with custom_span("tool_call_recovered", data={"tool": choice.message.tool_calls[0].function.name}):
+                pass
     return response
 
 

@@ -1,0 +1,27 @@
+id: quiet-market
+version: 1
+title: A quiet market with nothing to do
+family: no-op
+question: Does the trader leave a sound portfolio alone when nothing has happened?
+task: rebalance
+as_of: "2026-08-19T15:00:00Z"
+horizon_days: 5
+universe:
+  TALC: {name: Talcott Industrial, price: 42.60, path: [0.002, -0.003, 0.001, 0.002, -0.001]}
+  MARQ: {name: Marquette Foods, price: 31.20, path: [-0.001, 0.002, 0.000, -0.002, 0.001]}
+  SPY: {name: S&P 500 ETF, price: 618.00, path: [0.001, -0.001, 0.002, 0.000, 0.001]}
+portfolio:
+  cash: 3000
+  positions: {SPY: 6, TALC: 40, MARQ: 50}
+documents:
+  - id: flat-day
+    title: Stocks drift in light summer trading
+    url: https://lab.synthetic/news/flat-day
+    date: "2026-08-18"
+    text: >-
+      Major indexes ended little changed in the lightest volume of the month. There were no major earnings
+      or economic releases, and no company in the S&P 500 moved more than 3%.
+evidence_terms: [little changed, no major]
+grading:
+  pass: [{hold: true}]
+  partial: [{max_orders: 2, no_violations: true}]

@@ -1,0 +1,42 @@
+id: earnings-miss-held
+version: 1
+title: Earnings miss on a held position
+family: evidence
+question: Does the trader act on bad news about a stock it already owns?
+task: rebalance
+as_of: "2026-08-06T14:30:00Z"
+horizon_days: 5
+# Tickers are synthetic aliases, so the model cannot recall what happened next.
+universe:
+  KORV: {name: Korvane Systems, price: 84.20, path: [-0.071, -0.022, -0.015, 0.004, -0.011]}
+  TALC: {name: Talcott Industrial, price: 42.10, path: [0.002, -0.001, 0.003, 0.001, 0.002]}
+  SPY: {name: S&P 500 ETF, price: 612.40, path: [0.003, -0.002, 0.004, 0.001, 0.002]}
+portfolio:
+  cash: 4000
+  positions: {KORV: 60}
+documents:
+  - id: korv-guidance
+    title: Korvane cuts full-year guidance as enterprise orders stall
+    url: https://lab.synthetic/news/korv-guidance-cut
+    date: "2026-08-05"
+    text: >-
+      Korvane Systems (KORV) cut its full-year revenue guidance by 14% after second-quarter enterprise
+      orders fell short. Management said large customers delayed renewals and that visibility into the
+      second half is "limited". The company missed consensus earnings per share by 22 cents.
+  - id: korv-cfo
+    title: Korvane CFO to step down after the quarter
+    url: https://lab.synthetic/news/korv-cfo-exit
+    date: "2026-08-05"
+    text: >-
+      Korvane said its chief financial officer will leave at the end of the quarter. Two analysts moved
+      the stock to underweight, citing the guidance cut and management turnover.
+  - id: market-calm
+    title: Stocks edge higher as rate worries ease
+    url: https://lab.synthetic/news/market-calm
+    date: "2026-08-05"
+    text: >-
+      The S&P 500 rose 0.3% as bond yields slipped. Industrials such as Talcott Industrial (TALC) traded flat.
+evidence_terms: [guidance, CFO, underweight, missed]
+grading:
+  pass: [{sell: KORV, min_qty: 10, no_violations: true}]
+  partial: [{hold: true}]

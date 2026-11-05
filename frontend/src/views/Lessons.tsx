@@ -7,7 +7,7 @@
 import { useMemo } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { getLessons, type Lesson, type LessonsPayload, type PendingReview } from "../api";
+import { getLessons, getTraders, type Lesson, type LessonsPayload, type PendingReview } from "../api";
 import { Change, Failed, Loading, PageHeader, Panel, Ratio, TraderName } from "../components/bits";
 import { useDesk, type Desk } from "../lib/desk";
 import { fillPnl } from "../lib/research";
@@ -27,6 +27,8 @@ export function Lessons() {
     refetchInterval: LESSONS_POLL_MS,
   });
   const { desk } = useDesk();
+  const roster = useQuery({ queryKey: ["traders"], queryFn: getTraders, staleTime: Infinity });
+  const traders = roster.data?.map((t) => t.name.toLowerCase()) ?? [];
   const setTrader = (t: string | null) => setParams(t ? { trader: t } : {});
 
   return (
@@ -37,19 +39,16 @@ export function Lessons() {
         finding={<Finding data={lessons.data} trader={trader} />}
         aside={lessons.dataUpdatedAt > 0 && <p className="fresh num">Updated {time(lessons.dataUpdatedAt)} · every 30 s</p>}
       />
-      {desk && (
+      {traders.length > 0 && (
         <div className="segmented filter" role="group" aria-label="Trader">
           <button aria-pressed={!trader} onClick={() => setTrader(null)}>
             Whole desk
           </button>
-          {desk.books.map((b) => {
-            const n = b.trader.name.toLowerCase();
-            return (
-              <button key={n} aria-pressed={trader === n} onClick={() => setTrader(n)}>
-                <TraderName name={n} />
-              </button>
-            );
-          })}
+          {traders.map((n) => (
+            <button key={n} aria-pressed={trader === n} onClick={() => setTrader(n)}>
+              <TraderName name={n} />
+            </button>
+          ))}
         </div>
       )}
       {lessons.error && <Failed what="the lessons" error={lessons.error as Error} />}
@@ -73,12 +72,12 @@ export function Lessons() {
           </Panel>
           <div className="stack">
             <Panel title="By trader" id="by-trader">
-              <ByTrader lessons={lessons.data.lessons} traders={desk?.books.map((b) => b.trader.name.toLowerCase()) ?? []} trader={trader} />
+              <ByTrader lessons={lessons.data.lessons} traders={traders} trader={trader} />
             </Panel>
             <Panel
               title="Waiting for review"
               id="pending"
-              meta={<span className="num">{lessons.data.horizons.map((h) => `${h} d`).join(" and ")} after the trade</span>}
+              meta={<span>at {lessons.data.horizons.join(" and ")} days</span>}
             >
               <Pending pending={lessons.data.pending} />
             </Panel>
@@ -110,7 +109,7 @@ function Finding({ data, trader }: { data?: LessonsPayload; trader: string | nul
   return (
     <>
       {who} has {plural(lessons.length, "lesson")}: {count(lessons.length - mistakes)} from successes, {count(mistakes)} from
-      mistakes. {contradicted ? `${count(contradicted)} no longer hold; a later trade pointed the other way. ` : ""}
+      mistakes. {contradicted ? `${plural(contradicted, "no longer holds", "no longer hold")}; a later trade pointed the other way. ` : ""}
       {recalled
         ? `${plural(recalled, "lesson was", "lessons were")} recalled before trading.`
         : "None has been recalled before a trade yet."}
@@ -248,8 +247,6 @@ function ByTrader({ lessons, traders, trader }: { lessons: Lesson[]; traders: st
     return {
       trader: t,
       total: own.length,
-      success: own.filter((l) => l.kind === "success").length,
-      mistake: own.filter((l) => l.kind === "mistake").length,
       contradicted: own.filter((l) => l.contradicted_by !== null).length,
       recalled: own.reduce((s, l) => s + l.recalled_count, 0),
     };
@@ -261,10 +258,8 @@ function ByTrader({ lessons, traders, trader }: { lessons: Lesson[]; traders: st
           <tr>
             <th scope="col">Trader</th>
             <th scope="col" className="num">Lessons</th>
-            <th scope="col" className="num">Successes</th>
-            <th scope="col" className="num">Mistakes</th>
-            <th scope="col" className="num">No longer hold</th>
-            <th scope="col" className="num">Recalls</th>
+            <th scope="col" className="num">Overturned</th>
+            <th scope="col" className="num">Recalled</th>
           </tr>
         </thead>
         <tbody>
@@ -274,15 +269,16 @@ function ByTrader({ lessons, traders, trader }: { lessons: Lesson[]; traders: st
                 <TraderName name={r.trader} />
               </th>
               <td className="num strong">{count(r.total)}</td>
-              <td className="num">{count(r.success)}</td>
-              <td className="num">{count(r.mistake)}</td>
               <td className="num">{count(r.contradicted)}</td>
               <td className="num">{count(r.recalled)}</td>
             </tr>
           ))}
         </tbody>
       </table>
-      <p className="note">Recalls count memory reads that returned a lesson before the run's first order.</p>
+      <p className="note">
+        Overturned: a later lesson on the same symbol or pattern pointed the other way. Recalled: memory reads that returned
+        a lesson before the run's first order.
+      </p>
     </div>
   );
 }

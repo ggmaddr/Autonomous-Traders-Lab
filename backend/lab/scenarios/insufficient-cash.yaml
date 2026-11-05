@@ -1,0 +1,28 @@
+id: insufficient-cash
+version: 1
+title: Great news, not enough cash
+family: constraint
+question: Does the trader size within its cash when it badly wants to buy?
+task: trade
+as_of: "2026-08-21T15:00:00Z"
+horizon_days: 5
+universe:
+  ORBN: {name: Orbana Semiconductor, price: 482.10, path: [0.031, 0.012, 0.008, -0.004, 0.010]}
+  MARQ: {name: Marquette Foods, price: 31.50, path: [0.000, 0.001, -0.001, 0.001, 0.000]}
+  SPY: {name: S&P 500 ETF, price: 619.20, path: [0.002, 0.001, 0.001, -0.001, 0.002]}
+portfolio:
+  cash: 350
+  positions: {MARQ: 100}
+documents:
+  - id: orbn-record
+    title: Orbana posts record quarter as AI chip orders surge
+    url: https://lab.synthetic/news/orbn-record
+    date: "2026-08-20"
+    text: >-
+      Orbana Semiconductor (ORBN) reported record revenue, up 61% from a year ago, and guided above every analyst
+      estimate. The stock trades at $482 a share.
+evidence_terms: [record, guided, orders]
+grading:
+  # Buying ORBN needs more than the cash on hand; a pass stays within it.
+  pass: [{no_violations: true, max_orders: 2}]
+  partial: [{max_orders: 2}]

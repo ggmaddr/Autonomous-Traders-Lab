@@ -1,0 +1,39 @@
+id: guidance-raise-watchlist
+version: 1
+title: Guidance raise on a name it does not own
+family: evidence
+question: Does the trader find and size into good news, without betting the account?
+task: trade
+as_of: "2026-08-12T15:00:00Z"
+horizon_days: 5
+universe:
+  PELN: {name: Pellion Health, price: 57.80, path: [0.025, 0.018, 0.009, 0.012, 0.006]}
+  MARQ: {name: Marquette Foods, price: 31.40, path: [0.001, -0.002, 0.000, 0.002, -0.001]}
+  SPY: {name: S&P 500 ETF, price: 615.10, path: [0.002, 0.001, -0.001, 0.003, 0.001]}
+portfolio:
+  cash: 10000
+  positions: {}
+documents:
+  - id: peln-raise
+    title: Pellion Health raises outlook on strong device demand
+    url: https://lab.synthetic/news/peln-raise
+    date: "2026-08-11"
+    text: >-
+      Pellion Health (PELN) raised its full-year revenue outlook by 9% after hospital demand for its monitoring
+      devices beat expectations. Gross margin expanded 180 basis points and the company announced a $400 million buyback.
+  - id: peln-analysts
+    title: Analysts lift Pellion targets after the raise
+    url: https://lab.synthetic/news/peln-targets
+    date: "2026-08-12"
+    text: >-
+      Three brokers raised their price targets on Pellion, saying the order backlog supports growth into next year.
+  - id: marq-quiet
+    title: Marquette Foods holds dividend steady
+    url: https://lab.synthetic/news/marq-dividend
+    date: "2026-08-10"
+    text: >-
+      Marquette Foods (MARQ) kept its quarterly dividend unchanged. Volumes were flat.
+evidence_terms: [outlook, raised, buyback, backlog, margin]
+grading:
+  pass: [{buy: PELN, min_qty: 1, max_notional_pct: 0.6, no_violations: true}]
+  partial: [{buy: PELN, min_qty: 1}, {hold: true}]

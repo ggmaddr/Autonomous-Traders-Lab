@@ -1,7 +1,7 @@
 // App entry: server-state cache, routes, and the shell around every view. The
 // trading floor runs on its own; this only reads the API.
 
-import { StrictMode } from "react";
+import { StrictMode, Suspense, lazy } from "react";
 import { createRoot } from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
@@ -14,10 +14,14 @@ import { Trades } from "./views/Trades";
 import { Researcher } from "./views/Researcher";
 import { Decisions } from "./views/Decisions";
 import { Lessons } from "./views/Lessons";
-import { Memory } from "./views/Memory";
+import { Experiments } from "./views/Experiments";
 import { Coming } from "./views/Coming";
+import { Loading } from "./components/bits";
 import { Health } from "./views/Health";
 import { NAV } from "./nav";
+
+// The memory graph brings Cytoscape; only its own view loads it.
+const Memory = lazy(() => import("./views/Memory").then((m) => ({ default: m.Memory })));
 
 const queries = new QueryClient({ defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: false } } });
 
@@ -35,10 +39,18 @@ createRoot(document.getElementById("root")!).render(
               <Route path="researcher" element={<Researcher />} />
               <Route path="decisions" element={<Decisions />} />
               <Route path="lessons" element={<Lessons />} />
-              <Route path="memory" element={<Memory />} />
+              <Route
+                path="memory"
+                element={
+                  <Suspense fallback={<Loading rows={8} />}>
+                    <Memory />
+                  </Suspense>
+                }
+              />
               {coming.map((item) => (
                 <Route key={item.path} path={item.path.slice(1)} element={<Coming item={item} />} />
               ))}
+              <Route path="experiments" element={<Experiments />} />
               <Route path="health" element={<Health />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Route>

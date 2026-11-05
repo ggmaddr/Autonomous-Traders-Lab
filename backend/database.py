@@ -221,6 +221,7 @@ def read_researcher_trace_ids(trader: str | None = None, limit: int = 200) -> li
             SELECT s.trace_id, MAX(s.started_at) AS t FROM spans s
             WHERE json_extract(s.export, '$.span_data.type') = 'function'
               AND json_extract(s.export, '$.span_data.name') = 'Researcher'
+              AND s.trace_id NOT LIKE 'trace_lab0%'
         '''
         args: tuple = ()
         if trader:

@@ -93,6 +93,15 @@ def _reviewed(trader: str) -> dict[tuple, int]:
     return done
 
 
+_spy_now: list[float | None] = []  # one SPY quote per review pass; Massive's free tier allows 5 calls a minute
+
+
+def _benchmark_now() -> float | None:
+    if not _spy_now:
+        _spy_now.append(quote(BENCHMARK))
+    return _spy_now[0]
+
+
 def outcome(decision: dict) -> dict | None:
     """None when the symbol has no price now; the review then waits for the next cycle.
     A missing SPY price leaves only the benchmark empty."""
@@ -101,7 +110,7 @@ def outcome(decision: dict) -> dict | None:
         return None
     move = now_price / decision["price"] - 1
     spy_then = price_at(BENCHMARK, decision["at"])
-    spy_now = quote(BENCHMARK) if spy_then else None
+    spy_now = _benchmark_now() if spy_then else None
     return {
         "price_now": now_price,
         "return": move if decision["side"] == "buy" else -move,
@@ -202,17 +211,28 @@ async def write_lessons(decision: dict, horizon: int, cycle_id: str | None) -> l
     return ids
 
 
+def stance(lesson: dict) -> int:
+    """What a lesson says about its symbol: +1 if it rose (a buy that worked, a sell
+    that was a mistake), -1 if it fell."""
+    worked = lesson["kind"] == "success"
+    return 1 if worked == (lesson["side"] == "buy") else -1
+
+
+def points_other_way(earlier: dict, later: dict) -> bool:
+    """On the same symbol, the stances differ; on the same pattern, the verdicts differ.
+    "other" is not a pattern, so it only matches on symbol."""
+    if earlier["symbol"] == later["symbol"] and stance(earlier) != stance(later):
+        return True
+    return later["pattern"] != "other" and earlier["pattern"] == later["pattern"] and earlier["kind"] != later["kind"]
+
+
 def contradict(trader: str, lesson_id: int):
-    """A lesson about the same symbol or pattern that points the other way marks the
-    earlier ones contradicted. "other" is not a pattern, so it only matches on symbol."""
+    """A lesson that points the other way from earlier ones marks them contradicted."""
     lessons = read_lessons(trader)
     new = next(l for l in lessons if l["id"] == lesson_id)
     earlier = [
         l for l in lessons
-        if l["id"] < lesson_id
-        and l["kind"] != new["kind"]
-        and l["contradicted_by"] is None
-        and (l["symbol"] == new["symbol"] or (l["pattern"] == new["pattern"] and new["pattern"] != "other"))
+        if l["id"] < lesson_id and l["contradicted_by"] is None and points_other_way(l, new)
     ]
     if not earlier:
         return
@@ -244,6 +264,7 @@ async def review(traders: list[str], cycle_id: str | None = None) -> int:
     """Review every decision that is due, then refresh the recall counts."""
     now = datetime.now(timezone.utc)
     written = 0
+    _spy_now.clear()
     for trader in traders:
         reviewed = _reviewed(trader)
         for decision in decisions(trader):

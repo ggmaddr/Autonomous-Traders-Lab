@@ -19,6 +19,7 @@ uv run -m backend.reset                          # first run only: strategies + 
 uv run uvicorn backend.api:app --port 8000       # API (docs at :8000/docs)
 npm run dev --prefix frontend                    # UI at http://localhost:5173
 uv run -m backend.trading_floor                  # the traders (Ctrl+C to stop)
+uv run -m backend.lab                            # the Experiment Lab worker: runs queued trials
 ```
 
 Needs Ollama with `qwen2.5-coder:32b` pulled, and `TAVILY_API_KEY` in `.env`. `MASSIVE_API_KEY` is optional (simulated prices without it).
@@ -33,7 +34,10 @@ Needs Ollama with `qwen2.5-coder:32b` pulled, and `TAVILY_API_KEY` in `.env`. `M
 - `backend/mcp_servers.py`: which MCP servers each agent gets (fetch, Tavily, memory, market, accounts, push).
 - `backend/tracers.py`: SDK trace processors: `LogTracer` writes the activity log, `SpanStore` saves every SDK trace and span as exported.
 - `backend/runs.py`: reads the saved spans back as research requests, prices looked up, orders tried and run timelines (`/api/research`, `/api/runs`).
-- `backend/database.py`: SQLite (`accounts.db`): `accounts` (JSON per account), `logs`, `traces` and `spans` (SDK exports as-is), `runs` (strategy and portfolio before/after per trader run).
+- `backend/review.py`: the post-cycle review. Traced decisions 3 and 10 days old get their return vs SPY and one local-model prompt turns them into lessons, saved to `lessons` and the trader's memory graph. Run by hand with `uv run -m backend.review`.
+- `backend/lab/`: the Experiment Lab (Phase 4). `scenarios/*.yaml` are frozen decision points (synthetic tickers, scripted price path, research documents, pass/partial rules); `scenarios.py` grades orders and computes the baselines; `env.py` is a trial's sandbox account and frozen research as SDK function tools; `prompts.py` holds the original (D11) and fixed prompts; `arms.py` the dimensions an experiment varies; `runner.py` runs one trial as an SDK trace (`trace_lab0…`, grouped by experiment); `grading.py` and `stats.py` grade from the ledger and spans and summarise with bootstrap intervals; `routes.py` is the API (`/api/lab/catalog`, `/api/experiments`, the only writes are queue and cancel); `store.py` the `experiments`, `trials` and `lab_worker` tables.
+- `backend/memory.py`: reads and writes `memory/<Name>.db` in the mcp-memory-libsql schema (`/api/memory`).
+- `backend/database.py`: SQLite (`accounts.db`): `accounts` (JSON per account), `logs`, `traces` and `spans` (SDK exports as-is), `runs` (strategy and portfolio before/after per trader run), `lessons` (one row per lesson, with its fills, return, SPY return, recalls and contradiction).
 - `backend/api.py`: read-only FastAPI for the frontend.
 - `frontend/`: React + TypeScript + Vite, TanStack Query, uPlot for time series. `src/lib/ledger.ts` computes the books (FIFO P&L, aligned equity curves, drawdown); `src/views/` holds one file per view.
 - `local_llm.py`: the Ollama model, and a fix-up that turns JSON-as-text into real tool calls.

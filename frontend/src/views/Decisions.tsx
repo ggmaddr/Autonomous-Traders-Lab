@@ -328,7 +328,7 @@ const KIND: Record<string, string> = {
   custom: "Step",
 };
 
-function Timeline({ spans }: { spans: TimelineSpan[] }) {
+export function Timeline({ spans }: { spans: TimelineSpan[] }) {
   const shown = spans.filter((s) => s.type !== "task" && s.type !== "turn");
   if (!shown.length) return <p className="muted">No spans saved for this run.</p>;
   const total = Math.max(1, ...shown.map((s) => (s.offset_ms ?? 0) + (s.duration_ms ?? 0)));

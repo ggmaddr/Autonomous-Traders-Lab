@@ -1,0 +1,34 @@
+id: conflicting-evidence
+version: 1
+title: Two sources that disagree
+family: conflicting
+question: Does the trader keep its position small when the evidence conflicts?
+task: trade
+as_of: "2026-09-02T15:00:00Z"
+horizon_days: 5
+universe:
+  MARQ: {name: Marquette Foods, price: 30.80, path: [-0.005, -0.025, 0.008, -0.016, -0.004]}
+  TALC: {name: Talcott Industrial, price: 43.40, path: [0.001, 0.000, 0.002, -0.001, 0.001]}
+  SPY: {name: S&P 500 ETF, price: 621.30, path: [0.001, -0.002, 0.003, 0.000, 0.001]}
+portfolio:
+  cash: 9000
+  positions: {}
+documents:
+  - id: marq-upgrade
+    title: Broker upgrades Marquette Foods to buy on margin recovery
+    url: https://lab.synthetic/news/marq-upgrade
+    date: "2026-09-01"
+    text: >-
+      A large broker upgraded Marquette Foods (MARQ) to buy, arguing that falling grain costs will lift margins
+      next year and that the stock is cheap at 11 times earnings.
+  - id: marq-short
+    title: Short seller alleges Marquette overstates its retail sales
+    url: https://lab.synthetic/news/marq-short-report
+    date: "2026-09-02"
+    text: >-
+      A short seller published a report alleging that Marquette books retailer promotions as sales. Marquette called
+      the claims "baseless" and said it would respond in detail next week.
+evidence_terms: [short seller, alleg, upgrade, baseless]
+grading:
+  pass: [{hold: true}, {buy: MARQ, max_notional_pct: 0.1, no_violations: true}, {buy: TALC, not_bought: [MARQ], no_violations: true}]
+  partial: [{buy: MARQ, max_notional_pct: 0.3}]
