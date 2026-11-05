@@ -8,7 +8,7 @@ import uPlot from "uplot";
 import type { Curves } from "../lib/ledger";
 import { INITIAL_BALANCE } from "../lib/ledger";
 import { cssColor, hue } from "../lib/traders";
-import { money, signedPct, stamp } from "../lib/format";
+import { money, shortDay, signedPct, stamp, time } from "../lib/format";
 import { useTheme } from "../lib/theme";
 
 export type Mode = "traders" | "desk";
@@ -55,11 +55,43 @@ function spread(labels: EndLabel[], height: number, gap = 18): EndLabel[] {
   return sorted;
 }
 
+const IDLE = 6 * 3600;
+
+/**
+ * The engine runs in sessions with days off between them. Fold every idle
+ * stretch longer than six hours into a short break, so the sessions where the
+ * traders acted get the width; each break is marked on the chart.
+ */
+function foldIdle(times: number[]) {
+  const active = times.slice(1).reduce((s, t, i) => s + (t - times[i] <= IDLE ? t - times[i] : 0), 0);
+  const brk = Math.max(active * 0.06, 1200);
+  const xs = [0];
+  const breaks: number[] = [];
+  const starts = [0];
+  for (let i = 1; i < times.length; i++) {
+    const dt = times[i] - times[i - 1];
+    if (dt > IDLE) {
+      breaks.push(xs[i - 1] + brk / 2);
+      starts.push(i);
+    }
+    xs.push(xs[i - 1] + (dt > IDLE ? brk : dt));
+  }
+  return { xs, breaks, starts };
+}
+
+function sessionLabel(times: number[], starts: number[], k: number): string {
+  const t = times[starts[k]] * 1000;
+  if (starts[k] === times.length - 1 && k > 0) return "Now";
+  const prev = k > 0 ? times[starts[k - 1]] * 1000 : null;
+  return prev === null || shortDay(prev) !== shortDay(t) ? shortDay(t) : time(t);
+}
+
 export function EquityChart({ curves, traders, mode }: Props) {
   const equityRef = useRef<HTMLDivElement>(null);
   const ddRef = useRef<HTMLDivElement>(null);
   const { theme } = useTheme();
   const [labels, setLabels] = useState<EndLabel[]>([]);
+  const [gutters, setGutters] = useState({ left: 76, right: LABEL_W });
   const [hover, setHover] = useState<{ t: number; rows: { key: string; colour: string; value: number }[] } | null>(
     null,
   );
@@ -71,7 +103,7 @@ export function EquityChart({ curves, traders, mode }: Props) {
     const muted = cssColor("--muted");
     const grid = cssColor("--grid");
     const negative = cssColor("--negative");
-    const font = `12px Geist, system-ui, sans-serif`;
+    const font = `12px "JetBrains Mono", ui-monospace, monospace`;
 
     const lines =
       mode === "traders"
@@ -82,8 +114,17 @@ export function EquityChart({ curves, traders, mode }: Props) {
     const ticks = roundTicks(Math.min(...all), Math.max(...all), 4);
     const stepped = uPlot.paths.stepped!({ align: 1 });
     const width = host.clientWidth;
+    const narrow = width < 520;
+    const labelW = narrow ? 70 : LABEL_W;
+    const ySize = narrow ? 52 : 76;
+    setGutters({ left: ySize, right: labelW });
+    const yLabel = (v: number) =>
+      narrow ? "$" + (v / 1000).toFixed(v % 1000 ? 1 : 0) + "k" : "$" + Math.round(v).toLocaleString("en-US");
     const sync = uPlot.sync("equity");
 
+    const control = cssColor("--control");
+    const { xs, breaks, starts } = foldIdle(curves.times);
+    const splitXs = starts.map((i) => xs[i]);
     const axisX = {
       stroke: muted,
       font,
@@ -91,13 +132,39 @@ export function EquityChart({ curves, traders, mode }: Props) {
       ticks: { show: false },
       gap: 6,
       size: 28,
+      splits: () => splitXs,
+      // A label is dropped when it would touch the one before it.
+      values: (u: uPlot, vals: number[]) => {
+        let lastPx = -Infinity;
+        return vals.map((v, k) => {
+          const px = u.valToPos(v, "x");
+          if (px - lastPx < 64) return "";
+          lastPx = px;
+          return sessionLabel(curves.times, starts, k);
+        });
+      },
+    };
+    const markBreaks = (u: uPlot) => {
+      const ctx = u.ctx;
+      ctx.save();
+      ctx.strokeStyle = control;
+      ctx.lineWidth = devicePixelRatio;
+      ctx.setLineDash([3 * devicePixelRatio, 3 * devicePixelRatio]);
+      for (const b of breaks) {
+        const x = Math.round(u.valToPos(b, "x", true));
+        ctx.beginPath();
+        ctx.moveTo(x, u.bbox.top);
+        ctx.lineTo(x, u.bbox.top + u.bbox.height);
+        ctx.stroke();
+      }
+      ctx.restore();
     };
 
     const equity = new uPlot(
       {
         width,
         height: EQUITY_H,
-        padding: [12, LABEL_W, 0, 0],
+        padding: [12, labelW, 8, 0],
         legend: { show: false },
         cursor: {
           sync: { key: sync.key },
@@ -105,18 +172,18 @@ export function EquityChart({ curves, traders, mode }: Props) {
           y: false,
           drag: { x: false, y: false },
         },
-        scales: { x: { time: true }, y: { range: () => [ticks[0], ticks[ticks.length - 1]] } },
+        scales: { x: { time: false }, y: { range: () => [ticks[0], ticks[ticks.length - 1]] } },
         axes: [
           { ...axisX, show: false },
           {
             stroke: muted,
             font,
-            size: 76,
+            size: ySize,
             gap: 8,
             grid: { stroke: grid, width: 1 },
             ticks: { show: false },
             splits: () => ticks,
-            values: (_u, vals) => vals.map((v) => "$" + Math.round(v).toLocaleString("en-US")),
+            values: (_u, vals) => vals.map(yLabel),
           },
         ],
         series: [
@@ -142,6 +209,7 @@ export function EquityChart({ curves, traders, mode }: Props) {
             },
           ],
           draw: [
+            markBreaks,
             (u) => {
               const h = u.bbox.height / devicePixelRatio;
               const top0 = u.bbox.top / devicePixelRatio;
@@ -165,7 +233,7 @@ export function EquityChart({ curves, traders, mode }: Props) {
           ],
         },
       },
-      [curves.times, ...lines.map((l) => l.values), curves.times.map(() => lines[0].base)],
+      [xs, ...lines.map((l) => l.values), xs.map(() => lines[0].base)],
       host,
     );
 
@@ -175,16 +243,17 @@ export function EquityChart({ curves, traders, mode }: Props) {
       {
         width,
         height: DD_H,
-        padding: [6, LABEL_W, 0, 0],
+        padding: [6, labelW, 0, 0],
         legend: { show: false },
         cursor: { sync: { key: sync.key }, points: { show: false }, y: false, drag: { x: false, y: false } },
-        scales: { x: { time: true }, y: { range: () => [ddTicks[0], 0] } },
+        scales: { x: { time: false }, y: { range: () => [ddTicks[0], 0] } },
+        hooks: { draw: [markBreaks] },
         axes: [
           axisX,
           {
             stroke: muted,
             font,
-            size: 76,
+            size: ySize,
             gap: 8,
             grid: { stroke: grid, width: 1 },
             ticks: { show: false },
@@ -204,7 +273,7 @@ export function EquityChart({ curves, traders, mode }: Props) {
           },
         ],
       },
-      [curves.times, curves.drawdown],
+      [xs, curves.drawdown],
       ddHost,
     );
 
@@ -240,13 +309,13 @@ export function EquityChart({ curves, traders, mode }: Props) {
       </p>
       <div className="equity-plot" ref={equityRef} role="img" aria-label="Equity over time for each trader, against the funded amount">
         {labels.map((l) => (
-          <span key={l.key} className="end-label" style={{ top: l.top }}>
+          <span key={l.key} className="end-label" style={{ top: l.top, width: gutters.right - 10 }}>
             <span className="swatch" style={{ background: l.colour }} aria-hidden="true" />
-            {l.text} <span className="num">{l.value}</span>
+            {l.text} {gutters.right >= LABEL_W && <span className="num">{l.value}</span>}
           </span>
         ))}
       </div>
-      <div className="dd-head">
+      <div className="dd-head" style={{ marginLeft: gutters.left, marginRight: gutters.right }}>
         <span>Desk drawdown from its peak</span>
         <span className="num">Worst {worst < 0 ? signedPct(worst, 2) : "0.00%"}</span>
       </div>

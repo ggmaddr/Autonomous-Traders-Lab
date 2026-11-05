@@ -20,6 +20,7 @@ export interface Fill {
   price: number; // fill price, spread included
   time: number; // ms
   rationale: string;
+  traceId: string | null; // the agent run behind it; null before Phase 2 tracing
   spread: number; // dollars paid to the spread on this fill
   // Set on sells: the lots this fill closed.
   realized?: number;
@@ -79,6 +80,7 @@ export function buildBook(trader: TraderDetail): Book {
       price: t.price,
       time: parseStamp(t.timestamp),
       rationale: t.rationale,
+      traceId: t.trace_id ?? null,
       spread: spreadOf(side, quantity, t.price),
     };
     const open = lots.get(t.symbol) ?? [];
@@ -173,19 +175,21 @@ export interface Suspect {
 const SPIKE = 0.2;
 
 function dropSpikes(name: string, pts: { t: number; v: number }[], suspect: Suspect[]) {
-  return pts.filter((p, i) => {
-    const prev = pts[i - 1];
+  const kept: { t: number; v: number }[] = [];
+  pts.forEach((p, i) => {
+    const prev = kept[kept.length - 1];
     const next = pts[i + 1];
-    if (!prev || !next) return true;
-    const level = (prev.v + next.v) / 2;
-    const jumps = Math.abs(p.v / prev.v - 1) > SPIKE && Math.abs(p.v / next.v - 1) > SPIKE;
-    const neighboursAgree = Math.abs(next.v / prev.v - 1) < SPIKE / 4;
-    if (jumps && neighboursAgree) {
-      suspect.push({ trader: name, time: p.t, value: p.v, around: level });
-      return false;
+    if (prev && next) {
+      const jumps = Math.abs(p.v / prev.v - 1) > SPIKE && Math.abs(p.v / next.v - 1) > SPIKE;
+      const neighboursAgree = Math.abs(next.v / prev.v - 1) < SPIKE / 4;
+      if (jumps && neighboursAgree) {
+        suspect.push({ trader: name, time: p.t, value: p.v, around: (prev.v + next.v) / 2 });
+        return;
+      }
     }
-    return true;
+    kept.push(p);
   });
+  return kept;
 }
 
 /**

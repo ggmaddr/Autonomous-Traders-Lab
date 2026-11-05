@@ -31,10 +31,11 @@ Needs Ollama with `qwen2.5-coder:32b` pulled, and `TAVILY_API_KEY` in `.env`. `M
 - `backend/accounts.py`, `accounts_server.py`, `accounts_client.py`: the account model and its MCP server.
 - `backend/market.py`, `market_server.py`, `market_simulator.py`: prices from Massive, or the deterministic simulator.
 - `backend/mcp_servers.py`: which MCP servers each agent gets (fetch, Tavily, memory, market, accounts, push).
-- `backend/tracers.py`: SDK trace processor that writes the activity log.
-- `backend/database.py`: SQLite (`accounts.db`): `accounts` (JSON per account) and `logs`.
+- `backend/tracers.py`: SDK trace processors: `LogTracer` writes the activity log, `SpanStore` saves every SDK trace and span as exported.
+- `backend/runs.py`: reads the saved spans back as research requests, prices looked up, orders tried and run timelines (`/api/research`, `/api/runs`).
+- `backend/database.py`: SQLite (`accounts.db`): `accounts` (JSON per account), `logs`, `traces` and `spans` (SDK exports as-is), `runs` (strategy and portfolio before/after per trader run).
 - `backend/api.py`: read-only FastAPI for the frontend.
-- `frontend/`: Vite + TypeScript + uPlot dashboard.
+- `frontend/`: React + TypeScript + Vite, TanStack Query, uPlot for time series. `src/lib/ledger.ts` computes the books (FIFO P&L, aligned equity curves, drawdown); `src/views/` holds one file per view.
 - `local_llm.py`: the Ollama model, and a fix-up that turns JSON-as-text into real tool calls.
 - `memory/<name>.db`: each researcher's knowledge graph (entities, relations, observations).
 
@@ -45,7 +46,7 @@ Needs Ollama with `qwen2.5-coder:32b` pulled, and `TAVILY_API_KEY` in `.env`. `M
 - **Keep the pinned pair** `openai` 2.34.x and `openai-agents` 0.15.x in `pyproject.toml`. Newer `openai` breaks this SDK version.
 - **Never send money to a live broker.** Alpaca work uses the paper URL only.
 - Before changing behavior, check the known defects in §1.4 of the plan (D1–D16). Some put wrong numbers on screen, for example the made-up price for unknown tickers (D1).
-- Match the surrounding code style. The frontend is plain TypeScript today; the plan moves it to React in Phase 1.
+- Match the surrounding code style. The frontend is React (Phase 1); unbuilt views are listed in `frontend/src/nav.ts` with their phase.
 
 ## UI work
 
@@ -55,3 +56,4 @@ Two UI skills live next to this repo. Use them for any frontend change:
 - **ui-ux-pro-max** (`../ui-ux-pro-max-skill/.claude/skills/ui-ux-pro-max/SKILL.md`): accessibility, chart choice and React guidance, via `python3 ../ui-ux-pro-max-skill/.claude/skills/ui-ux-pro-max/scripts/search.py "<query>" --domain <domain>`.
 - When they disagree, taste-skill decides the look and ui-ux-pro-max decides accessibility. No monospace outside code, no glows, gradients or icon-tile KPIs.
 - Put colour on data, especially P&L, not on chrome. Every screen answers one question first.
+- Page titles stay big (the owner wants them even bigger, never smaller). Ignore taste-skill's `app-title-size` warning.

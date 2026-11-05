@@ -10,12 +10,14 @@
   },
   "dependencies": {
     "@tanstack/react-query": "^5.59.20",
+    "cytoscape": "^3.30.4",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^6.28.0",
     "uplot": "^1.6.32"
   },
   "devDependencies": {
+    "@types/cytoscape": "^3.21.9",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
     "@vitejs/plugin-react": "^4.3.4",

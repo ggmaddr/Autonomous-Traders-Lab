@@ -69,7 +69,7 @@ export function Shell() {
             Traders Lab<span className="dot">.</span>
           </span>
         </div>
-        <p className="scope">Paper desk · 4 traders · $40,000 funded</p>
+        <p className="scope">Paper desk · 4 traders</p>
         <nav aria-label="Views">
           {NAV.map((group) => (
             <div className="nav-group" key={group.label}>

@@ -9,7 +9,7 @@ import { Change, Failed, Loading, PageHeader, Panel, TraderName } from "../compo
 import { FillsChart } from "../components/charts";
 import { useDesk, type Desk } from "../lib/desk";
 import { tradeRecord, type Fill } from "../lib/ledger";
-import { count, duration, longDate, money, pct, price, shortDay, signedMoney, stamp, time } from "../lib/format";
+import { count, duration, longDate, money, pct, price, shortDay, signedMoney, stamp, time, tone } from "../lib/format";
 
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
@@ -45,16 +45,24 @@ function TradesBody({ desk, now }: { desk: Desk | null; now: number }) {
 
   const selected = view?.fills.find((f) => f.id === fillParam) ?? view?.fills[0] ?? null;
 
-  let findingText = "Reading the fills…";
+  let findingText: React.ReactNode = "Reading the fills…";
   if (view) {
     const r = view.record;
     const scope = trader ? cap(trader) : "The desk";
-    findingText = !view.fills.length
-      ? `${scope} has not traded yet. Nothing records why; the Decisions view in Phase 2 will.`
-      : `${scope} made ${count(view.fills.length)} fills since ${shortDay(view.fills[view.fills.length - 1].time)}. ` +
-        (r.closes
-          ? `${r.wins} of ${r.closes} closing sells made money, for ${signedMoney(r.realized)} realized.`
-          : "Nothing has been sold yet, so nothing is realized.");
+    findingText = !view.fills.length ? (
+      `${scope} has not traded yet.`
+    ) : (
+      <>
+        {scope} made {count(view.fills.length)} fills since {shortDay(view.fills[view.fills.length - 1].time)}.{" "}
+        {r.closes ? (
+          <>
+            {r.wins} of {r.closes} closing sells made money, for <Change value={r.realized} /> realized.
+          </>
+        ) : (
+          "Nothing has been sold yet, so nothing is realized."
+        )}
+      </>
+    );
   }
 
   return (
@@ -116,7 +124,7 @@ function TradesBody({ desk, now }: { desk: Desk | null; now: number }) {
                           <td className="num">{count(p.quantity)}</td>
                           <td className="num">{price(p.avgCost)}</td>
                           <td className="num">{price(p.price)}</td>
-                          <td className="num strong">{money(p.value)}</td>
+                          <td className="num strong money-tone" data-tone={tone(p.unrealized)}>{money(p.value)}</td>
                           <td className="num">
                             <Change value={p.unrealized} ratio={p.unrealized / p.costBasis} />
                           </td>
@@ -124,6 +132,18 @@ function TradesBody({ desk, now }: { desk: Desk | null; now: number }) {
                         </tr>
                       ))}
                     </tbody>
+                    <tfoot>
+                      <tr>
+                        <th scope="row" colSpan={5}>
+                          {view.positions.length} {view.positions.length === 1 ? "position" : "positions"}
+                        </th>
+                        <td className="num strong">{money(view.positions.reduce((s, p) => s + p.value, 0))}</td>
+                        <td className="num">
+                          <Change value={view.positions.reduce((s, p) => s + p.unrealized, 0)} />
+                        </td>
+                        <td />
+                      </tr>
+                    </tfoot>
                   </table>
                 </div>
               ) : (
@@ -137,7 +157,7 @@ function TradesBody({ desk, now }: { desk: Desk | null; now: number }) {
             </Panel>
           </div>
 
-          <div className="grid-lead">
+          <div className="grid-lead list-detail">
             <Panel title="Every fill" id="blotter" meta={<span className="num">{count(view.fills.length)} fills, newest first</span>}>
               {view.fills.length ? (
                 <div className="table-wrap">
@@ -163,7 +183,7 @@ function TradesBody({ desk, now }: { desk: Desk | null; now: number }) {
                           onClick={() => select(f.id)}
                           onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), select(f.id))}
                         >
-                          <td className="num muted">{stamp(f.time)}</td>
+                          <td className="tnum muted">{stamp(f.time)}</td>
                           <td>
                             <TraderName name={f.trader} />
                           </td>
@@ -197,6 +217,7 @@ function TradesBody({ desk, now }: { desk: Desk | null; now: number }) {
             <Panel
               title={selected ? `${selected.symbol}, ${cap(selected.trader)}` : "Selected fill"}
               id="selected"
+              className="sticky"
               meta={selected && <span className="num">{stamp(selected.time)}</span>}
             >
               {selected ? <Selected desk={desk} fill={selected} onSelect={select} /> : <p className="empty">Pick a fill.</p>}
@@ -228,14 +249,14 @@ function Record({ fills }: { fills: Fill[] }) {
           <span className="wl-track">
             <span className="wl-bar" data-tone="good" style={{ width: `${((r.avgWin ?? 0) / scale) * 100}%` }} />
           </span>
-          <span className="num wl-value">{r.avgWin !== null ? signedMoney(r.avgWin) : "—"}</span>
+          <span className="num wl-value money-tone" data-tone="good">{r.avgWin !== null ? signedMoney(r.avgWin) : "—"}</span>
         </div>
         <div className="wl-row">
           <span className="wl-label">Average loss</span>
           <span className="wl-track">
             <span className="wl-bar" data-tone="bad" style={{ width: `${(Math.abs(r.avgLoss ?? 0) / scale) * 100}%` }} />
           </span>
-          <span className="num wl-value">{r.avgLoss !== null ? signedMoney(r.avgLoss) : "—"}</span>
+          <span className="num wl-value money-tone" data-tone="bad">{r.avgLoss !== null ? signedMoney(r.avgLoss) : "—"}</span>
         </div>
       </div>
       <table className="table kv">
@@ -298,6 +319,11 @@ function Selected({ desk, fill, onSelect }: { desk: Desk; fill: Fill; onSelect: 
         {fill.symbol} at <span className="num">{price(fill.price)}</span>
       </p>
       <blockquote className="decision-quote small">{fill.rationale}</blockquote>
+      <p className="note">
+        <Link className="text-link" to={`/decisions?fill=${fill.id}`}>
+          {fill.traceId ? "Why? See the research, prices and orders behind it" : "Open the decision"}
+        </Link>
+      </p>
       {fill.side === "sell" && fill.costBasis !== undefined ? (
         <p className="lot-math num">
           Proceeds {money(fill.quantity * fill.price)} − cost {money(fill.costBasis)} = <Change value={fill.realized!} />

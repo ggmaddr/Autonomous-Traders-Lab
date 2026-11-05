@@ -6,64 +6,68 @@
    Lead row 2fr 1fr with a 16 gap: 741.33 + 16 + 370.67 = 1128.
    Halves: 556 + 16 + 556 = 1128. One gap value (16) everywhere. */
 
+/* Palette "Phosphor". Light: mineral paper (a cool grey-green, never cream) with
+   a cobalt signal. Dark: green-black glass-free ground with an acid-lime signal.
+   Each trader keeps one colour per theme; green and red stay for money only,
+   and on dark the lime signal is also the positive colour, so there is one green. */
 :root {
-  --ground: #f0efeb;
-  --surface: #fcfbf9;
-  --raised: #e8e6e0;
-  --active: #e3e0d9;
-  --border: #e0ddd5;
-  --rule: #ebe8e2;
-  --control: #cdc9bf;
-  --text: #1c2a30;
-  --muted: #5a6369;
-  --faint: #687075;
-  --primary: #1c2a30;
-  --accent-data: #33639b;
-  --positive: #2b7046;
-  --negative: #b3353b;
-  --grid: #e6e3dc;
-  --cash: #bdb8ad;
+  --ground: #e5eae7;
+  --surface: #f7f9f8;
+  --raised: #dce2de;
+  --active: #d0d8d3;
+  --border: #d2d9d5;
+  --rule: #e2e7e4;
+  --control: #b3bdb7;
+  --text: #07110d;
+  --muted: #45524c;
+  --faint: #53615a;
+  --primary: #07110d;
+  --accent-data: #0a46e8;
+  --positive: #0d7a3e;
+  --negative: #b30f3b;
+  --grid: #dfe5e1;
+  --cash: #b7c0bb;
 
-  /* The traders, in faded print colours. Each holds 3:1 or more on the paper. */
-  --t-warren: #33639b;
-  --t-george: #a5722f;
-  --t-ray: #357771;
-  --t-cathie: #a3566c;
+  --t-warren: #e85d04;
+  --t-george: #b88a00;
+  --t-ray: #0a46e8;
+  --t-cathie: #e0137d;
 
-  --radius-card: 8px;
-  --radius-control: 6px;
+  --radius-card: 6px;
+  --radius-control: 4px;
   --gap: 16px;
   --pad: 24px;
-  --font: "Geist", Inter, system-ui, sans-serif;
-  --fs-title: 44px;
-  --fs-answer: 34px;
+  --font: "Space Grotesk", system-ui, sans-serif;
+  --font-figure: "JetBrains Mono", ui-monospace, monospace;
+  --fs-title: 48px;
+  --fs-answer: 32px;
   --fs-section: 15px;
   --fs-body: 14px;
-  --fs-small: 12px;
+  --fs-small: 13px;
   color-scheme: light;
 }
 
 :root[data-theme="dark"] {
-  --ground: #141412;
-  --surface: #1b1b19;
-  --raised: #272724;
-  --active: #2e2d2a;
-  --border: #2b2a27;
-  --rule: #252421;
-  --control: #4a4843;
-  --text: #eeece6;
-  --muted: #b2afa6;
-  --faint: #95928a;
-  --primary: #eeece6;
-  --accent-data: #86abd9;
-  --positive: #66b585;
-  --negative: #e57a80;
-  --grid: #2a2926;
-  --cash: #5d5b55;
-  --t-warren: #86abd9;
-  --t-george: #d8a663;
-  --t-ray: #72b5ac;
-  --t-cathie: #d991a6;
+  --ground: #0a0d0c;
+  --surface: #111614;
+  --raised: #1a201d;
+  --active: #222a26;
+  --border: #1e2622;
+  --rule: #18201c;
+  --control: #36413b;
+  --text: #e8f0ec;
+  --muted: #9eaca5;
+  --faint: #8a9891;
+  --primary: #e8f0ec;
+  --accent-data: #c6f135;
+  --positive: #c6f135;
+  --negative: #ff5a6e;
+  --grid: #1c2420;
+  --cash: #3a4540;
+  --t-warren: #ff7a1a;
+  --t-george: #ffd23f;
+  --t-ray: #5b8cff;
+  --t-cathie: #ff5fa2;
   color-scheme: dark;
 }
 
@@ -79,6 +83,7 @@ body {
   font-family: var(--font);
   font-size: var(--fs-body);
   line-height: 20px;
+  font-weight: 500;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -111,8 +116,15 @@ button {
   outline-offset: 2px;
 }
 
-.num {
-  font-variant-numeric: tabular-nums;
+/* Figures are set in a mono, as the style's decision: money and counts read as a
+   ledger's columns, with a slashed zero. Words stay in the grotesk. */
+.num,
+.tnum {
+  font-family: var(--font-figure);
+  font-variant-numeric: tabular-nums slashed-zero;
+  font-size: 0.93em;
+  font-weight: 600;
+  letter-spacing: -0.02em;
 }
 
 .muted {
@@ -160,9 +172,9 @@ button {
 }
 
 .wordmark {
-  font-size: 19px;
-  font-weight: 500;
-  letter-spacing: -0.03em;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.04em;
 }
 
 .dot {
@@ -208,13 +220,17 @@ button {
 .nav-item.active {
   background: var(--active);
   color: var(--text);
-  font-weight: 500;
+  font-weight: 600;
+}
+
+.nav-item.active .nav-phase {
+  color: var(--muted);
 }
 
 .nav-phase {
   color: var(--faint);
   font-size: var(--fs-small);
-  font-weight: 400;
+  font-weight: 500;
 }
 
 .sidebar-foot {
@@ -296,8 +312,8 @@ button {
   margin-top: 6px;
   font-size: var(--fs-title);
   line-height: 1;
-  font-weight: 500;
-  letter-spacing: -0.04em;
+  font-weight: 700;
+  letter-spacing: -0.05em;
 }
 
 .finding {
@@ -326,7 +342,24 @@ button {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: var(--gap);
+}
+
+.list-detail {
   align-items: start;
+}
+
+.sticky {
+  position: sticky;
+  top: 24px;
+}
+
+.table tfoot th,
+.table tfoot td {
+  height: 44px;
+  border-top: 1px solid var(--border);
+  color: var(--text);
+  font-size: var(--fs-body);
+  font-weight: 600;
 }
 
 .stack {
@@ -359,7 +392,8 @@ button {
 
 .panel-head h2 {
   font-size: var(--fs-section);
-  font-weight: 500;
+  font-weight: 600;
+  letter-spacing: -0.01em;
 }
 
 .panel-meta {
@@ -405,7 +439,7 @@ button {
 
 .text-link {
   color: var(--text);
-  font-weight: 500;
+  font-weight: 600;
   text-decoration: underline;
   text-decoration-color: var(--control);
   text-underline-offset: 3px;
@@ -428,28 +462,38 @@ button {
 .answer-figure {
   font-size: var(--fs-answer);
   line-height: 40px;
-  font-weight: 700;
-  letter-spacing: -0.02em;
+  font-weight: 800;
+  letter-spacing: -0.04em;
 }
 
 .answer-sub {
   color: var(--muted);
 }
 
-.change[data-tone="good"] {
+/* Money that moved is always coloured and heavy: green up, red down, the sign in
+   the text as well, so colour is never the only cue. */
+.change,
+.money-tone {
+  font-weight: 800;
+}
+
+[data-tone="good"].change,
+[data-tone="good"].money-tone {
   color: var(--positive);
 }
 
-.change[data-tone="bad"] {
+[data-tone="bad"].change,
+[data-tone="bad"].money-tone {
   color: var(--negative);
 }
 
-.change[data-tone="flat"] {
+[data-tone="flat"].change,
+[data-tone="flat"].money-tone {
   color: var(--muted);
 }
 
 .change-pct {
-  font-weight: 400;
+  font-weight: 800;
 }
 
 .swatch {
@@ -462,10 +506,11 @@ button {
 }
 
 .trader-name {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
   white-space: nowrap;
+}
+
+.trader-name .swatch {
+  margin: -2px 7px 0 0;
 }
 
 /* --- Segmented control --------------------------------------------------- */
@@ -499,7 +544,7 @@ button {
 .segmented button[aria-pressed="true"] {
   background: var(--surface);
   color: var(--text);
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .segmented.filter {
@@ -510,7 +555,7 @@ button {
 
 .seg-count {
   color: var(--faint);
-  font-weight: 400;
+  font-weight: 500;
 }
 
 /* --- Equity chart ---------------------------------------------------------- */
@@ -556,7 +601,8 @@ button {
 .dd-head {
   display: flex;
   justify-content: space-between;
-  margin: 10px 132px 0 76px;
+  gap: 8px;
+  margin-top: 10px;
   color: var(--muted);
   font-size: var(--fs-small);
 }
@@ -622,7 +668,7 @@ button {
   padding: 0 10px;
   color: var(--muted);
   font-size: var(--fs-small);
-  font-weight: 400;
+  font-weight: 500;
   text-align: left;
   white-space: nowrap;
 }
@@ -649,11 +695,11 @@ button {
 }
 
 .table .ident {
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .table .strong {
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .blotter tbody tr {
@@ -676,11 +722,11 @@ button {
   display: inline-block;
   min-width: 34px;
   color: var(--muted);
-  font-weight: 400;
+  font-weight: 500;
 }
 
 .kv th {
-  height: 40px;
+  height: 42px;
   padding-left: 0;
   color: var(--muted);
   font-size: var(--fs-body);
@@ -693,7 +739,7 @@ button {
 }
 
 .kv td {
-  height: 40px;
+  height: 42px;
 }
 
 .kv-break th,
@@ -726,8 +772,9 @@ button {
 }
 
 .desk-col h3 {
-  font-size: 16px;
-  font-weight: 500;
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
 }
 
 .desk-col h3 .swatch {
@@ -744,7 +791,7 @@ button {
   margin-top: 16px;
   font-size: 24px;
   line-height: 30px;
-  font-weight: 700;
+  font-weight: 800;
   letter-spacing: -0.01em;
 }
 
@@ -762,7 +809,23 @@ button {
 
 .split-bar {
   display: block;
+  flex: none;
   height: 100%;
+}
+
+.split {
+  display: flex;
+}
+
+.split-lg {
+  height: 10px;
+  margin: 2px 0 0;
+  gap: 2px;
+  border-radius: 2px;
+}
+
+.split-lg + .split-legend {
+  margin-bottom: 10px;
 }
 
 .split-legend {
@@ -807,13 +870,13 @@ button {
 }
 
 .alloc-label {
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .alloc-sub {
   margin-left: 6px;
   color: var(--muted);
-  font-weight: 400;
+  font-weight: 500;
 }
 
 .alloc-share {
@@ -856,7 +919,8 @@ button {
 
 .svg-chart .tick {
   fill: var(--muted);
-  font-size: 12px;
+  font-family: var(--font-figure);
+  font-size: 11.5px;
   font-variant-numeric: tabular-nums;
 }
 
@@ -867,7 +931,7 @@ button {
 .svg-chart .mark-label {
   fill: var(--text);
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .svg-chart .ref-line {
@@ -984,10 +1048,6 @@ button {
   border-top: 0;
 }
 
-.coming {
-  max-width: 760px;
-}
-
 /* --- Tablet and phone ----------------------------------------------------- */
 
 @media (max-width: 1100px) {
@@ -1040,6 +1100,10 @@ button {
     grid-template-columns: minmax(0, 1fr);
   }
 
+  .sticky {
+    position: static;
+  }
+
   .desk {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     row-gap: 24px;
@@ -1086,11 +1150,6 @@ button {
     font-size: 28px;
   }
 
-  .dd-head {
-    margin-right: 0;
-    margin-left: 0;
-  }
-
   .decision-quote {
     font-size: 17px;
     line-height: 25px;
@@ -1125,5 +1184,389 @@ button {
 @media (prefers-reduced-motion: reduce) {
   * {
     transition: none !important;
+  }
+}
+
+.table .money-tone {
+  font-weight: 800;
+}
+
+/* --- Researcher and Decisions (Phase 2) ---------------------------------------- */
+
+.grid-detail {
+  display: grid;
+  grid-template-columns: minmax(0, 4fr) minmax(0, 7fr);
+  gap: var(--gap);
+}
+
+.strong {
+  font-weight: 600;
+}
+
+.scroll-list {
+  max-height: calc(100vh - 140px);
+  overflow-y: auto;
+}
+
+.table td.clip {
+  max-width: 240px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tag {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: var(--radius-control);
+  background: var(--raised);
+  color: var(--muted);
+  font-size: var(--fs-small);
+  font-weight: 500;
+}
+
+.tag[data-tone] {
+  padding-left: 0;
+  background: none;
+  font-weight: 700;
+}
+
+.tag[data-tone="good"] {
+  color: var(--positive);
+}
+
+.tag[data-tone="bad"] {
+  color: var(--negative);
+}
+
+.traced {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.rows-start {
+  align-items: start;
+}
+
+.sub-head {
+  margin: 20px 0 8px;
+  font-size: var(--fs-body);
+  font-weight: 600;
+}
+
+.answer-text {
+  white-space: pre-wrap;
+  font-size: 15px;
+  line-height: 23px;
+  max-height: 23em;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.answer-text[data-open="true"] {
+  max-height: none;
+}
+
+.evidence .answer-text {
+  max-height: 11.5em;
+}
+
+.sources,
+.calls,
+.evidence {
+  display: grid;
+  gap: 10px;
+}
+
+.sources li {
+  line-height: 20px;
+}
+
+.evidence li + li {
+  padding-top: 16px;
+  border-top: 1px solid var(--rule);
+}
+
+.evidence-ask {
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+
+.calls li {
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--rule);
+}
+
+.calls li:last-child {
+  border-bottom: 0;
+}
+
+.call-result {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: var(--fs-small);
+  line-height: 18px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-height: 7.5em;
+  overflow: hidden;
+}
+
+.calls li[data-failed="true"] .call-result,
+.waterfall li[data-failed="true"] .wf-name {
+  color: var(--negative);
+}
+
+.strategy-text {
+  white-space: pre-wrap;
+  line-height: 22px;
+}
+
+.waterfall {
+  display: grid;
+  gap: 2px;
+}
+
+.waterfall li {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 3fr) 72px;
+  align-items: center;
+  gap: 12px;
+  min-height: 26px;
+  font-size: var(--fs-small);
+}
+
+.wf-name {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.wf-track {
+  position: relative;
+  height: 10px;
+}
+
+.wf-bar {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  border-radius: 2px;
+  background: var(--control);
+}
+
+.waterfall li[data-type="generation"] .wf-bar {
+  background: var(--accent-data);
+}
+
+.waterfall li[data-failed="true"] .wf-bar {
+  background: var(--negative);
+}
+
+.wf-time {
+  text-align: right;
+}
+
+@media (max-width: 1100px) {
+  .grid-detail,
+  .grid-halves {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .scroll-list {
+    max-height: 420px;
+  }
+}
+
+/* --- Lessons ---------------------------------------------------------------- */
+
+.lesson-list li.lesson {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px 24px;
+  padding: 14px 0;
+  border-top: 1px solid var(--rule);
+}
+
+.lesson-list li.lesson:first-child {
+  border-top: 0;
+  padding-top: 2px;
+}
+
+.lesson[data-contradicted="true"] .lesson-text {
+  color: var(--muted);
+}
+
+.lesson[data-focused="true"] {
+  box-shadow: inset 2px 0 0 var(--accent-data);
+  padding-left: 12px;
+}
+
+.lesson-main {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.lesson-text {
+  font-size: 15px;
+  line-height: 22px;
+}
+
+.lesson-meta {
+  color: var(--muted);
+  font-size: var(--fs-small);
+  line-height: 18px;
+}
+
+.lesson-meta .trader-name {
+  color: var(--text);
+}
+
+.lesson-figures {
+  display: grid;
+  grid-template-columns: repeat(3, auto);
+  gap: 2px 16px;
+  margin: 0;
+  align-self: start;
+  text-align: right;
+}
+
+.lesson-figures dt {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.lesson-figures dd {
+  margin: 0;
+}
+
+.pending-list li {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 4px 12px;
+  padding: 10px 0;
+  border-top: 1px solid var(--rule);
+}
+
+.pending-list li:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
+/* --- Memory ----------------------------------------------------------------- */
+
+.filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+}
+
+.graph-canvas {
+  height: 440px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+}
+
+.graph-empty {
+  display: grid;
+  place-items: center;
+  min-height: 120px;
+  text-align: center;
+}
+
+.graph-key {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 6px;
+}
+
+.key-shape {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-left: 6px;
+  border: 1.5px solid var(--muted);
+  border-radius: 50%;
+}
+
+.key-shape[data-shape="lesson"] {
+  border-radius: 2px;
+  background: var(--muted);
+}
+
+.key-shape[data-shape="diamond"] {
+  width: 8px;
+  height: 8px;
+  border-radius: 0;
+  transform: rotate(45deg);
+}
+
+.btn-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+
+.shared-list li,
+.relations li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  padding: 8px 0;
+  border-top: 1px solid var(--rule);
+}
+
+.shared-list li:first-child,
+.relations li:first-child {
+  border-top: 0;
+}
+
+.observations li {
+  display: grid;
+  grid-template-columns: 104px minmax(0, 1fr);
+  gap: 12px;
+  padding: 8px 0;
+  border-top: 1px solid var(--rule);
+}
+
+.observations li:first-child,
+.uses li:first-child {
+  border-top: 0;
+}
+
+.uses li {
+  padding: 8px 0;
+  border-top: 1px solid var(--rule);
+}
+
+.uses .note {
+  margin-top: 2px;
+}
+
+.node-detail .sub-head {
+  margin-top: 4px;
+}
+
+@media (max-width: 720px) {
+  .lesson-list li.lesson {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .lesson-figures {
+    justify-content: start;
+    text-align: left;
+  }
+
+  .graph-canvas {
+    height: 320px;
+  }
+
+  .observations li {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2px;
   }
 }

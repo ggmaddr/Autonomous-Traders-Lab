@@ -1,5 +1,6 @@
 // A view the roadmap has not built yet. It keeps the shell and the title, says
-// which phase builds it and what it will answer, so the navigation is honest.
+// which phase builds it and what it will answer, and points at what already
+// exists, so the navigation is honest.
 
 import { Link } from "react-router-dom";
 import { PageHeader, Panel } from "../components/bits";
@@ -13,14 +14,35 @@ export function Coming({ item }: { item: NavItem }) {
         title={item.label}
         finding={item.question}
       />
-      <Panel title="What this view will show" id="shows" className="coming">
-        <ul className="coming-list">
-          {item.shows?.map((s) => <li key={s}>{s}</li>)}
-        </ul>
-        <p className="note">
-          Until then, the trades and the reasons behind them are on <Link className="text-link" to="/trades">Trades</Link>.
-        </p>
-      </Panel>
+      <div className="grid-lead list-detail">
+        <Panel title="What this view will show" id="shows">
+          <ul className="coming-list">
+            {item.shows?.map((s) => <li key={s}>{s}</li>)}
+          </ul>
+        </Panel>
+        <Panel title="What you can see today" id="today">
+          <ul className="coming-list">
+            <li>
+              Every fill with the agent's reason in its own words, on{" "}
+              <Link className="text-link" to="/trades">
+                Trades
+              </Link>
+            </li>
+            <li>
+              Equity, drawdown and P&L for each trader, on{" "}
+              <Link className="text-link" to="/">
+                Money
+              </Link>
+            </li>
+            <li>
+              The agents' activity log, on{" "}
+              <Link className="text-link" to="/health">
+                Health
+              </Link>
+            </li>
+          </ul>
+        </Panel>
+      </div>
     </div>
   );
 }

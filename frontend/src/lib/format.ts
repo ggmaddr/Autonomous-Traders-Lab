@@ -81,3 +81,31 @@ export function duration(ms: number): string {
 export function parseStamp(s: string): number {
   return new Date(s.replace(" ", "T")).getTime();
 }
+
+/** Run and span times are ISO UTC from the backend. */
+export function parseIso(s: string | null | undefined): number | null {
+  return s ? new Date(s).getTime() : null;
+}
+
+/** A short span: "840 ms", "12.4 s", "3 m 05 s". */
+export function elapsed(ms: number | null | undefined): string {
+  if (ms === null || ms === undefined) return "—";
+  if (ms < 1000) return `${Math.round(ms)} ms`;
+  if (ms < 60_000) return `${(ms / 1000).toFixed(1)} s`;
+  const s = Math.round(ms / 1000);
+  return `${Math.floor(s / 60)} m ${String(s % 60).padStart(2, "0")} s`;
+}
+
+/** Tokens, compact: "940", "12.3k". */
+export function tokens(n: number): string {
+  return n < 1000 ? String(n) : `${(n / 1000).toFixed(1)}k`;
+}
+
+/** The host of a link, for a source list: "reuters.com". */
+export function host(url: string): string {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return url;
+  }
+}

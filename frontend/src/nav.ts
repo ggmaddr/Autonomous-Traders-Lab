@@ -25,55 +25,10 @@ export const NAV: NavGroup[] = [
   {
     label: "Why it traded",
     items: [
-      {
-        path: "/researcher",
-        label: "Researcher",
-        phase: 2,
-        question: "What did the researcher find, and did it help?",
-        shows: [
-          "Each research request and its answer, with the trader who asked",
-          "Sources with links",
-          "Which findings were used in a decision and which were ignored",
-          "P&L of the trades that cited each piece of research",
-          "Research cost in calls, tokens and time",
-        ],
-      },
-      {
-        path: "/decisions",
-        label: "Decisions",
-        phase: 2,
-        question: "Why did this trade happen?",
-        shows: [
-          "The research the decision used and the quotes it saw",
-          "The strategy text in force at the time",
-          "The agent's justification, the order and the fill",
-          "The portfolio before and after",
-          "A link to the SDK trace with the raw model and tool calls",
-        ],
-      },
-      {
-        path: "/lessons",
-        label: "Lessons",
-        phase: 3,
-        question: "What have the agents learned, and is it still true?",
-        shows: [
-          "Lessons written after each cycle, linked to their trades and P&L",
-          "How often each lesson recurs",
-          "Lessons that later trades contradicted",
-          "Which lessons the agent recalled before trading",
-        ],
-      },
-      {
-        path: "/memory",
-        label: "Memory",
-        phase: 3,
-        question: "What does each agent's long-term memory contain?",
-        shows: [
-          "Entities, relations and observations from memory/<name>.db as a graph",
-          "When each observation was written, and which decisions used it",
-          "Two traders' graphs side by side",
-        ],
-      },
+      { path: "/researcher", label: "Researcher", question: "What did the researcher find, and did it help?" },
+      { path: "/decisions", label: "Decisions", question: "Why did this trade happen?" },
+      { path: "/lessons", label: "Lessons", question: "What have the agents learned, and is it still true?" },
+      { path: "/memory", label: "Memory", question: "What does each agent's long-term memory contain?" },
     ],
   },
   {

@@ -30,7 +30,7 @@ export function Health() {
   return (
     <div className="view">
       <PageHeader kicker="Not scheduled yet" title="Health" finding={item.question} />
-      <div className="grid-lead">
+      <div className="grid-lead list-detail">
         <Panel title="Agent activity" id="activity" meta={<span className="num">Last {rows.length} lines</span>}>
           {error && !rows.length ? (
             <Failed what="the activity log" error={error as Error} />
@@ -50,7 +50,7 @@ export function Health() {
                 <tbody>
                   {rows.map((r, i) => (
                     <tr key={i}>
-                      <td className="num muted nowrap">{stamp(r.t)}</td>
+                      <td className="tnum muted">{stamp(r.t)}</td>
                       <td>
                         <TraderName name={r.trader} />
                       </td>

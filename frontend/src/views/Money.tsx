@@ -10,23 +10,25 @@ import { EquityChart, type Mode } from "../components/EquityChart";
 import { AllocationList, RiskScatter, type AllocationRow } from "../components/charts";
 import { useDesk, type Desk } from "../lib/desk";
 import { INITIAL_BALANCE, maxDrawdown, tradeRecord, valueAt } from "../lib/ledger";
-import { count, longDate, money, pct, price, signedMoney, signedPct, stamp, time } from "../lib/format";
+import { count, longDate, money, pct, price, signedPct, stamp, time, tone } from "../lib/format";
 import { archetype } from "../lib/traders";
 
 const DAY = 86_400_000;
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
-function finding(desk: Desk): string {
+function finding(desk: Desk) {
   const funded = INITIAL_BALANCE * desk.books.length;
   const change = desk.books.reduce((s, b) => s + b.change, 0);
   const ranked = [...desk.books].sort((a, b) => b.change - a.change);
   const lead = ranked[0];
   const last = ranked[ranked.length - 1];
-  const dir = change >= 0 ? "up" : "down";
   return (
-    `The desk is ${dir} ${signedMoney(change).replace(/^[+−]/, "")} (${signedPct(change / funded)}) on its ${money(funded)} stake. ` +
-    `${cap(lead.trader.name)} leads at ${signedPct(lead.change / INITIAL_BALANCE)}; ` +
-    `${cap(last.trader.name)} trails at ${signedPct(last.change / INITIAL_BALANCE)}.`
+    <>
+      The desk is {change >= 0 ? "up" : "down"} <Change value={change} ratio={change / funded} /> on its{" "}
+      <span className="num">{money(funded)}</span> stake. {cap(lead.trader.name)} leads at{" "}
+      <Ratio value={lead.change / INITIAL_BALANCE} />; {cap(last.trader.name)} trails at{" "}
+      <Ratio value={last.change / INITIAL_BALANCE} />.
+    </>
   );
 }
 
@@ -99,16 +101,23 @@ function MoneyBody({ desk, mode, setMode }: { desk: Desk; mode: Mode; setMode: (
           }
         >
           <div className="answer">
-            <span className="answer-figure num">{money(equity)}</span>
+            <span className="answer-figure num money-tone" data-tone={tone(change)}>{money(equity)}</span>
             <span className="answer-sub">
               <Change value={change} ratio={change / funded} /> since funded with {money(funded)}
             </span>
           </div>
           <EquityChart curves={curves} traders={traders} mode={mode} />
           <p className="note">
-            SPY is not drawn yet: the benchmark series starts with the fixed-interval snapshots of Phase 1. Dashed line:
-            the {mode === "traders" ? money(INITIAL_BALANCE) + " each trader" : money(funded) + " the desk"} started
-            with.
+            Dashed vertical lines mark days the engine was off, folded to a short break. Dashed level: the{" "}
+            {mode === "traders" ? `${money(INITIAL_BALANCE)} each trader` : `${money(funded)} the desk`} started with. SPY is
+            not drawn yet; its series starts with the fixed-interval snapshots of Phase 1.
+            {curves.suspect.length > 0 && (
+              <>
+                {" "}
+                Left out as one-sample jumps from mixed price sources (D1):{" "}
+                {curves.suspect.map((x) => `${cap(x.trader)} ${money(x.value)} (${stamp(x.time)})`).join(", ")}.
+              </>
+            )}
           </p>
         </Panel>
 
@@ -128,9 +137,9 @@ function MoneyBody({ desk, mode, setMode }: { desk: Desk; mode: Mode; setMode: (
                 <blockquote className="decision-quote">{latest.rationale}</blockquote>
                 <p className="decision-foot">
                   {latest.realized !== undefined ? (
-                    <>
+                    <span>
                       Closed lots for <Change value={latest.realized} />
-                    </>
+                    </span>
                   ) : (
                     <span className="muted">Position still open</span>
                   )}
@@ -147,6 +156,10 @@ function MoneyBody({ desk, mode, setMode }: { desk: Desk; mode: Mode; setMode: (
           <Panel title="Profit and loss" id="pnl" className="grow">
             <table className="table kv">
               <tbody>
+                <tr>
+                  <th scope="row">Funded</th>
+                  <td className="num">{money(funded)}</td>
+                </tr>
                 <tr>
                   <th scope="row">Today</th>
                   <td className="num">
@@ -199,9 +212,9 @@ function MoneyBody({ desk, mode, setMode }: { desk: Desk; mode: Mode; setMode: (
                   <TraderName name={name} />
                 </h3>
                 <p className="desk-arch">{archetype(name)}</p>
-                <p className="desk-figure num">{money(b.equity)}</p>
+                <p className="desk-figure num money-tone" data-tone={tone(b.change)}>{money(b.equity)}</p>
                 <p className="desk-change">
-                  <Ratio value={b.change / INITIAL_BALANCE} /> <span className="muted num">{signedMoney(b.change)}</span>
+                  <Ratio value={b.change / INITIAL_BALANCE} /> <Change value={b.change} />
                 </p>
                 <div
                   className="split"
@@ -243,6 +256,23 @@ function MoneyBody({ desk, mode, setMode }: { desk: Desk; mode: Mode; setMode: (
 
       <div className="grid-halves">
         <Panel title="Where the money sits" id="alloc" meta={<span className="num">{money(equity)}</span>}>
+          <div className="split split-lg" role="img" aria-label={`Invested ${pct(1 - cash / equity)}, cash ${pct(cash / equity)}`}>
+            {books.map((b) => (
+              <span
+                key={b.trader.name}
+                className="split-bar"
+                style={{ width: `${(b.invested / equity) * 100}%`, background: `var(--t-${b.trader.name.toLowerCase()})` }}
+              />
+            ))}
+          </div>
+          <p className="split-legend num">
+            <span>
+              Invested {money(equity - cash)} · {pct(1 - cash / equity, 1)}
+            </span>
+            <span>
+              Cash {money(cash)} · {pct(cash / equity, 1)}
+            </span>
+          </p>
           <AllocationList rows={allocation} total={equity} />
         </Panel>
         <Panel title="Return against worst drawdown" id="risk" meta="Since funded">
@@ -254,7 +284,7 @@ function MoneyBody({ desk, mode, setMode }: { desk: Desk; mode: Mode; setMode: (
             }))}
           />
           <p className="note">
-            Up and to the left is better. Ten days of irregular samples is too little to call any of this skill.
+            Return up, worst drawdown right; up and left is better. Ten days of samples is too few to call it skill.
           </p>
         </Panel>
       </div>

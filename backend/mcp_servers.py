@@ -30,10 +30,15 @@ else:
         "cwd": PROJECT_DIR
     }
 
-def trader_mcp_servers() -> list[MCPServerStdio]:
-    """The trader's MCP servers: our Accounts server, Push Notification and Market data."""
+def trader_mcp_servers(name: str, trace_id: str | None = None) -> list[MCPServerStdio]:
+    """The trader's MCP servers: our Accounts server, Push Notification and Market data.
+
+    The Accounts server is bound to this trader's account through its environment, so
+    the agent cannot name another account (D4), and it stamps each trade with the trace.
+    """
+    accounts_env = {"LAB_ACCOUNT": name, "LAB_TRACE_ID": trace_id or ""}
     params = [
-        {"command": "uv", "args": ["run", "-m", "backend.accounts_server"], "cwd": PROJECT_DIR},
+        {"command": "uv", "args": ["run", "-m", "backend.accounts_server"], "cwd": PROJECT_DIR, "env": accounts_env},
         {"command": "uv", "args": ["run", "-m", "backend.push_server"], "cwd": PROJECT_DIR},
         market_params,
     ]

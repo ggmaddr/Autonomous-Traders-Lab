@@ -11,6 +11,10 @@ import { Shell } from "./components/Shell";
 import { ThemeProvider } from "./lib/theme";
 import { Money } from "./views/Money";
 import { Trades } from "./views/Trades";
+import { Researcher } from "./views/Researcher";
+import { Decisions } from "./views/Decisions";
+import { Lessons } from "./views/Lessons";
+import { Memory } from "./views/Memory";
 import { Coming } from "./views/Coming";
 import { Health } from "./views/Health";
 import { NAV } from "./nav";
@@ -28,6 +32,10 @@ createRoot(document.getElementById("root")!).render(
             <Route element={<Shell />}>
               <Route index element={<Money />} />
               <Route path="trades" element={<Trades />} />
+              <Route path="researcher" element={<Researcher />} />
+              <Route path="decisions" element={<Decisions />} />
+              <Route path="lessons" element={<Lessons />} />
+              <Route path="memory" element={<Memory />} />
               {coming.map((item) => (
                 <Route key={item.path} path={item.path.slice(1)} element={<Coming item={item} />} />
               ))}

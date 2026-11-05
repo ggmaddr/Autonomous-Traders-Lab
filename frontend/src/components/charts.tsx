@@ -45,7 +45,7 @@ export interface RiskPoint {
 
 export function RiskScatter({ points }: { points: RiskPoint[] }) {
   const [ref, width] = useWidth<HTMLDivElement>();
-  const height = 220;
+  const height = 196;
   const pad = { l: 52, r: 16, t: 12, b: 34 };
   const xs = points.map((p) => -p.drawdown);
   const ys = points.map((p) => p.ret);
@@ -56,15 +56,38 @@ export function RiskScatter({ points }: { points: RiskPoint[] }) {
   const x = (v: number) => pad.l + ((v - xt[0]) / (xt[xt.length - 1] - xt[0])) * w;
   const y = (v: number) => pad.t + h - ((v - yt[0]) / (yt[yt.length - 1] - yt[0])) * h;
 
-  // Labels to the right of the dot, nudged apart vertically when two dots sit close.
-  const placed = points
-    .map((p) => ({ ...p, lx: x(-p.drawdown) + 10, ly: y(p.ret) + 4 }))
-    .sort((a, b) => a.ly - b.ly);
-  for (let i = 1; i < placed.length; i++) {
-    if (Math.abs(placed[i].lx - placed[i - 1].lx) < 90 && placed[i].ly - placed[i - 1].ly < 15) {
-      placed[i].ly = placed[i - 1].ly + 15;
-    }
-  }
+  // Each label takes the first spot beside its dot (right, left, above, below)
+  // that clears every dot and every label already placed.
+  type Box = { x0: number; y0: number; x1: number; y1: number };
+  const hit = (a: Box, b: Box) => a.x0 < b.x1 && b.x0 < a.x1 && a.y0 < b.y1 && b.y0 < a.y1;
+  const dots: Box[] = points.map((p) => {
+    const cx = x(-p.drawdown);
+    const cy = y(p.ret);
+    return { x0: cx - 6, y0: cy - 6, x1: cx + 6, y1: cy + 6 };
+  });
+  const boxes: Box[] = [];
+  const placed = points.map((p) => {
+    const cx = x(-p.drawdown);
+    const cy = y(p.ret);
+    const w = p.trader.length * 7.6 + 4;
+    const spots = [
+      { lx: cx + 10, ly: cy + 4, anchor: "start" },
+      { lx: cx - 10, ly: cy + 4, anchor: "end" },
+      { lx: cx, ly: cy - 11, anchor: "middle" },
+      { lx: cx, ly: cy + 20, anchor: "middle" },
+    ];
+    const boxOf = (s: (typeof spots)[number]): Box => {
+      const x0 = s.anchor === "start" ? s.lx : s.anchor === "end" ? s.lx - w : s.lx - w / 2;
+      return { x0, y0: s.ly - 11, x1: x0 + w, y1: s.ly + 3 };
+    };
+    const spot =
+      spots.find((s) => {
+        const b = boxOf(s);
+        return b.x0 >= 0 && b.x1 <= width && ![...dots, ...boxes].some((o) => hit(b, o));
+      }) ?? spots[0];
+    boxes.push(boxOf(spot));
+    return { ...p, ...spot };
+  });
 
   return (
     <div ref={ref} className="svg-chart">
@@ -96,13 +119,10 @@ export function RiskScatter({ points }: { points: RiskPoint[] }) {
               {pct(v, 1)}
             </text>
           ))}
-          <text x={width - pad.r} y={pad.t + h - 6} textAnchor="end" className="tick tick-note">
-            Deeper drawdown →
-          </text>
           {placed.map((p) => (
             <g key={p.trader}>
               <circle cx={x(-p.drawdown)} cy={y(p.ret)} r={5.5} fill={hueVar(p.trader)} />
-              <text x={p.lx} y={p.ly} className="mark-label">
+              <text x={p.lx} y={p.ly} textAnchor={p.anchor} className="mark-label">
                 {p.trader.charAt(0).toUpperCase() + p.trader.slice(1)}
               </text>
             </g>

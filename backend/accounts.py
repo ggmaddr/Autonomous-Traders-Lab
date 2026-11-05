@@ -17,6 +17,7 @@ class Transaction(BaseModel):
     price: float
     timestamp: str
     rationale: str
+    trace_id: str | None = None  # the agent run that placed it; None before Phase 2
 
     def total(self) -> float:
         return self.quantity * self.price
@@ -76,7 +77,7 @@ class Account(BaseModel):
         print(f"Withdrew ${amount}. New balance: ${self.balance}")
         self.save()
 
-    def buy_shares(self, symbol: str, quantity: int, rationale: str) -> str:
+    def buy_shares(self, symbol: str, quantity: int, rationale: str, trace_id: str | None = None) -> str:
         """ Buy shares of a stock if sufficient funds are available. """
         price = get_share_price(symbol)
         buy_price = price * (1 + SPREAD)
@@ -91,7 +92,7 @@ class Account(BaseModel):
         self.holdings[symbol] = self.holdings.get(symbol, 0) + quantity
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         # Record transaction
-        transaction = Transaction(symbol=symbol, quantity=quantity, price=buy_price, timestamp=timestamp, rationale=rationale)
+        transaction = Transaction(symbol=symbol, quantity=quantity, price=buy_price, timestamp=timestamp, rationale=rationale, trace_id=trace_id)
         self.transactions.append(transaction)
         
         # Update balance
@@ -100,7 +101,7 @@ class Account(BaseModel):
         write_log(self.name, "account", f"Bought {quantity} of {symbol}")
         return "Completed. Latest details:\n" + self.report()
 
-    def sell_shares(self, symbol: str, quantity: int, rationale: str) -> str:
+    def sell_shares(self, symbol: str, quantity: int, rationale: str, trace_id: str | None = None) -> str:
         """ Sell shares of a stock if the user has enough shares. """
         if self.holdings.get(symbol, 0) < quantity:
             raise ValueError(f"Cannot sell {quantity} shares of {symbol}. Not enough shares held.")
@@ -117,7 +118,7 @@ class Account(BaseModel):
             del self.holdings[symbol]
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         # Record transaction
-        transaction = Transaction(symbol=symbol, quantity=-quantity, price=sell_price, timestamp=timestamp, rationale=rationale)  # negative quantity for sell
+        transaction = Transaction(symbol=symbol, quantity=-quantity, price=sell_price, timestamp=timestamp, rationale=rationale, trace_id=trace_id)  # negative quantity for sell
         self.transactions.append(transaction)
 
         # Update balance

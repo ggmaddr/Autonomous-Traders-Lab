@@ -1,5 +1,6 @@
 from agents import TracingProcessor, Trace, Span
-from .database import write_log
+from datetime import datetime, timezone
+from .database import write_log, write_trace, end_trace, write_span
 import secrets
 import string
 
@@ -73,3 +74,32 @@ class LogTracer(TracingProcessor):
 
     def shutdown(self) -> None:
         pass
+
+class SpanStore(TracingProcessor):
+    """Saves the SDK's traces and spans as they are exported, so the lab can show them
+    next to the trades they led to. Nothing is reshaped here; readers parse the export."""
+
+    def on_trace_start(self, trace) -> None:
+        data = trace.export() or {}
+        write_trace(trace.trace_id, trace.name, data.get("group_id"), data.get("metadata"), _now())
+
+    def on_trace_end(self, trace) -> None:
+        end_trace(trace.trace_id, _now())
+
+    def on_span_start(self, span) -> None:
+        pass
+
+    def on_span_end(self, span) -> None:
+        export = span.export()
+        if export:
+            write_span(export)
+
+    def force_flush(self) -> None:
+        pass
+
+    def shutdown(self) -> None:
+        pass
+
+
+def _now() -> str:
+    return datetime.now(timezone.utc).isoformat()

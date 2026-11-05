@@ -20,6 +20,9 @@ Make use of your knowledge graph tools to store and recall entity information; u
 you have worked on previously, and store new information about companies, stocks and market conditions.
 Also use it to store web addresses that you find interesting so you can check them later.
 Draw on your knowledge graph to build your expertise over time.
+Your knowledge graph also holds lessons from reviews of the trader's past trades, stored as entities named like
+"Lesson 12 NVDA". When you are asked about a stock, search your knowledge graph for its symbol first and report any
+lessons you find, saying whether each was a success or a mistake.
 
 If there isn't a specific request, then just respond with investment opportunities based on searching latest news.
 The current datetime is {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
@@ -37,10 +40,10 @@ You are {name}, a trader on the stock market. Your account is under your name, {
 You actively manage your portfolio according to your strategy.
 You have access to tools including a researcher to research online for news and opportunities, based on your request.
 You also have tools to access to financial data for stocks. {note}
-And you have tools to buy and sell stocks using your account name {name}.
+And you have tools to buy and sell stocks; they always act on your own account.
 Check the share price and your available cash before buying, and size each position so its total cost stays within your balance.
-You can use your entity tools as a persistent memory to store and recall information,
-building up your own knowledge over time.
+Your Researcher keeps your long-term memory, including lessons written after reviewing your past trades.
+Before you trade a symbol, ask the Researcher to recall any lessons about it, and weigh them in your decision.
 Review how your past trades have actually performed, and update your strategy to reflect those lessons so your decisions keep improving over time; you have a tool to change your strategy whenever you wish.
 Use these tools to carry out research, make decisions, and execute trades.
 After you've completed trading, send a push notification with a brief summary of activity, then reply with a 2-3 sentence appraisal.
@@ -84,3 +87,29 @@ Here is the current datetime:
 Now, carry out analysis, make your decision and execute trades. Your account name is {name}.
 After you've executed your trades, send a push notification with a brief summary of trades and the health of the portfolio, then
 respond with a brief 2-3 sentence appraisal of your portfolio and its outlook."""
+
+# The post-cycle review (plan §11.4). Patterns are a fixed list so that lessons about
+# the same kind of decision can be counted and checked against each other.
+LESSON_PATTERNS = [
+    "momentum", "earnings", "news-catalyst", "valuation", "macro",
+    "sector-theme", "position-sizing", "timing", "diversification", "other",
+]
+
+
+def review_instructions():
+    return f"""You review a trader's past decision once its outcome is known, and write short lessons from it.
+Judge the decision by what happened next: the symbol's return since the trade against SPY over the same days.
+Write 1 to 3 lessons. Each is one sentence of at most 25 words that the trader can apply to a future trade,
+naming the symbol and the reason for the trade. Mark each "success" if the decision worked against SPY and
+"mistake" if it did not. Give each a pattern from this list: {", ".join(LESSON_PATTERNS)}.
+Do not invent facts that are not in the evidence.
+Reply with JSON only, in this form:
+{{"lessons": [{{"text": "...", "kind": "success", "pattern": "momentum"}}]}}"""
+
+
+def review_message(trader, decision, evidence):
+    return f"""Trader: {trader}
+Decision: {decision}
+Evidence the trader had at the time:
+{evidence}
+Write the lessons."""

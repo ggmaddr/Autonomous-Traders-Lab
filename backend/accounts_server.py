@@ -1,60 +1,62 @@
+import os
 from mcp.server.fastmcp import FastMCP
 from .accounts import Account
 
 mcp = FastMCP("accounts_server")
 
-@mcp.tool()
-async def get_balance(name: str) -> float:
-    """Get the cash balance of the given account name.
+# The trader this server instance acts for, and the trace of the run that spawned it.
+# Both come from the environment (backend/mcp_servers.py), never from the model.
+ACCOUNT = os.getenv("LAB_ACCOUNT")
+TRACE_ID = os.getenv("LAB_TRACE_ID") or None
 
-    Args:
-        name: The name of the account holder
-    """
-    return Account.get(name).balance
 
-@mcp.tool()
-async def get_holdings(name: str) -> dict[str, int]:
-    """Get the holdings of the given account name.
+def account() -> Account:
+    if not ACCOUNT:
+        raise ValueError("This accounts server is not bound to an account (LAB_ACCOUNT is not set).")
+    return Account.get(ACCOUNT)
 
-    Args:
-        name: The name of the account holder
-    """
-    return Account.get(name).holdings
 
 @mcp.tool()
-async def buy_shares(name: str, symbol: str, quantity: int, rationale: str) -> float:
+async def get_balance() -> float:
+    """Get the cash balance of your account."""
+    return account().balance
+
+@mcp.tool()
+async def get_holdings() -> dict[str, int]:
+    """Get the holdings of your account."""
+    return account().holdings
+
+@mcp.tool()
+async def buy_shares(symbol: str, quantity: int, rationale: str) -> str:
     """Buy shares of a stock.
 
     Args:
-        name: The name of the account holder
         symbol: The symbol of the stock
         quantity: The quantity of shares to buy
         rationale: The rationale for the purchase and fit with the account's strategy
     """
-    return Account.get(name).buy_shares(symbol, quantity, rationale)
+    return account().buy_shares(symbol, quantity, rationale, trace_id=TRACE_ID)
 
 
 @mcp.tool()
-async def sell_shares(name: str, symbol: str, quantity: int, rationale: str) -> float:
+async def sell_shares(symbol: str, quantity: int, rationale: str) -> str:
     """Sell shares of a stock.
 
     Args:
-        name: The name of the account holder
         symbol: The symbol of the stock
         quantity: The quantity of shares to sell
         rationale: The rationale for the sale and fit with the account's strategy
     """
-    return Account.get(name).sell_shares(symbol, quantity, rationale)
+    return account().sell_shares(symbol, quantity, rationale, trace_id=TRACE_ID)
 
 @mcp.tool()
-async def change_strategy(name: str, strategy: str) -> str:
+async def change_strategy(strategy: str) -> str:
     """At your discretion, if you choose to, call this to change your investment strategy for the future.
 
     Args:
-        name: The name of the account holder
         strategy: The new strategy for the account
     """
-    return Account.get(name).change_strategy(strategy)
+    return account().change_strategy(strategy)
 
 @mcp.resource("accounts://accounts_server/{name}")
 async def read_account_resource(name: str) -> str:
