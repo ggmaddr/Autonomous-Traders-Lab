@@ -58,7 +58,7 @@ export function DotPlot(props: {
   if (!props.dots.length) return <ChartEmpty height={props.minHeight ?? 120}>Nothing to plot yet.</ChartEmpty>;
 
   const laneW = props.lanes ? (narrow ? 64 : 84) : 0;
-  const m = { t: props.refs?.length ? 22 : 10, r: 14, b: 26, l: 12 + laneW };
+  const m = { t: props.refs?.length ? 10 + 14 * props.refs.length : 10, r: 14, b: 26, l: 12 + laneW };
   const iw = Math.max(10, width - m.l - m.r);
   const ext = props.domain ?? (d3.extent(props.dots, (d) => d.value) as [number, number]);
   const pad = props.time || props.log ? 0 : (ext[1] - ext[0] || 1) * 0.04;
@@ -138,18 +138,23 @@ export function DotPlot(props: {
           ))}
           <AxisX scale={xs} ticks={ticks} y={height - m.b + 2} top={m.t} format={fmt} />
           {props.zero !== undefined && <line className="kit-zero" x1={x(props.zero)} x2={x(props.zero)} y1={m.t - 6} y2={height - m.b} />}
-          {props.refs?.map((r, i) => (
-            <g key={i} className="kit-ref" data-tone={r.tone ?? "flat"}>
-              <line x1={x(r.value)} x2={x(r.value)} y1={m.t - 8} y2={height - m.b} />
-              <text
-                x={x(r.value) + (r.value < (props.zero ?? 0) ? -6 : 6)}
-                y={m.t - 10}
-                textAnchor={r.value < (props.zero ?? 0) ? "end" : "start"}
-              >
-                {r.label}
-              </text>
-            </g>
-          ))}
+          {props.refs?.map((r, i) => {
+            // Labels sit on their own rows and flip side to stay inside the chart.
+            const rx = x(r.value);
+            const w = r.label.length * 6.8;
+            let end = r.value < (props.zero ?? 0);
+            if (end && rx - 6 - w < 0) end = false;
+            if (!end && rx + 6 + w > width) end = true;
+            const ty = 12 + i * 14;
+            return (
+              <g key={i} className="kit-ref" data-tone={r.tone ?? "flat"}>
+                <line x1={rx} x2={rx} y1={ty + 4} y2={height - m.b} />
+                <text x={rx + (end ? -6 : 6)} y={ty} textAnchor={end ? "end" : "start"}>
+                  {r.label}
+                </text>
+              </g>
+            );
+          })}
           {placed.map(({ d, cx, cy, r }) => (
             <circle
               key={d.id}
