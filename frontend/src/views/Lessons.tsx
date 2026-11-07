@@ -6,6 +6,7 @@
 
 import { useMemo } from "react";
 import { Link, useSearchParams } from "react-router-dom";
+import { TraderPills, useTraderFilter } from "../lib/filter";
 import { useQuery } from "@tanstack/react-query";
 import { getLessons, getTraders, type Lesson, type LessonsPayload, type PendingReview } from "../api";
 import { Change, Failed, Loading, PageHeader, Panel, Ratio, TraderName } from "../components/bits";
@@ -18,7 +19,7 @@ const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 const plural = (n: number, one: string, many = `${one}s`) => `${count(n)} ${n === 1 ? one : many}`;
 
 export function Lessons() {
-  const [params, setParams] = useSearchParams();
+  const [params] = useSearchParams();
   const trader = params.get("trader");
   const focus = Number(params.get("lesson")) || null;
   const lessons = useQuery({
@@ -29,7 +30,7 @@ export function Lessons() {
   const { desk } = useDesk();
   const roster = useQuery({ queryKey: ["traders"], queryFn: getTraders, staleTime: Infinity });
   const traders = roster.data?.map((t) => t.name.toLowerCase()) ?? [];
-  const setTrader = (t: string | null) => setParams(t ? { trader: t } : {});
+  const [, setTrader] = useTraderFilter();
 
   return (
     <div className="view">
@@ -40,16 +41,7 @@ export function Lessons() {
         aside={lessons.dataUpdatedAt > 0 && <p className="fresh num">Updated {time(lessons.dataUpdatedAt)} · every 30 s</p>}
       />
       {traders.length > 0 && (
-        <div className="segmented filter" role="group" aria-label="Trader">
-          <button aria-pressed={!trader} onClick={() => setTrader(null)}>
-            Whole desk
-          </button>
-          {traders.map((n) => (
-            <button key={n} aria-pressed={trader === n} onClick={() => setTrader(n)}>
-              <TraderName name={n} />
-            </button>
-          ))}
-        </div>
+        <TraderPills value={trader} onChange={setTrader} traders={traders} />
       )}
       {lessons.error && <Failed what="the lessons" error={lessons.error as Error} />}
       {!lessons.data && !lessons.error && <Loading rows={6} />}

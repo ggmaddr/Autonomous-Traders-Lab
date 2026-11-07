@@ -665,6 +665,9 @@ export interface MarketYear {
     hmm: (RegimeSince & { prob: number; probs: Record<RegimeLabel, number> }) | null;
     agree: boolean;
     raw: Record<RegimeModel, RegimeLabel | null>;
+    /** Trading days each model's raw daily label has held; it confirms at `dwell`. */
+    raw_days: Record<RegimeModel, number>;
+    dwell: number;
     switches_this_month: number;
     features: { key: string; label: string; unit: string; value: number | null }[];
   };

@@ -5,6 +5,7 @@
 
 import { useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
+import { TraderPills, useTraderFilter } from "../lib/filter";
 import { useQuery } from "@tanstack/react-query";
 import { getResearch, type ResearchItem } from "../api";
 import { Change, Failed, Loading, PageHeader, Panel, TraderName } from "../components/bits";
@@ -42,7 +43,7 @@ export function Researcher() {
 
   const selectedId = params.get("id");
   const selected = rows?.find((r) => r.item.id === selectedId) ?? rows?.[0] ?? null;
-  const setTrader = (t: string | null) => setParams(t ? { trader: t } : {});
+  const [, setTrader] = useTraderFilter();
   const select = (id: string) => setParams(trader ? { trader, id } : { id });
 
   return (
@@ -54,19 +55,7 @@ export function Researcher() {
         aside={research.dataUpdatedAt > 0 && <p className="fresh num">Updated {time(research.dataUpdatedAt)} · every 15 s</p>}
       />
       {desk && (
-        <div className="segmented filter" role="group" aria-label="Trader">
-          <button aria-pressed={!trader} onClick={() => setTrader(null)}>
-            Whole desk
-          </button>
-          {desk.books.map((b) => {
-            const n = b.trader.name.toLowerCase();
-            return (
-              <button key={n} aria-pressed={trader === n} onClick={() => setTrader(n)}>
-                <TraderName name={n} />
-              </button>
-            );
-          })}
-        </div>
+        <TraderPills value={trader} onChange={setTrader} traders={desk.books.map((b) => b.trader.name.toLowerCase())} />
       )}
       {research.error && <Failed what="the research" error={research.error as Error} />}
       {!rows && !research.error && <Loading rows={6} />}

@@ -8,6 +8,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import { Change, Failed, Loading, PageHeader, Panel, TraderName } from "../components/bits";
 import { FillsChart } from "../components/charts";
 import { useDesk, type Desk } from "../lib/desk";
+import { TraderPills, useTraderFilter } from "../lib/filter";
 import { tradeRecord, type Fill } from "../lib/ledger";
 import { count, duration, longDate, money, pct, price, shortDay, signedMoney, stamp, time, tone } from "../lib/format";
 
@@ -40,7 +41,8 @@ function TradesBody({ desk, now }: { desk: Desk | null; now: number }) {
     return { books, fills, positions, equityOf, record: tradeRecord(fills) };
   }, [desk, trader]);
 
-  const setTrader = (t: string | null) => setParams(t ? { trader: t } : {});
+  const [, setFocus] = useTraderFilter();
+  const setTrader = (t: string | null) => setFocus(t);
   const select = (id: string) => setParams(trader ? { trader, fill: id } : { fill: id });
 
   const selected = view?.fills.find((f) => f.id === fillParam) ?? view?.fills[0] ?? null;
@@ -75,19 +77,13 @@ function TradesBody({ desk, now }: { desk: Desk | null; now: number }) {
       />
       {desk && view && (
         <>
-          <div className="segmented filter" role="group" aria-label="Trader">
-            <button aria-pressed={!trader} onClick={() => setTrader(null)}>
-              Whole desk <span className="num seg-count">{desk.fills.length}</span>
-            </button>
-            {desk.books.map((b) => {
-              const n = b.trader.name.toLowerCase();
-              return (
-                <button key={n} aria-pressed={trader === n} onClick={() => setTrader(n)}>
-                  <TraderName name={n} /> <span className="num seg-count">{b.fills.length}</span>
-                </button>
-              );
-            })}
-          </div>
+          <TraderPills
+            value={trader}
+            onChange={setTrader}
+            traders={desk.books.map((b) => b.trader.name.toLowerCase())}
+            counts={Object.fromEntries(desk.books.map((b) => [b.trader.name.toLowerCase(), b.fills.length]))}
+            total={desk.fills.length}
+          />
 
           <div className="grid-lead">
             <Panel

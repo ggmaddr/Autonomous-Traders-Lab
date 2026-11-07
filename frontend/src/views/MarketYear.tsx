@@ -81,13 +81,34 @@ function deskRiskOn(year: Year): number {
   return equity ? year.exposure.reduce((s, e) => s + e.risk_on, 0) / equity : 0;
 }
 
+/**
+ * What the HMM says, in words. Its confirmed label only switches after the raw
+ * daily label has held `dwell` days, so the probability of the confirmed label
+ * can be ~0% while the model's daily read has already moved on. Say so instead
+ * of printing "agrees (0%)".
+ */
+function hmmPhrase(year: Year): string | null {
+  const { hmm, agree, raw, raw_days, dwell } = year.read;
+  if (!hmm) return null;
+  const turning = raw.hmm && raw.hmm !== hmm.label;
+  const head = agree ? "the HMM agrees" : `the HMM reads ${hmm.label}`;
+  if (!turning) return `${head} (${pct(hmm.prob)})`;
+  const left = Math.max(0, (dwell ?? 5) - (raw_days?.hmm ?? 0));
+  return (
+    `${agree ? "the HMM still confirms it" : head}, but its daily read has been ${raw.hmm} ` +
+    `(${pct(hmm.probs[raw.hmm!] ?? 0)}) for ${raw_days?.hmm ?? 0} day${raw_days?.hmm === 1 ? "" : "s"}` +
+    (left ? `; it switches if that holds ${left} more` : "")
+  );
+}
+
 function Finding({ year }: { year: Year }) {
-  const { rules, hmm, agree } = year.read;
+  const { rules } = year.read;
   const best = bestSignal(year, "rules", rules.label);
+  const hmmText = hmmPhrase(year);
   return (
     <>
       {rules.label} for <span className="num">{rules.days}</span> trading days since {dayLabel(rules.since)}
-      {hmm && (agree ? `; the HMM agrees (${pct(hmm.prob)})` : `; the HMM reads ${hmm.label} (${pct(hmm.prob)})`)}.{" "}
+      {hmmText && `; ${hmmText}`}.{" "}
       {best && (
         <>
           In this regime {best.label.toLowerCase()} has paid best, Sharpe{" "}
@@ -426,7 +447,9 @@ function featureValue(unit: string, v: number | null, key: string): string {
 }
 
 function RegimeNow({ year }: { year: Year }) {
-  const { rules, hmm, agree, switches_this_month } = year.read;
+  const { rules, hmm, agree, switches_this_month, raw, raw_days, dwell } = year.read;
+  const hmmTurning = !!hmm && !!raw.hmm && raw.hmm !== hmm.label;
+  const rulesTurning = !!raw.rules && raw.rules !== rules.label;
   const features = Object.keys(KEY_FEATURES)
     .map((k) => year.read.features.find((f) => f.key === k)!)
     .filter(Boolean);
@@ -438,13 +461,32 @@ function RegimeNow({ year }: { year: Year }) {
       </div>
       <p className="answer-sub my-answer-sub">
         Rules · <span className="num">{rules.days}</span> trading days since {dayLabel(rules.since)} · {rules.risk}
+        {rulesTurning && (
+          <>
+            {" "}
+            · daily read <span className="strong">{raw.rules}</span> for <span className="num">{raw_days.rules}</span> of{" "}
+            <span className="num">{dwell}</span> days
+          </>
+        )}
       </p>
       {hmm && (
         <div className="my-hmm">
           <p>
-            HMM <span className="strong">{hmm.label}</span> <span className="num">{pct(hmm.prob)}</span>{" "}
+            HMM <span className="strong">{hmm.label}</span>{" "}
+            {hmmTurning ? <span className="muted">confirmed</span> : <span className="num">{pct(hmm.prob)}</span>}{" "}
             <span className={agree ? "tag" : "tag my-disagree"}>{agree ? "agrees" : "disagrees"}</span>
+            {hmmTurning && (
+              <span className="tag my-disagree" title="The raw daily label differs from the confirmed one; it confirms after it holds for the dwell period.">
+                turning
+              </span>
+            )}
           </p>
+          {hmmTurning && (
+            <p className="my-hmm-raw">
+              Daily read <span className="strong">{raw.hmm}</span> <span className="num">{pct(hmm.probs[raw.hmm!] ?? 0)}</span> for{" "}
+              <span className="num">{raw_days.hmm}</span> of <span className="num">{dwell}</span> days needed to switch.
+            </p>
+          )}
           <div className="my-probs" role="img" aria-label={year.labels.map((l) => `${l} ${pct(hmm.probs[l] ?? 0)}`).join(", ")}>
             <svg width="100%" height="10" preserveAspectRatio="none" viewBox="0 0 100 10" aria-hidden="true">
               <RegimeDefs />

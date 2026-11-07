@@ -2651,3 +2651,569 @@ button.rg-cell:not(:disabled) {
 .thesis-grid .table td {
   vertical-align: top;
 }
+
+/* --- Chart kit (src/charts) ------------------------------------------------
+   One axis, tooltip, annotation and empty-state style for every chart. Marks
+   take their colour from data (trader hues, money tones); chrome stays stone. */
+
+.kit-box {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+}
+
+.kit-svg {
+  display: block;
+  overflow: visible;
+  touch-action: pan-y;
+}
+
+.kit-grid {
+  stroke: var(--grid);
+  stroke-width: 1;
+}
+
+.kit-zero {
+  stroke: var(--control);
+  stroke-width: 1;
+  stroke-dasharray: 3 4;
+}
+
+.kit-tick {
+  fill: var(--muted);
+  font-family: var(--font-figure);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.kit-line {
+  fill: none;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.kit-hit {
+  fill: none;
+  stroke: transparent;
+  stroke-width: 14;
+  cursor: pointer;
+  pointer-events: stroke;
+}
+
+.kit-series {
+  transition: opacity 300ms;
+}
+
+.kit-cross {
+  stroke: var(--muted);
+  stroke-width: 1;
+  stroke-dasharray: 2 3;
+  pointer-events: none;
+}
+
+.kit-end-label {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.kit-end-value {
+  font-family: var(--font-figure);
+  font-weight: 500;
+}
+
+.kit-band-label {
+  fill: var(--muted);
+  font-size: 10px;
+}
+
+.kit-hatch-line {
+  stroke: var(--rg-volatile-line);
+  stroke-width: 1.5;
+}
+
+.kit-note-dot {
+  fill: var(--text);
+}
+
+.kit-note-line {
+  stroke: var(--text);
+  stroke-width: 0.8;
+}
+
+.kit-note-text {
+  fill: var(--text);
+  font-size: 12px;
+  font-weight: 600;
+  paint-order: stroke;
+  stroke: var(--surface);
+  stroke-width: 4px;
+  stroke-linejoin: round;
+}
+
+.kit-note-sub {
+  fill: var(--muted);
+  font-size: 11px;
+  paint-order: stroke;
+  stroke: var(--surface);
+  stroke-width: 4px;
+  stroke-linejoin: round;
+}
+
+.kit-tip {
+  position: absolute;
+  z-index: 5;
+  min-width: 140px;
+  max-width: min(280px, 80vw);
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 12px;
+  line-height: 18px;
+  pointer-events: none;
+  transform: translateY(-100%);
+  box-shadow: 0 4px 16px rgb(0 0 0 / 0.18);
+}
+
+.kit-tip-head {
+  color: var(--muted);
+  margin-bottom: 2px;
+}
+
+.kit-tip-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.kit-tip-row .num {
+  margin-left: auto;
+  padding-left: 12px;
+}
+
+.kit-tip-swatch {
+  width: 8px;
+  height: 2px;
+  flex: none;
+}
+
+.kit-empty {
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-card);
+  color: var(--muted);
+  text-align: center;
+}
+
+.kit-loading {
+  display: grid;
+  align-content: center;
+  gap: 10px;
+  padding: 16px;
+}
+
+.kit-loading span {
+  height: 10px;
+  border-radius: 3px;
+  background: var(--raised);
+  animation: kit-pulse 1.4s ease-in-out infinite;
+}
+
+.kit-loading span:nth-child(2) {
+  width: 80%;
+}
+
+.kit-loading span:nth-child(3) {
+  width: 55%;
+}
+
+@keyframes kit-pulse {
+  50% {
+    opacity: 0.45;
+  }
+}
+
+.kit-stub {
+  display: inline-block;
+  padding: 1px 6px;
+  border: 1px dashed var(--control);
+  border-radius: 3px;
+  color: var(--faint);
+  font-size: 11px;
+}
+
+/* Dots and lanes */
+.kit-dot {
+  transition: opacity 300ms;
+}
+
+.kit-dot:focus-visible {
+  outline: none;
+  stroke: var(--accent-data) !important;
+  stroke-width: 3 !important;
+}
+
+.kit-lane-rule {
+  stroke: var(--rule);
+}
+
+.kit-lane-label {
+  fill: var(--text);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.kit-lane-sub,
+.kit-lane-empty,
+.kit-bar-note {
+  fill: var(--muted);
+  font-size: 11px;
+}
+
+.kit-ref line {
+  stroke: var(--muted);
+  stroke-dasharray: 4 3;
+}
+
+.kit-ref text {
+  fill: var(--muted);
+  font-family: var(--font-figure);
+  font-size: 11px;
+}
+
+.kit-ref[data-tone="good"] line {
+  stroke: var(--positive);
+}
+
+.kit-ref[data-tone="good"] text {
+  fill: var(--positive);
+}
+
+.kit-ref[data-tone="bad"] line {
+  stroke: var(--negative);
+}
+
+.kit-ref[data-tone="bad"] text {
+  fill: var(--negative);
+}
+
+.kit-bar[data-missing] {
+  fill: none;
+  stroke: var(--negative);
+  stroke-dasharray: 3 3;
+}
+
+.kit-bar[data-failed] {
+  stroke: var(--negative);
+  stroke-width: 2;
+}
+
+.kit-bar[data-hi] {
+  stroke: var(--text);
+  stroke-width: 1.5;
+}
+
+.kit-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--rule);
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.kit-legend li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.kit-legend-mark {
+  width: 14px;
+  height: 8px;
+  border-radius: 2px;
+}
+
+.kit-legend-mark[data-missing] {
+  border: 1px dashed var(--negative);
+}
+
+/* Treemap */
+.kit-tm-group {
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.kit-tm-tile {
+  stroke: var(--surface);
+  stroke-width: 0.5;
+}
+
+.kit-tm-sym {
+  font-family: var(--font-figure);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.kit-tm-line,
+.kit-tm-flag {
+  font-family: var(--font-figure);
+  font-size: 11px;
+  opacity: 0.9;
+}
+
+.kit-tm-flag {
+  font-family: var(--font);
+  font-weight: 700;
+}
+
+/* Waterfall and bars */
+.kit-wf-label {
+  fill: var(--muted);
+  font-size: 12px;
+}
+
+.kit-wf-label[data-total] {
+  fill: var(--text);
+  font-weight: 700;
+}
+
+.kit-wf-bar[data-tone="total"] {
+  fill: var(--control);
+}
+
+.kit-wf-bar[data-tone="good"] {
+  fill: var(--positive);
+}
+
+.kit-wf-bar[data-tone="bad"] {
+  fill: var(--negative);
+}
+
+.kit-wf-value,
+.kit-bar-value {
+  font-family: var(--font-figure);
+  font-size: 11.5px;
+  font-weight: 600;
+  fill: var(--text);
+}
+
+.kit-wf-value[data-tone="good"],
+.kit-bar-value[data-tone="good"] {
+  fill: var(--positive);
+}
+
+.kit-wf-value[data-tone="bad"],
+.kit-bar-value[data-tone="bad"] {
+  fill: var(--negative);
+}
+
+.kit-bar-value[data-tone="flat"] {
+  fill: var(--muted);
+}
+
+.kit-wf-value[data-inside] {
+  fill: var(--surface);
+}
+
+.kit-wf-value[data-inside][data-tone="total"] {
+  fill: var(--text);
+}
+
+.kit-wf-link {
+  stroke: var(--control);
+  stroke-dasharray: 2 2;
+}
+
+/* Heatmap */
+.kit-heat-wrap {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.kit-heat {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 3px;
+  font-size: 12px;
+}
+
+.kit-heat th {
+  padding: 4px 6px;
+  color: var(--muted);
+  font-weight: 500;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.kit-heat thead th {
+  text-align: center;
+}
+
+.kit-heat thead th[data-now] {
+  color: var(--text);
+  font-weight: 700;
+}
+
+.kit-heat td {
+  padding: 0;
+}
+
+.kit-heat td[data-now] .kit-heat-cell {
+  box-shadow: inset 0 0 0 2px var(--text);
+}
+
+.kit-heat tr[data-pick] {
+  cursor: pointer;
+}
+
+.kit-heat-cell {
+  display: block;
+  min-width: 56px;
+  padding: 7px 6px;
+  border-radius: 3px;
+  text-align: center;
+}
+
+.kit-heat-cell[data-outline="good"] {
+  box-shadow: inset 0 0 0 2px var(--positive);
+}
+
+.kit-heat-cell[data-outline="bad"] {
+  box-shadow: inset 0 0 0 2px var(--negative);
+}
+
+.kit-heat-cell[data-outline="partial"] {
+  box-shadow: inset 0 0 0 2px var(--control);
+}
+
+.kit-heat-none {
+  background: transparent;
+  color: var(--faint);
+}
+
+/* Updated rows flash the signal colour for 400 ms. */
+.flash {
+  animation: kit-flash 400ms ease-out;
+}
+
+@keyframes kit-flash {
+  from {
+    background: color-mix(in srgb, var(--accent-data) 30%, transparent);
+  }
+}
+
+/* --- Story mode ------------------------------------------------------------ */
+
+.page-aside-stack {
+  display: grid;
+  justify-items: end;
+  gap: 10px;
+}
+
+.scrolly {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+  gap: 32px;
+  align-items: start;
+}
+
+.scrolly-steps {
+  display: grid;
+  gap: 40vh;
+  padding: 10vh 0 0;
+}
+
+.scrolly-step {
+  display: grid;
+  gap: 8px;
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+  opacity: 0.55;
+  cursor: pointer;
+  transition: opacity 300ms, border-color 300ms;
+}
+
+.scrolly-step[aria-current="step"] {
+  opacity: 1;
+  border-color: var(--accent-data);
+}
+
+.scrolly-step h3 {
+  font-size: 20px;
+  line-height: 1.2;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.scrolly-tag {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.scrolly-step[aria-current="step"] .scrolly-tag {
+  color: var(--accent-data);
+}
+
+.scrolly-body {
+  color: var(--muted);
+  font-size: var(--fs-body);
+  line-height: 1.55;
+}
+
+.scrolly-step[aria-current="step"] .scrolly-body {
+  color: var(--text);
+}
+
+.scrolly-spacer {
+  height: 30vh;
+}
+
+.scrolly-figure {
+  position: sticky;
+  top: 24px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scrolly-step,
+  .kit-series,
+  .kit-dot {
+    transition: none;
+  }
+}
+
+@media (max-width: 900px) {
+  .scrolly {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+  }
+
+  /* Phone: the figure pins under the top bar and the steps slide up beneath it,
+     becoming active as they cross the lower part of the screen. */
+  .scrolly-figure {
+    order: -1;
+    top: 52px;
+    z-index: 3;
+    max-height: 58vh;
+    overflow: hidden;
+  }
+
+  .scrolly-steps {
+    gap: 50vh;
+    padding-top: 8vh;
+    position: relative;
+    z-index: 1;
+  }
+}
+
+.my-hmm-raw {
+  color: var(--muted);
+  font-size: var(--fs-small);
+}
