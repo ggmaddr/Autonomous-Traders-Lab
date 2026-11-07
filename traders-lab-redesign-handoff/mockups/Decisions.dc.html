@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Decisions run replay</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Space+Grotesk:wght@600;700&amp;family=JetBrains+Mono:wght@400;500&amp;family=Fraunces:ital,wght@1,400&amp;display=swap">
+<style>body{margin:0;background:#0B0D0C}a{color:#C6F432}a:hover{color:#E2FF80}</style>
+</helmet>
+<div style="background: #0B0D0C; color: #E8ECEA; font-family: Inter, sans-serif; display: flex; flex-wrap: wrap; min-height: 1560px;">
+<div style="flex: 1 1 220px; max-width: 240px;"><dc-import name="Sidebar" active="Decisions" hint-size="220px,860px"></dc-import></div>
+<main style="flex: 999 1 560px; min-width: 0; box-sizing: border-box; padding: 28px 40px 64px; display: flex; flex-direction: column; gap: 20px; max-width: 1240px;">
+
+<header style="display: flex; flex-direction: column; gap: 6px; max-width: 760px;">
+<div style="font-size: 12px; color: #8E9692;">Every fill and the run behind it · Friday, 6 November 2026</div>
+<h1 style="margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 48px; line-height: 1;">Decisions<span style="color: #C6F432;">.</span></h1>
+<p style="margin: 6px 0 0; font-size: 16px; line-height: 1.5;">36 of 60 fills have their full run saved. Pick one to replay how the agent got from a question to an order.</p>
+</header>
+
+<div style="display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start;">
+<section aria-labelledby="fills-h" style="flex: 1 1 280px; min-width: 0; background: #141816; border: 1px solid #232A27; border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 4px;">
+<div style="display: flex; justify-content: space-between; align-items: baseline; padding: 0 6px 8px;"><h2 id="fills-h" style="margin: 0; font-size: 15px; font-weight: 600;">Fills</h2><span style="font-size: 12px; color: #8E9692;">60, newest first</span></div>
+<sc-for list="{{fills}}" as="f" hint-placeholder-count="10">
+<button type="button" aria-pressed="{{f.sel}}" style="{{f.style}}">
+<span style="width: 3px; align-self: stretch; border-radius: 2px; background: {{f.color}};"></span>
+<span style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px; text-align: left;">
+<span style="font-size: 13px;">{{f.who}} <span style="color: #8E9692;">{{f.verb}}</span> <b style="font-family: 'JetBrains Mono', monospace; font-weight: 500;">{{f.sym}}</b></span>
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #8E9692;">{{f.time}}</span>
+</span>
+<span style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px;">
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: {{f.pnlColor}};">{{f.pnl}}</span>
+<span style="display: block; height: 3px; width: {{f.bar}}; background: {{f.pnlColor}}; border-radius: 2px;"></span>
+</span>
+</button>
+</sc-for>
+</section>
+
+<div style="flex: 3 1 600px; min-width: 0; display: flex; flex-direction: column; gap: 16px;">
+<section aria-labelledby="dec-h" style="background: #141816; border: 1px solid #232A27; border-radius: 10px; padding: 24px; display: flex; flex-direction: column; gap: 14px;">
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; align-items: center;">
+<h2 id="dec-h" style="margin: 0; font-size: 13px; font-weight: 500; color: #8E9692; display: flex; align-items: center; gap: 8px;"><span style="width: 10px; height: 2px; background: #6F8FFF;"></span>Ray sold 2 SCHG at $32.74 · 5 Nov, 23:48</h2>
+<button type="button" style="display: flex; align-items: center; gap: 8px; background: #C6F432; color: #0B0D0C; border: 0; border-radius: 6px; padding: 8px 14px; font: 600 13px Inter, sans-serif; min-height: 36px;"><svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M2 1 L11 6 L2 11 Z" fill="#0B0D0C"></path></svg>Replay this run</button>
+</div>
+<blockquote style="margin: 0; font-family: Fraunces, Georgia, serif; font-style: italic; font-size: 26px; line-height: 1.35; max-width: 720px;">“Further reduce holdings of SCHG due to consistent underperformance and risk.”</blockquote>
+<div style="display: flex; flex-wrap: wrap; gap: 24px; font-family: 'JetBrains Mono', monospace; font-size: 12px;">
+<span><span style="color: #8E9692;">Proceeds</span> $65.49</span>
+<span><span style="color: #8E9692;">Cost</span> $71.14</span>
+<span><span style="color: #8E9692;">Result</span> <span style="color: #FF6B6B;">−$5.65</span></span>
+<span><span style="color: #8E9692;">Held</span> 9 d 6 h</span>
+</div>
+</section>
+
+<section aria-labelledby="tr-h" style="background: #141816; border: 1px solid #232A27; border-radius: 10px; padding: 20px; display: flex; flex-direction: column; gap: 14px;">
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; align-items: baseline;">
+<h2 id="tr-h" style="margin: 0; font-size: 15px; font-weight: 600;">Run trace</h2>
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #8E9692;">22:47 → 23:48 · 61 min · 9.4k tokens</span>
+</div>
+<div style="display: flex; padding-left: 170px; justify-content: space-between; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #8E9692; border-bottom: 1px solid #232A27; padding-bottom: 6px;"><span>22:47</span><span>23:00</span><span>23:15</span><span>23:30</span><span>23:48</span></div>
+<sc-for list="{{spans}}" as="s" hint-placeholder-count="8">
+<div style="display: flex; align-items: center; gap: 10px; min-height: 30px;">
+<div style="width: 160px; flex: none; display: flex; flex-direction: column;">
+<span style="font-size: 12px;">{{s.label}}</span>
+<span style="font-size: 11px; color: #8E9692;">{{s.sub}}</span>
+</div>
+<div style="position: relative; flex: 1 1 auto; height: 18px; background: repeating-linear-gradient(90deg, transparent 0 24.6%, #1C221F 24.6% 25%);">
+<div style="{{s.style}}"></div>
+<sc-if value="{{s.note}}" hint-placeholder-val="{{false}}"><span style="{{s.noteStyle}}">{{s.note}}</span></sc-if>
+</div>
+</div>
+</sc-for>
+<div style="display: flex; flex-wrap: wrap; gap: 16px; font-size: 11px; color: #8E9692; border-top: 1px solid #232A27; padding-top: 10px;">
+<span style="display: flex; gap: 6px; align-items: center;"><span style="width: 14px; height: 8px; background: #6F8FFF; border-radius: 2px;"></span>research</span>
+<span style="display: flex; gap: 6px; align-items: center;"><span style="width: 14px; height: 8px; background: #9AA39F; border-radius: 2px;"></span>data lookups</span>
+<span style="display: flex; gap: 6px; align-items: center;"><span style="width: 14px; height: 8px; background: #C6F432; border-radius: 2px;"></span>order and fill</span>
+<span style="display: flex; gap: 6px; align-items: center;"><span style="width: 14px; height: 8px; border: 1px dashed #FF6B6B; box-sizing: border-box;"></span>expected but missing</span>
+<span>Times inside the run are placed for the mockup; the build uses each span's saved start and end.</span>
+</div>
+</section>
+
+<div style="display: flex; flex-wrap: wrap; gap: 16px;">
+<section aria-labelledby="ba-h" style="flex: 1 1 320px; min-width: 0; background: #141816; border: 1px solid #232A27; border-radius: 10px; padding: 20px; display: flex; flex-direction: column; gap: 12px;">
+<h2 id="ba-h" style="margin: 0; font-size: 15px; font-weight: 600;">Portfolio before → after</h2>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px 12px; font-family: 'JetBrains Mono', monospace; font-size: 13px; align-items: center;">
+<span style="color: #8E9692; font-family: Inter, sans-serif; font-size: 11px;">Holding</span><span style="color: #8E9692; font-family: Inter, sans-serif; font-size: 11px;">Change</span><span style="color: #8E9692; font-family: Inter, sans-serif; font-size: 11px;">Effect</span>
+<span>SCHG</span><span style="color: #FF6B6B;">−2 shares</span><span style="color: #FF6B6B;">−$5.65 closed</span>
+<span>Cash</span><span style="color: #C6F432;">+$65.49</span><span style="color: #8E9692;">dry powder</span>
+<span style="color: #8E9692;">QQQ</span><span style="color: #8E9692;">unchanged</span><span style="color: #8E9692;">8 shares</span>
+<span style="color: #8E9692;">AAPL</span><span style="color: #8E9692;">unchanged</span><span style="color: #8E9692;">3 shares</span>
+</div>
+</section>
+<section aria-labelledby="ins-h" style="flex: 1 1 320px; min-width: 0; background: #141816; border: 1px solid #3A2526; border-radius: 10px; padding: 20px; display: flex; flex-direction: column; gap: 10px;">
+<h2 id="ins-h" style="margin: 0; font-size: 15px; font-weight: 600;">What the replay surfaces</h2>
+<p style="margin: 0; font-size: 13px; line-height: 1.55;">Example flags: a long gap between research ending and the order going in, or no memory read before the first order.</p>
+<p style="margin: 0; font-size: 13px; line-height: 1.55; color: #8E9692;">Every saved run gets this check automatically, so gaps like this show up without reading the log.</p>
+</section>
+</div>
+</div>
+</div>
+
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1560}}'>
+class Component extends DCLogic {
+renderVals() {
+const C = { Warren: '#F5913E', George: '#E9C46A', Ray: '#6F8FFF', Cathie: '#FF6B9A' };
+const rows = [['Ray', 'sells', 'SCHG', '5 Nov, 23:48', -5.65], ['Cathie', 'buys', 'INSM', '5 Nov, 23:43', 0], ['Warren', 'sells', 'KLAC', '5 Nov, 23:40', -0.52], ['Cathie', 'sells', 'MDGL', '5 Nov, 23:36', -1.93], ['Warren', 'buys', 'KLAC', '5 Nov, 21:45', -1.56], ['George', 'buys', 'DDOG', '5 Nov, 21:42', 0], ['Cathie', 'buys', 'RVMD', '5 Nov, 21:41', 0], ['Ray', 'sells', 'SCHG', '5 Nov, 20:13', -22.61], ['Ray', 'sells', 'QQQ', '5 Nov, 18:38', -237.89]];
+const fills = rows.map(([who, verb, sym, time, p], i) => ({ who, verb, sym, time: time + ' · run saved', color: C[who], sel: i === 0 ? 'true' : 'false', pnl: p === 0 ? '$0.00' : '−$' + Math.abs(p).toFixed(2), pnlColor: p < 0 ? '#FF6B6B' : '#8E9692', bar: Math.max(2, Math.min(60, Math.abs(p) / 4)) + 'px', style: 'display:flex;align-items:center;gap:10px;width:100%;min-height:48px;padding:8px 10px;border-radius:6px;border:0;font:inherit;color:#E8ECEA;cursor:pointer;background:' + (i === 0 ? '#1F2622' : 'transparent') + ';' }));
+const T = 61;
+const bar = (a, b, color, extra) => 'position:absolute;top:3px;height:12px;border-radius:3px;left:' + (a / T * 100).toFixed(2) + '%;width:' + Math.max(0.8, (b - a) / T * 100).toFixed(2) + '%;background:' + color + ';' + (extra || '');
+const note = (a) => 'position:absolute;top:1px;left:calc(' + (a / T * 100).toFixed(2) + '% + 8px);font-size:11px;color:#8E9692;white-space:nowrap;';
+const spans = [
+{ label: 'Strategy loaded', sub: 'growth ETFs', style: bar(0, 0.6, '#9AA39F') },
+{ label: 'Research', sub: '10 sources · 12 m 20 s', style: bar(0, 12.3, '#6F8FFF'), note: 'SCHG, QQQ, AAPL, JEN news', noteStyle: note(12.3) },
+{ label: 'Memory read', sub: 'none in this run', style: bar(13, 20, 'transparent', 'border:1px dashed #FF6B6B;box-sizing:border-box;'), note: 'expected before ordering', noteStyle: note(20) },
+{ label: 'Thinking', sub: '49 min idle', style: bar(12.3, 53, '#232A27') },
+{ label: 'Price lookups', sub: '4 calls', style: bar(53, 54, '#9AA39F', 'box-shadow:12px 0 0 #9AA39F,24px 0 0 #9AA39F,36px 0 0 #9AA39F;') },
+{ label: 'Order', sub: 'sell 2 SCHG, 1 try', style: bar(59.6, 60.2, '#C6F432') },
+{ label: 'Fill', sub: '2 @ $32.74', style: bar(60.4, 61, '#C6F432'), note: '', noteStyle: '' }
+];
+return { fills, spans };
+}
+}
+</script>
+</body>
+</html>

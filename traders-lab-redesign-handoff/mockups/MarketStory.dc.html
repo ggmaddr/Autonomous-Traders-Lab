@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Market Year story mode</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Space+Grotesk:wght@600;700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap">
+<style>body{margin:0;background:#0B0D0C}a{color:#C6F432}a:hover{color:#E2FF80}</style>
+</helmet>
+<div style="background: #0B0D0C; color: #E8ECEA; font-family: Inter, sans-serif; display: flex; flex-wrap: wrap; min-height: 1100px;">
+<div style="flex: 1 1 220px; max-width: 240px;"><dc-import name="Sidebar" active="Market Year" hint-size="220px,860px"></dc-import></div>
+<main style="flex: 999 1 560px; min-width: 0; box-sizing: border-box; padding: 28px 40px 64px; display: flex; flex-direction: column; gap: 24px; max-width: 1240px;">
+
+<header style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 16px;">
+<div style="display: flex; flex-direction: column; gap: 6px; max-width: 720px;">
+<div style="font-size: 12px; color: #8E9692;">Regime report · story mode</div>
+<h1 style="margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 48px; line-height: 1;">The year in regimes<span style="color: #C6F432;">.</span></h1>
+</div>
+<div role="tablist" aria-label="View" style="display: flex; background: #141816; border: 1px solid #232A27; border-radius: 8px; padding: 3px;">
+<a href="Main.dc.html" role="tab" aria-selected="false" style="color: #8E9692; border-radius: 6px; padding: 9px 14px; font: 500 13px Inter, sans-serif; text-decoration: none;">Dashboard</a>
+<button type="button" role="tab" aria-selected="true" style="background: #232A27; color: #E8ECEA; border: 0; border-radius: 6px; padding: 8px 14px; font: 500 13px Inter, sans-serif; min-height: 36px;">Story</button>
+</div>
+</header>
+
+<div style="display: flex; flex-wrap: wrap; gap: 32px; align-items: flex-start;">
+<ol aria-label="Story steps" style="flex: 1 1 300px; min-width: 0; list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 14px;">
+<sc-for list="{{steps}}" as="s" hint-placeholder-count="6">
+<li>
+<button type="button" aria-current="{{s.current}}" onClick="{{s.pick}}" style="{{s.style}}">
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: {{s.tagColor}};">{{s.tag}}</span>
+<span style="font-family: 'Space Grotesk', sans-serif; font-size: 20px; font-weight: 700; line-height: 1.2;">{{s.title}}</span>
+<span style="font-size: 14px; line-height: 1.55; color: {{s.bodyColor}};">{{s.body}}</span>
+</button>
+</li>
+</sc-for>
+</ol>
+
+<figure style="flex: 2 1 560px; min-width: 0; margin: 0; background: #141816; border: 1px solid #232A27; border-radius: 10px; padding: 20px; display: flex; flex-direction: column; gap: 12px;">
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; align-items: baseline;">
+<span style="font-size: 15px; font-weight: 600;">SPY by regime, 2026</span>
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #8E9692;">step {{num}} of 6 · this panel stays pinned while the steps scroll</span>
+</div>
+<svg viewBox="0 0 720 400" width="100%" role="img" aria-label="SPY price from January to November 2026 with regime shading: calm bull, calm chop from 26 March, stress from 7 April, volatile bull from 14 April, calm bull from 13 July.">
+<rect x="40" y="30" width="179" height="290" fill="#2B3317"></rect>
+<rect x="219" y="30" width="26" height="290" fill="#252B28"></rect>
+<rect x="245" y="30" width="15" height="290" fill="#4A2224"></rect>
+<rect x="260" y="30" width="191" height="290" fill="#232A15"></rect>
+<rect x="451" y="30" width="249" height="290" fill="#2B3317"></rect>
+<rect x="40" y="30" width="660" height="290" fill="#0B0D0C" opacity="{{dim}}"></rect>
+<rect x="{{hx}}" y="30" width="{{hw}}" height="290" fill="none" stroke="#C6F432" stroke-width="1.5"></rect>
+<g font-family="JetBrains Mono, monospace" font-size="11" fill="#8E9692">
+<text x="0" y="64">$790</text><text x="0" y="124">$750</text><text x="0" y="180">$710</text><text x="0" y="236">$670</text><text x="0" y="292">$630</text>
+<text x="44" y="338">Jan</text><text x="108" y="338">Feb</text><text x="168" y="338">Mar</text><text x="232" y="338">Apr</text><text x="296" y="338">May</text><text x="362" y="338">Jun</text><text x="426" y="338">Jul</text><text x="492" y="338">Aug</text><text x="556" y="338">Sep</text><text x="620" y="338">Oct</text><text x="684" y="338">Nov</text>
+</g>
+<path d="M40 211 L80 196 L120 181 L160 190 L200 200 L219 209 L235 236 L245 262 L252 306 L260 285 L285 240 L320 209 L370 190 L420 168 L451 152 L500 132 L550 110 L600 101 L650 96 L680 112 L700 131" fill="none" stroke="#C6F432" stroke-width="2"></path>
+<path d="M40 232 L700 168" fill="none" stroke="#8E9692" stroke-dasharray="4 4" stroke-width="1"></path>
+<circle cx="{{dotX}}" cy="{{dotY}}" r="5" fill="#C6F432" stroke="#0B0D0C" stroke-width="2"></circle>
+<rect x="{{calloutX}}" y="{{calloutY}}" width="190" height="40" rx="4" fill="#0B0D0C" stroke="#3A4440"></rect>
+<text x="{{calloutTX}}" y="{{calloutTY}}" font-family="Inter" font-size="12" fill="#E8ECEA">{{callout1}}</text>
+<text x="{{calloutTX}}" y="{{calloutTY2}}" font-family="JetBrains Mono, monospace" font-size="11" fill="#8E9692">{{callout2}}</text>
+<text x="44" y="358" font-family="Inter" font-size="10" fill="#8E9692">Rules</text>
+<rect x="80" y="350" width="139" height="8" fill="#6B7F2A"></rect><rect x="219" y="350" width="26" height="8" fill="#4A524E"></rect><rect x="245" y="350" width="15" height="8" fill="#B5474B"></rect><rect x="260" y="350" width="191" height="8" fill="#55622A"></rect><rect x="451" y="350" width="249" height="8" fill="#6B7F2A"></rect>
+<text x="44" y="376" font-family="Inter" font-size="10" fill="#8E9692">HMM</text>
+<rect x="80" y="368" width="150" height="8" fill="#6B7F2A"></rect><rect x="230" y="368" width="22" height="8" fill="#B5474B"></rect><rect x="252" y="368" width="230" height="8" fill="#55622A"></rect><rect x="482" y="368" width="218" height="8" fill="#4A524E"></rect>
+<text x="44" y="396" font-family="Inter" font-size="10" fill="#8E9692">Dashed: 200-day average. Labels change only after 5 trading days, so every turn is confirmed late.</text>
+</svg>
+<div style="display: flex; flex-wrap: wrap; gap: 14px; font-size: 11px; color: #8E9692;">
+<span style="display: flex; gap: 6px; align-items: center;"><span style="width: 12px; height: 10px; background: #6B7F2A;"></span>Calm bull</span>
+<span style="display: flex; gap: 6px; align-items: center;"><span style="width: 12px; height: 10px; background: #55622A;"></span>Volatile bull</span>
+<span style="display: flex; gap: 6px; align-items: center;"><span style="width: 12px; height: 10px; background: #4A524E;"></span>Calm chop</span>
+<span style="display: flex; gap: 6px; align-items: center;"><span style="width: 12px; height: 10px; background: #B5474B;"></span>Stress</span>
+</div>
+</figure>
+</div>
+
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1100}}'>
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { step: 2 }; }
+renderVals() {
+const cur = this.state.step;
+const S = [
+{ tag: '2 Jan', title: 'The year opens calm', body: 'SPY starts near $678 in a calm bull. Both models agree.', hx: 40, hw: 179, dx: 40, dy: 211, c1: 'Calm bull', c2: 'SPY ≈ $678' },
+{ tag: '26 Mar · transition', title: 'Calm bull → Calm chop', body: 'Gains stall. The rules model flags chop only after 5 trading days hold the new label.', hx: 219, hw: 26, dx: 219, dy: 209, c1: 'Calm chop', c2: 'neutral' },
+{ tag: '7 Apr · transition', title: 'Chop breaks into Stress', body: 'The deepest drop on the chart. The desk shifts to risk-off, confirmed 5 days late by design.', hx: 245, hw: 15, dx: 252, dy: 306, c1: 'Stress · risk-off', c2: 'the year’s low' },
+{ tag: '14 Apr · transition', title: 'Stress → Volatile bull', body: 'One week later the rebound starts. Big swings, but higher highs.', hx: 260, hw: 191, dx: 285, dy: 240, c1: 'Volatile bull', c2: 'risk-on' },
+{ tag: '13 Jul · transition', title: 'Back to Calm bull', body: 'Volatility settles and SPY climbs steadily through the autumn.', hx: 451, hw: 249, dx: 451, dy: 152, c1: 'Calm bull', c2: '84 trading days and counting' },
+{ tag: '6 Nov · today', title: 'Where the desk stands', body: 'SPY $735.29, +8.48% this year. In this regime the 55-day breakout pays best (Sharpe +0.72). The desk is 72% risk-on.', hx: 40, hw: 660, dx: 700, dy: 131, c1: 'SPY $735.29', c2: '+8.48% YTD' }
+];
+const a = S[cur];
+const cx = Math.min(Math.max(a.dx + 12, 48), 500);
+const cy = a.dy > 200 ? a.dy - 60 : a.dy + 16;
+const steps = S.map((s, i) => ({ ...s, current: i === cur ? 'step' : 'false', pick: () => this.setState({ step: i }), tagColor: i === cur ? '#C6F432' : '#8E9692', bodyColor: i === cur ? '#E8ECEA' : '#8E9692',
+style: 'width:100%;text-align:left;display:flex;flex-direction:column;gap:8px;padding:20px;border-radius:10px;cursor:pointer;font:inherit;color:#E8ECEA;min-height:44px;' + (i === cur ? 'background:#141816;border:1px solid #C6F432;' : 'background:transparent;border:1px solid #1C221F;opacity:0.7;') }));
+return { steps, num: cur + 1, hx: a.hx, hw: a.hw, dim: cur === 5 ? 0 : 0.55, dotX: a.dx, dotY: a.dy, calloutX: cx, calloutY: cy, calloutTX: cx + 10, calloutTY: cy + 17, calloutTY2: cy + 32, callout1: a.c1, callout2: a.c2 };
+}
+}
+</script>
+</body>
+</html>
