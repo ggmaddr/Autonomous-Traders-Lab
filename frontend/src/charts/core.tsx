@@ -4,15 +4,7 @@
 // layouts and interpolation. That keeps marks themeable through CSS variables and
 // lets a story step change a chart by changing its props.
 
-import {
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-  type PointerEvent as ReactPointerEvent,
-  type ReactNode,
-} from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
 import * as d3 from "d3";
 
 /** Story steps and value changes animate over this long. */
@@ -195,7 +187,11 @@ export function AxisY(props: {
 /** Ticks for a time axis that fit the width: one label per ~90 px. */
 export function timeTicks(domain: [number, number], width: number): number[] {
   const n = Math.max(2, Math.floor(width / 90));
-  return d3.scaleTime().domain(domain).ticks(n).map((d) => d.getTime());
+  return d3
+    .scaleTime()
+    .domain(domain)
+    .ticks(n)
+    .map((d) => d.getTime());
 }
 
 const dayFmt = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short" });

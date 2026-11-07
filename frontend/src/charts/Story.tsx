@@ -63,7 +63,10 @@ export function useActiveStep(count: number): [React.MutableRefObject<(HTMLEleme
   }, [count]);
   const go = (i: number) => {
     setActive(i);
-    refs.current[i]?.scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "center" });
+    refs.current[i]?.scrollIntoView({
+      behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
+      block: "center",
+    });
   };
   return [refs, active, go];
 }

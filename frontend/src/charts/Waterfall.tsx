@@ -16,7 +16,14 @@ export interface Step {
   note?: string;
 }
 
-export function Waterfall(props: { steps: Step[]; label: string; format: (v: number) => string; signed: (v: number) => string; floor?: number; note?: string }) {
+export function Waterfall(props: {
+  steps: Step[];
+  label: string;
+  format: (v: number) => string;
+  signed: (v: number) => string;
+  floor?: number;
+  note?: string;
+}) {
   const [ref, width] = useSize<HTMLDivElement>();
   const { tip, show, hide } = useTip();
   if (!props.steps.length) return <ChartEmpty height={160}>Nothing to add up yet.</ChartEmpty>;
@@ -57,7 +64,16 @@ export function Waterfall(props: { steps: Step[]; label: string; format: (v: num
                 <text className="kit-wf-label" data-total={s.kind === "total" || undefined} x={0} y={y + 20}>
                   {s.label}
                 </text>
-                <rect className="kit-wf-bar" data-tone={tone} x={x0} y={y + 5} width={w} height={22} rx={3} style={s.color ? { fill: s.color } : undefined} />
+                <rect
+                  className="kit-wf-bar"
+                  data-tone={tone}
+                  x={x0}
+                  y={y + 5}
+                  width={w}
+                  height={22}
+                  rx={3}
+                  style={s.color ? { fill: s.color } : undefined}
+                />
                 <text
                   className="kit-wf-value"
                   data-tone={tone}
@@ -91,7 +107,13 @@ export interface BarRow {
   color: string;
 }
 
-export function DivergingBars(props: { rows: BarRow[]; label: string; format: (v: number) => string; focus?: string | null; onPick?: (id: string) => void }) {
+export function DivergingBars(props: {
+  rows: BarRow[];
+  label: string;
+  format: (v: number) => string;
+  focus?: string | null;
+  onPick?: (id: string) => void;
+}) {
   const [ref, width] = useSize<HTMLDivElement>();
   if (!props.rows.length) return <ChartEmpty height={120}>No traders yet.</ChartEmpty>;
   const labelW = 70;
@@ -125,7 +147,13 @@ export function DivergingBars(props: { rows: BarRow[]; label: string; format: (v
                   {r.label}
                 </text>
                 <rect x={Math.min(z, x1)} y={y + 3} width={Math.max(2, Math.abs(x1 - z))} height={16} rx={2} style={{ fill: r.color }} />
-                <text className="kit-bar-value" data-tone={tone} x={r.value < 0 ? Math.min(z, x1) - 6 : Math.max(z, x1) + 6} y={y + 15} textAnchor={r.value < 0 ? "end" : "start"}>
+                <text
+                  className="kit-bar-value"
+                  data-tone={tone}
+                  x={r.value < 0 ? Math.min(z, x1) - 6 : Math.max(z, x1) + 6}
+                  y={y + 15}
+                  textAnchor={r.value < 0 ? "end" : "start"}
+                >
                   {props.format(r.value)}
                 </text>
               </g>

@@ -4,7 +4,7 @@
 // portfolio before and after, and the SDK's span timeline with a link to the raw
 // trace.
 
-import { useMemo } from "react";
+import { useMemo, type ReactNode } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -22,15 +22,22 @@ import { useDesk, type Desk } from "../lib/desk";
 import type { Fill } from "../lib/ledger";
 import { fillPnl, mentions } from "../lib/research";
 import { count, duration, elapsed, host, longDate, money, price, stamp, time, tokens } from "../lib/format";
-
-const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+import { RunTrace, buildTrace, useReplay, type Trace } from "../components/RunTrace";
+import { TraderPills, useTraderFilter } from "../lib/filter";
 
 export function Decisions() {
   const { desk, error, loading } = useDesk();
   const [params, setParams] = useSearchParams();
-  const traced = useMemo(() => desk?.fills.filter((f) => f.traceId) ?? [], [desk]);
-  const selected = desk?.fills.find((f) => f.id === params.get("fill")) ?? traced[0] ?? desk?.fills[0] ?? null;
-  const select = (id: string) => setParams({ fill: id });
+  const [trader, setTrader] = useTraderFilter();
+  const fills = useMemo(() => desk?.fills.filter((f) => !trader || f.trader === trader) ?? [], [desk, trader]);
+  const traced = useMemo(() => fills.filter((f) => f.traceId), [fills]);
+  const selected = desk?.fills.find((f) => f.id === params.get("fill")) ?? traced[0] ?? fills[0] ?? null;
+  const select = (id: string) => {
+    const next = new URLSearchParams(params);
+    next.set("fill", id);
+    setParams(next);
+  };
+  const maxPnl = Math.max(1, ...fills.map((f) => Math.abs((desk && fillPnl(desk, f)) ?? 0)));
 
   let finding: React.ReactNode = "Reading the fills…";
   if (desk) {
@@ -52,20 +59,31 @@ export function Decisions() {
       {error && !desk && <Failed what="the fills" error={error} />}
       {loading && <Loading rows={8} />}
       {desk && (
+        <TraderPills
+          value={trader}
+          onChange={setTrader}
+          traders={desk.books.map((b) => b.trader.name.toLowerCase())}
+          counts={Object.fromEntries(desk.books.map((b) => [b.trader.name.toLowerCase(), b.fills.length]))}
+          total={desk.fills.length}
+        />
+      )}
+      {desk && (
         <div className="grid-detail list-detail">
-          <Panel title="Fills" id="fills" className="sticky" meta={<span className="num">{count(desk.fills.length)}, newest first</span>}>
-            {desk.fills.length ? (
+          <Panel title="Fills" id="fills" className="sticky" meta={<span className="num">{count(fills.length)}, newest first</span>}>
+            {fills.length ? (
               <div className="table-wrap scroll-list">
                 <table className="table blotter">
                   <thead>
                     <tr>
                       <th scope="col">Order</th>
                       <th scope="col">Time</th>
-                      <th scope="col" className="num">P&amp;L</th>
+                      <th scope="col" className="num">
+                        P&amp;L
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
-                    {desk.fills.map((f) => {
+                    {fills.map((f) => {
                       const pnl = fillPnl(desk, f);
                       return (
                         <tr
@@ -83,10 +101,20 @@ export function Decisions() {
                             {f.symbol}
                           </td>
                           <td className="tnum muted">
+                            {f.traceId && <span className="run-dot" title="Run saved" aria-label="Run saved" />}
                             {stamp(f.time)}
-                            {f.traceId && <span className="traced"> · run saved</span>}
                           </td>
-                          <td className="num">{pnl !== null ? <Change value={pnl} /> : <span className="dash">—</span>}</td>
+                          <td className="num">
+                            {pnl !== null ? <Change value={pnl} /> : <span className="dash">—</span>}
+                            {pnl !== null && Math.abs(pnl) >= 0.005 && (
+                              <span
+                                className="pnl-bar"
+                                data-tone={pnl > 0.005 ? "good" : pnl < -0.005 ? "bad" : "flat"}
+                                style={{ width: `${Math.max(2, (Math.abs(pnl) / maxPnl) * 56)}px` }}
+                                aria-hidden="true"
+                              />
+                            )}
+                          </td>
                         </tr>
                       );
                     })}
@@ -97,7 +125,7 @@ export function Decisions() {
               <p className="empty">No fills yet.</p>
             )}
           </Panel>
-          {selected ? <Decision desk={desk} fill={selected} /> : <p className="empty">Pick a fill.</p>}
+          {selected ? <Decision key={selected.id} desk={desk} fill={selected} /> : <p className="empty">Pick a fill.</p>}
         </div>
       )}
     </div>
@@ -112,56 +140,168 @@ function Decision({ desk, fill }: { desk: Desk; fill: Fill }) {
     staleTime: 30_000,
   });
   const pnl = fillPnl(desk, fill);
+  const focus = useMemo(() => ({ side: fill.side, symbol: fill.symbol }), [fill.side, fill.symbol]);
+  const trace = useMemo(() => (run.data ? buildTrace(run.data.timeline, focus) : null), [run.data, focus]);
+  const replay = useReplay(trace?.steps ?? []);
 
   return (
     <div className="stack">
-      <Panel
-        title={`${cap(fill.trader)} ${fill.side === "buy" ? "bought" : "sold"} ${fill.symbol}`}
-        id="decision"
-        meta={<span className="num">{stamp(fill.time)}</span>}
-      >
-        <p className="decision-head">
-          <TraderName name={fill.trader} /> {fill.side === "buy" ? "bought" : "sold"} <span className="num">{count(fill.quantity)}</span>{" "}
-          {fill.symbol} at <span className="num">{price(fill.price)}</span> for{" "}
-          <span className="num">{money(fill.quantity * fill.price)}</span>
-        </p>
-        <blockquote className="decision-quote small">{fill.rationale}</blockquote>
-        <p className="lot-math num">
+      <section className="panel decision-card" aria-labelledby="decision">
+        <header className="panel-head">
+          <h2 id="decision" className="decision-title">
+            <TraderName name={fill.trader} /> {fill.side === "buy" ? "bought" : "sold"} <span className="num">{count(fill.quantity)}</span>{" "}
+            {fill.symbol} at <span className="num">{price(fill.price)}</span> · <span className="num">{stamp(fill.time)}</span>
+          </h2>
+          {trace && trace.steps.length > 0 && (
+            <button className="btn-primary replay-btn" onClick={replay.toggle} aria-pressed={replay.playing}>
+              {replay.playing ? "Stop replay" : "Replay this run"}
+            </button>
+          )}
+        </header>
+        <blockquote className="decision-serif">{fill.rationale}</blockquote>
+        <p className="decision-strip num">
           {fill.side === "sell" && fill.costBasis !== undefined ? (
             <>
-              Proceeds {money(fill.quantity * fill.price)} − cost {money(fill.costBasis)} = <Change value={fill.realized!} />
-              {fill.heldMs !== undefined && <span className="muted"> · held {duration(fill.heldMs)}</span>}
-            </>
-          ) : pnl !== null ? (
-            <>
-              Worth <Change value={pnl} /> against its cost now · spread paid {money(fill.spread)}
+              <span>
+                <span className="muted">Proceeds</span> {money(fill.quantity * fill.price)}
+              </span>
+              <span>
+                <span className="muted">Cost</span> {money(fill.costBasis)}
+              </span>
+              <span>
+                <span className="muted">Result</span> <Change value={fill.realized!} />
+              </span>
+              {fill.heldMs !== undefined && (
+                <span>
+                  <span className="muted">Held</span> {duration(fill.heldMs)}
+                </span>
+              )}
             </>
           ) : (
-            <>No longer held · spread paid {money(fill.spread)}</>
+            <>
+              <span>
+                <span className="muted">Cost</span> {money(fill.quantity * fill.price)}
+              </span>
+              <span>
+                <span className="muted">{pnl !== null ? "Worth now" : "Status"}</span>{" "}
+                {pnl !== null ? <Change value={pnl} /> : "no longer held"}
+              </span>
+              <span>
+                <span className="muted">Spread paid</span> {money(fill.spread)}
+              </span>
+            </>
           )}
         </p>
-      </Panel>
+      </section>
 
       {!fill.traceId ? (
         <p className="empty">
-          This fill came before runs were saved, so only the agent's reason above was recorded. Fills from the next cycle on
-          show their research, prices, orders and portfolio here.
+          This fill came before runs were saved, so only the agent's reason above was recorded. Fills from the next cycle on show their
+          research, prices, orders and portfolio here.
         </p>
       ) : run.error ? (
         <Failed what="the run behind this fill" error={run.error as Error} />
-      ) : !run.data ? (
+      ) : !run.data || !trace ? (
         <Loading rows={4} />
       ) : (
-        <RunPanels run={run.data} fill={fill} desk={desk} />
+        <RunPanels run={run.data} fill={fill} desk={desk} trace={trace} replay={replay} />
       )}
     </div>
   );
 }
 
-function RunPanels({ run, fill, desk }: { run: RunDetail; fill: Fill; desk: Desk }) {
+/** Things worth a look in a run, found from its trace without reading the log. */
+function Flags({ run, fill, trace }: { run: RunDetail; fill: Fill; trace: Trace }) {
+  const flags: { tone: "good" | "bad" | "flat"; text: ReactNode }[] = [];
+  if (trace.firstOrder !== null && trace.researchEnd !== null) {
+    const gap = trace.firstOrder - trace.researchEnd;
+    if (gap > 5 * 60_000) flags.push({ tone: "bad", text: <>{elapsed(gap)} passed between the research ending and the first order.</> });
+    else if (gap >= 0) flags.push({ tone: "good", text: <>The first order went in {elapsed(gap)} after the research ended.</> });
+  }
+  if (trace.firstOrder !== null) {
+    flags.push(
+      trace.memoryReadBeforeOrder
+        ? { tone: "good", text: "It read its memory before the first order." }
+        : { tone: "bad", text: "No memory read before the first order: what it learned before was not consulted." },
+    );
+  }
+  if (run.research.length) {
+    const named = run.research.some((r) => mentions(r.answer, fill.symbol));
+    flags.push(
+      named
+        ? { tone: "good", text: <>The research named {fill.symbol}.</> }
+        : { tone: "bad", text: <>None of the research named {fill.symbol}: the order was not backed by it.</> },
+    );
+  } else {
+    flags.push({ tone: "flat", text: "No research in this run; it decided on prices and its own account." });
+  }
+  if (trace.failedOrders) flags.push({ tone: "bad", text: `${trace.failedOrders} of ${trace.orders} orders failed.` });
+  flags.push({
+    tone: "flat",
+    text: (
+      <>
+        The model was thinking for {Math.round((trace.thinkMs / trace.total) * 100)}% of the run's {elapsed(trace.total)}.
+      </>
+    ),
+  });
+  return (
+    <ul className="flags">
+      {flags.map((f, i) => (
+        <li key={i} data-tone={f.tone}>
+          {f.text}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function RunPanels(props: { run: RunDetail; fill: Fill; desk: Desk; trace: Trace; replay: ReturnType<typeof useReplay> }) {
+  const { run, fill, desk, trace, replay } = props;
   const otherFills = desk.fills.filter((f) => f.traceId === run.trace_id && f.id !== fill.id);
+  const t0 = run.started_at ? new Date(run.started_at).getTime() : null;
   return (
     <>
+      <Panel
+        title="Run trace"
+        id="trace"
+        meta={
+          <span className="num">
+            {t0 ? `${time(t0)} → ${time(t0 + trace.total)} · ` : ""}
+            {elapsed(trace.total)} · {tokens(run.usage.input_tokens + run.usage.output_tokens)} tokens
+          </span>
+        }
+      >
+        <RunTrace
+          spans={run.timeline}
+          startedAt={run.started_at}
+          focus={{ side: fill.side, symbol: fill.symbol }}
+          highlight={replay.step?.id ?? null}
+        />
+        <p className="replay-caption" aria-live="polite">
+          {replay.step ? (
+            <>
+              <span className="num">
+                Step {replay.index! + 1} of {trace.steps.length} · +{elapsed(replay.step.start)}
+              </span>{" "}
+              {replay.step.label}
+            </>
+          ) : (
+            <span className="muted">
+              Each bar is a saved span at its real time in the run. Replay walks them in order: question, research, data, order, fill.
+            </span>
+          )}
+        </p>
+      </Panel>
+
+      <div className="grid-halves rows-start">
+        <Panel title="Portfolio before → after" id="portfolio">
+          <BeforeAfter before={run.before} after={run.after} />
+        </Panel>
+        <Panel title="What the trace shows" id="flags" className="flags-panel">
+          <Flags run={run} fill={fill} trace={trace} />
+        </Panel>
+      </div>
+
       {run.thesis && <ThesisPanel check={run.thesis} />}
       {run.playbook && <PlaybookPanel check={run.playbook} fill={fill} />}
       <Panel
@@ -179,7 +319,9 @@ function RunPanels({ run, fill, desk }: { run: RunDetail; fill: Fill; desk: Desk
                 <div className="answer-text">{r.answer || "No answer recorded."}</div>
                 <p className="note">
                   {mentions(r.answer, fill.symbol) ? (
-                    <span className="tag" data-tone="good">Names {fill.symbol}</span>
+                    <span className="tag" data-tone="good">
+                      Names {fill.symbol}
+                    </span>
                   ) : (
                     <span className="tag">Does not name {fill.symbol}</span>
                   )}{" "}
@@ -226,17 +368,12 @@ function RunPanels({ run, fill, desk }: { run: RunDetail; fill: Fill; desk: Desk
         </Panel>
       </div>
 
-      <div className="grid-lead rows-start">
-        <Panel title="Portfolio before and after this run" id="portfolio">
-          <BeforeAfter before={run.before} after={run.after} />
-        </Panel>
-        <Panel title="Strategy in force" id="strategy" meta={run.mode && <span>{MODE[run.mode] ?? run.mode}</span>}>
-          {run.strategy?.trim() ? <p className="strategy-text">{run.strategy.trim()}</p> : <p className="muted">Not recorded.</p>}
-        </Panel>
-      </div>
+      <Panel title="Strategy in force" id="strategy" meta={run.mode && <span>{MODE[run.mode] ?? run.mode}</span>}>
+        {run.strategy?.trim() ? <p className="strategy-text">{run.strategy.trim()}</p> : <p className="muted">Not recorded.</p>}
+      </Panel>
 
       <Panel
-        title="Run timeline"
+        title="Run details"
         id="timeline"
         meta={
           run.openai_trace_url ? (
@@ -248,11 +385,15 @@ function RunPanels({ run, fill, desk }: { run: RunDetail; fill: Fill; desk: Desk
           )
         }
       >
-        <Timeline spans={run.timeline} />
         <p className="note num">
           {run.usage.model_calls} model calls · {tokens(run.usage.input_tokens)} tokens in, {tokens(run.usage.output_tokens)} out ·{" "}
           {run.mcp_listings} MCP tool listings
-          {run.error && <span className="money-tone" data-tone="bad"> · Run ended with {run.error}</span>}
+          {run.error && (
+            <span className="money-tone" data-tone="bad">
+              {" "}
+              · Run ended with {run.error}
+            </span>
+          )}
         </p>
         {run.output && <blockquote className="decision-quote small">{run.output}</blockquote>}
       </Panel>
@@ -311,7 +452,9 @@ function ThesisPanel({ check }: { check: ThesisCheck }) {
             {check.uncited} of {check.claims.length} claims cite nothing this run had
           </span>
         ) : (
-          <span className="money-tone" data-tone="good">Every claim cites a source from this run</span>
+          <span className="money-tone" data-tone="good">
+            Every claim cites a source from this run
+          </span>
         )}
       </p>
       <blockquote className="decision-quote small">{t.summary}</blockquote>
@@ -340,7 +483,9 @@ function ThesisPanel({ check }: { check: ThesisCheck }) {
                     Numbers: <Cited claim={c.numbers} grounded={ok(c.numbers)} />
                   </p>
                   <p className="muted">
-                    <span className="strong">{c.winner === "unresolved" ? "Unresolved" : `${c.winner === "story" ? "Story" : "Numbers"} win`}</span>
+                    <span className="strong">
+                      {c.winner === "unresolved" ? "Unresolved" : `${c.winner === "story" ? "Story" : "Numbers"} win`}
+                    </span>
                     : {c.why}
                   </p>
                 </li>
@@ -357,7 +502,9 @@ function ThesisPanel({ check }: { check: ThesisCheck }) {
               <tbody>
                 {t.targets.map((w) => (
                   <tr key={w.symbol}>
-                    <th scope="row" className="ident">{w.symbol}</th>
+                    <th scope="row" className="ident">
+                      {w.symbol}
+                    </th>
                     <td className="num">{(w.weight * 100).toFixed(1)}%</td>
                     <td className="muted">{w.reason}</td>
                   </tr>
@@ -414,22 +561,26 @@ function PlaybookPanel({ check, fill }: { check: PlaybookCheck; fill: Fill }) {
               </span>
             )}
           </p>
-          <table className="table playbook-rules">
-            <tbody>
-              {mine.rules.map((r) => (
-                <tr key={r.id}>
-                  <th scope="row" className="num">{r.id}</th>
-                  <td>{r.text}</td>
-                  <td>
-                    <span className="tag" data-tone={r.status === "pass" ? "good" : r.status === "fail" ? "bad" : undefined}>
-                      {STATUS[r.status]}
-                    </span>
-                  </td>
-                  <td className="muted">{r.evidence}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <div className="table-wrap">
+            <table className="table playbook-rules">
+              <tbody>
+                {mine.rules.map((r) => (
+                  <tr key={r.id}>
+                    <th scope="row" className="num">
+                      {r.id}
+                    </th>
+                    <td>{r.text}</td>
+                    <td>
+                      <span className="tag" data-tone={r.status === "pass" ? "good" : r.status === "fail" ? "bad" : undefined}>
+                        {STATUS[r.status]}
+                      </span>
+                    </td>
+                    <td className="muted">{r.evidence}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </>
       ) : (
         <p className="muted">This fill's order was not found among the run's completed orders.</p>
@@ -474,83 +625,63 @@ function Calls({ calls, empty }: { calls: ToolCall[]; empty: string }) {
 
 function BeforeAfter({ before, after }: { before: AccountState | null; after: AccountState | null }) {
   if (!before) return <p className="muted">Not recorded.</p>;
-  const symbols = [...new Set([...Object.keys(before.holdings), ...Object.keys(after?.holdings ?? {})])].sort();
+  const changed = (s: string) => (before.holdings[s] ?? 0) !== (after?.holdings[s] ?? 0);
+  const symbols = [...new Set([...Object.keys(before.holdings), ...Object.keys(after?.holdings ?? {})])].sort(
+    (a, b) => Number(changed(b)) - Number(changed(a)) || a.localeCompare(b),
+  );
   const delta = (a: number | null | undefined, b: number | null | undefined) =>
     a !== null && a !== undefined && b !== null && b !== undefined ? <Change value={b - a} /> : <span className="dash">—</span>;
   return (
-    <table className="table">
-      <thead>
-        <tr>
-          <th scope="col" />
-          <th scope="col" className="num">Before</th>
-          <th scope="col" className="num">After</th>
-          <th scope="col" className="num">Change</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <th scope="row">Portfolio value</th>
-          <td className="num">{before.portfolio_value !== null ? money(before.portfolio_value) : "—"}</td>
-          <td className="num strong">{after?.portfolio_value != null ? money(after.portfolio_value) : "—"}</td>
-          <td className="num">{delta(before.portfolio_value, after?.portfolio_value)}</td>
-        </tr>
-        <tr>
-          <th scope="row">Cash</th>
-          <td className="num">{before.balance !== null ? money(before.balance) : "—"}</td>
-          <td className="num">{after?.balance != null ? money(after.balance) : "—"}</td>
-          <td className="num">{delta(before.balance, after?.balance)}</td>
-        </tr>
-        {symbols.map((s) => {
-          const a = before.holdings[s] ?? 0;
-          const b = after?.holdings[s] ?? 0;
-          return (
-            <tr key={s}>
-              <th scope="row" className="ident">{s} shares</th>
-              <td className="num">{count(a)}</td>
-              <td className="num">{after ? count(b) : "—"}</td>
-              <td className="num">{after && b !== a ? (b > a ? "+" : "−") + count(Math.abs(b - a)) : <span className="dash">—</span>}</td>
-            </tr>
-          );
-        })}
-      </tbody>
-    </table>
+    <div className="table-wrap">
+      <table className="table">
+        <thead>
+          <tr>
+            <th scope="col" />
+            <th scope="col" className="num">
+              Before
+            </th>
+            <th scope="col" className="num">
+              After
+            </th>
+            <th scope="col" className="num">
+              Change
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th scope="row">Portfolio value</th>
+            <td className="num">{before.portfolio_value !== null ? money(before.portfolio_value) : "—"}</td>
+            <td className="num strong">{after?.portfolio_value != null ? money(after.portfolio_value) : "—"}</td>
+            <td className="num">{delta(before.portfolio_value, after?.portfolio_value)}</td>
+          </tr>
+          <tr>
+            <th scope="row">Cash</th>
+            <td className="num">{before.balance !== null ? money(before.balance) : "—"}</td>
+            <td className="num">{after?.balance != null ? money(after.balance) : "—"}</td>
+            <td className="num">{delta(before.balance, after?.balance)}</td>
+          </tr>
+          {symbols.map((s) => {
+            const a = before.holdings[s] ?? 0;
+            const b = after?.holdings[s] ?? 0;
+            return (
+              <tr key={s} data-changed={!!after && b !== a}>
+                <th scope="row" className="ident">
+                  {s} shares
+                </th>
+                <td className="num">{count(a)}</td>
+                <td className="num">{after ? count(b) : "—"}</td>
+                <td className="num">{after && b !== a ? (b > a ? "+" : "−") + count(Math.abs(b - a)) : <span className="dash">—</span>}</td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
   );
 }
 
-const KIND: Record<string, string> = {
-  agent: "Agent",
-  generation: "Model",
-  function: "Tool",
-  handoff: "Handoff",
-  guardrail: "Guardrail",
-  task: "Task",
-  turn: "Turn",
-  custom: "Step",
-};
-
-export function Timeline({ spans }: { spans: TimelineSpan[] }) {
-  const shown = spans.filter((s) => s.type !== "task" && s.type !== "turn");
-  if (!shown.length) return <p className="muted">No spans saved for this run.</p>;
-  const total = Math.max(1, ...shown.map((s) => (s.offset_ms ?? 0) + (s.duration_ms ?? 0)));
-  return (
-    <ol className="waterfall" aria-label="Spans in the order they started">
-      {shown.map((s) => (
-        <li key={s.id} data-type={s.type} data-failed={!!s.error}>
-          <span className="wf-name" style={{ paddingLeft: `${Math.min(s.depth, 6) * 14}px` }}>
-            <span className="muted">{KIND[s.type] ?? s.type}</span> {s.name}
-          </span>
-          <span className="wf-track">
-            <span
-              className="wf-bar"
-              style={{
-                left: `${((s.offset_ms ?? 0) / total) * 100}%`,
-                width: `${Math.max(0.4, ((s.duration_ms ?? 0) / total) * 100)}%`,
-              }}
-            />
-          </span>
-          <span className="wf-time num muted">{elapsed(s.duration_ms)}</span>
-        </li>
-      ))}
-    </ol>
-  );
+/** The Lab's trial sheet shows a trial's spans the same way. */
+export function Timeline({ spans, startedAt = null }: { spans: TimelineSpan[]; startedAt?: string | null }) {
+  return <RunTrace spans={spans} startedAt={startedAt} />;
 }

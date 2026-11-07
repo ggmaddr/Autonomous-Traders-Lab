@@ -43,7 +43,11 @@ export function Heatmap(props: {
                 return (
                   <td key={c.id} data-now={c.now || undefined} title={v?.tip}>
                     {v ? (
-                      <span className="kit-heat-cell num" data-outline={v.outline ?? undefined} style={{ background: v.fill, color: v.ink }}>
+                      <span
+                        className="kit-heat-cell num"
+                        data-outline={v.outline ?? undefined}
+                        style={{ background: v.fill, color: v.ink }}
+                      >
                         {v.text}
                       </span>
                     ) : (

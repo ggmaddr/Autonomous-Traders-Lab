@@ -59,13 +59,16 @@ export function Swimlane(props: {
   const labelW = narrow ? 96 : 168;
   const m = { t: 8, r: 12, b: 26, l: labelW };
   const iw = Math.max(10, width - m.l - m.r);
-  const x = d3.scaleLinear().domain(props.domain).range([m.l, m.l + iw]);
+  const x = d3
+    .scaleLinear()
+    .domain(props.domain)
+    .range([m.l, m.l + iw]);
   const ticks = x.ticks(narrow ? 3 : 5);
 
   let yAt = m.t;
   const lanes = props.lanes.map((l) => {
     const rows = l.rows ?? Math.max(1, ...l.bars.map((b) => (b.row ?? 0) + 1));
-    const h = rows * rowH + 14;
+    const h = Math.max(rows * rowH + 14, l.sub ? 42 : 0);
     const top = yAt;
     yAt += h;
     return { l, top, h, rows };

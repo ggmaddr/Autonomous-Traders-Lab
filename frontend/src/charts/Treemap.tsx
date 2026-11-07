@@ -51,7 +51,11 @@ export function Treemap(props: {
   const root = d3
     .hierarchy<Node>({
       id: "root",
-      children: groups.map((g) => ({ id: g.id, group: g, children: g.tiles.filter((t) => t.value > 0).map((t) => ({ id: t.id, tile: t, value: t.value })) })),
+      children: groups.map((g) => ({
+        id: g.id,
+        group: g,
+        children: g.tiles.filter((t) => t.value > 0).map((t) => ({ id: t.id, tile: t, value: t.value })),
+      })),
     })
     .sum((d) => d.value ?? 0)
     .sort((a, b) => (b.value ?? 0) - (a.value ?? 0));

@@ -103,7 +103,10 @@ export function LineChart(props: LineChartProps) {
   if (!props.x.length || !props.series.length) return <ChartEmpty height={height}>No samples yet.</ChartEmpty>;
 
   const iw = Math.max(10, width - m.l - m.r);
-  const x = d3.scaleTime().domain(xDomain).range([m.l, m.l + iw]);
+  const x = d3
+    .scaleTime()
+    .domain(xDomain)
+    .range([m.l, m.l + iw]);
   const y = (props.log ? d3.scaleLog() : d3.scaleLinear()).domain(yDomain).range([height - m.b, m.t]);
   const xs = (ms: number) => x(ms);
   const ys = (v: number) => y(v);
@@ -148,7 +151,9 @@ export function LineChart(props: LineChartProps) {
       props.tooltip(i)
     ) : (
       <>
-        <p className="kit-tip-head">{new Date(props.x[i]).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</p>
+        <p className="kit-tip-head">
+          {new Date(props.x[i]).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+        </p>
         {props.series
           .filter((s) => s.values[i] !== null)
           .map((s) => (
@@ -181,7 +186,9 @@ export function LineChart(props: LineChartProps) {
             {props.bands?.map((b, i) => (
               <g key={i}>
                 <rect x={x(b.from)} y={m.t} width={Math.max(0, x(b.to) - x(b.from))} height={height - m.b - m.t} style={{ fill: b.fill }} />
-                {b.hatch && <rect x={x(b.from)} y={m.t} width={Math.max(0, x(b.to) - x(b.from))} height={height - m.b - m.t} fill="url(#kit-hatch)" />}
+                {b.hatch && (
+                  <rect x={x(b.from)} y={m.t} width={Math.max(0, x(b.to) - x(b.from))} height={height - m.b - m.t} fill="url(#kit-hatch)" />
+                )}
                 {b.label && x(b.to) - x(b.from) > 40 && (
                   <text className="kit-band-label" x={(x(b.from) + x(b.to)) / 2} y={m.t + 12} textAnchor="middle">
                     {b.label}
@@ -201,7 +208,12 @@ export function LineChart(props: LineChartProps) {
               const d = line(props.x.map((t, i) => [t, s.values[i]] as [number, number | null])) ?? "";
               return (
                 <g key={s.id} style={{ opacity: dim(props.focus, s.id) }} className="kit-series">
-                  <path d={d} className="kit-line" style={{ stroke: s.color, strokeWidth: s.width ?? (bold ? 2.6 : 1.6) }} strokeDasharray={s.dashed ? "4 4" : undefined} />
+                  <path
+                    d={d}
+                    className="kit-line"
+                    style={{ stroke: s.color, strokeWidth: s.width ?? (bold ? 2.6 : 1.6) }}
+                    strokeDasharray={s.dashed ? "4 4" : undefined}
+                  />
                   {props.onPick && (
                     <path
                       d={d}

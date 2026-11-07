@@ -145,6 +145,12 @@ def get_run(trace_id: str) -> dict:
     return detail
 
 
+@app.get("/api/health/activity")
+def get_activity(minutes: int = 10) -> dict:
+    """What every agent did in the last few minutes, from the saved spans (Health's swimlanes)."""
+    return runs.activity(max(1, min(minutes, 24 * 60)))
+
+
 def recurrence_key(lesson: dict) -> tuple:
     """Lessons recur when the same trader learns the same kind of thing again: the same
     pattern and verdict, or for lessons with no pattern, the same symbol and verdict."""

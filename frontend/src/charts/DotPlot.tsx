@@ -14,6 +14,8 @@ export interface Dot {
   value: number;
   color: string;
   group?: string; // trader, for focus and lanes
+  /** Focus by this id instead of group (when lanes are not traders). */
+  focusId?: string;
   ring?: boolean;
   /** Outline colour, e.g. positive for a winning sell. */
   stroke?: string;
@@ -48,6 +50,7 @@ export function DotPlot(props: {
   domain?: [number, number];
   zero?: number;
   minHeight?: number;
+  log?: boolean;
 }) {
   const [ref, width] = useSize<HTMLDivElement>();
   const { tip, show, hide } = useTip();
@@ -58,9 +61,25 @@ export function DotPlot(props: {
   const m = { t: props.refs?.length ? 22 : 10, r: 14, b: 26, l: 12 + laneW };
   const iw = Math.max(10, width - m.l - m.r);
   const ext = props.domain ?? (d3.extent(props.dots, (d) => d.value) as [number, number]);
-  const pad = props.time ? 0 : (ext[1] - ext[0] || 1) * 0.04;
-  const domain: [number, number] = [Math.min(ext[0] - pad, props.zero ?? Infinity), Math.max(ext[1] + pad, props.zero ?? -Infinity)];
-  const x = props.time ? d3.scaleTime().domain(domain).range([m.l, m.l + iw]) : d3.scaleLinear().domain(domain).range([m.l, m.l + iw]).nice();
+  const pad = props.time || props.log ? 0 : (ext[1] - ext[0] || 1) * 0.04;
+  const domain: [number, number] = props.log
+    ? [ext[0] * 0.8, ext[1] * 1.25]
+    : [Math.min(ext[0] - pad, props.zero ?? Infinity), Math.max(ext[1] + pad, props.zero ?? -Infinity)];
+  const x = props.time
+    ? d3
+        .scaleTime()
+        .domain(domain)
+        .range([m.l, m.l + iw])
+    : props.log
+      ? d3
+          .scaleLog()
+          .domain(domain)
+          .range([m.l, m.l + iw])
+      : d3
+          .scaleLinear()
+          .domain(domain)
+          .range([m.l, m.l + iw])
+          .nice();
   const xs = (v: number) => x(v);
 
   const placed: { d: Dot; cx: number; cy: number; r: number }[] = [];
@@ -93,7 +112,11 @@ export function DotPlot(props: {
     tmp.forEach((p) => placed.push({ d: p.d, cx: Math.min(Math.max(p.cx, m.l + r), m.l + iw - r), cy: base - p.k * (2 * r + 2), r: p.r }));
   }
 
-  const ticks = props.time ? timeTicks(domain, iw) : (x as d3.ScaleLinear<number, number>).ticks(narrow ? 4 : 6);
+  const ticks = props.time
+    ? timeTicks(domain, iw)
+    : props.log
+      ? logTicks(domain, narrow ? 4 : 7)
+      : (x as d3.ScaleLinear<number, number>).ticks(narrow ? 4 : 6);
   const fmt = props.time ? timeFormatFor(domain) : props.format;
 
   return (
@@ -118,7 +141,11 @@ export function DotPlot(props: {
           {props.refs?.map((r, i) => (
             <g key={i} className="kit-ref" data-tone={r.tone ?? "flat"}>
               <line x1={x(r.value)} x2={x(r.value)} y1={m.t - 8} y2={height - m.b} />
-              <text x={x(r.value) + (r.value < (props.zero ?? 0) ? -6 : 6)} y={m.t - 10} textAnchor={r.value < (props.zero ?? 0) ? "end" : "start"}>
+              <text
+                x={x(r.value) + (r.value < (props.zero ?? 0) ? -6 : 6)}
+                y={m.t - 10}
+                textAnchor={r.value < (props.zero ?? 0) ? "end" : "start"}
+              >
                 {r.label}
               </text>
             </g>
@@ -132,9 +159,9 @@ export function DotPlot(props: {
               r={d.ring ? r - 1 : r}
               style={{
                 fill: d.ring ? "var(--surface)" : d.color,
-                stroke: d.ring ? d.color : d.stroke ?? "var(--surface)",
+                stroke: d.ring ? d.color : (d.stroke ?? "var(--surface)"),
                 strokeWidth: d.ring || d.stroke ? 2 : 1,
-                opacity: dim(props.focus, d.group),
+                opacity: dim(props.focus, d.focusId ?? d.group),
                 cursor: props.onPick ? "pointer" : undefined,
               }}
               tabIndex={props.onPick ? 0 : undefined}
@@ -155,4 +182,12 @@ export function DotPlot(props: {
       <Tip tip={tip} width={width} />
     </ChartBox>
   );
+}
+
+/** Powers of ten across a log domain, thinned to about n labels. */
+function logTicks([a, b]: [number, number], n: number): number[] {
+  const out: number[] = [];
+  for (let e = Math.ceil(Math.log10(a)); e <= Math.floor(Math.log10(b)); e++) out.push(10 ** e);
+  const step = Math.ceil(out.length / n);
+  return out.filter((_, i) => i % step === 0);
 }

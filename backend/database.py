@@ -279,3 +279,19 @@ def read_tool_spans(trader: str, tool_names: set[str]) -> list[dict]:
             ORDER BY started_at
         ''', (f"trace_{trader.lower()}0%", *tool_names)).fetchall()
     return [json.loads(r[0]) for r in rows]
+
+
+def read_spans_between(start: str, end: str) -> list[dict]:
+    """Span exports that overlap [start, end] (ISO UTC), oldest first."""
+    with sqlite3.connect(DB) as conn:
+        rows = conn.execute(
+            'SELECT export FROM spans WHERE started_at <= ? AND (ended_at >= ? OR ended_at IS NULL) ORDER BY started_at',
+            (end, start),
+        ).fetchall()
+        return [json.loads(r[0]) for r in rows]
+
+
+def latest_span_end() -> str | None:
+    with sqlite3.connect(DB) as conn:
+        row = conn.execute('SELECT MAX(COALESCE(ended_at, started_at)) FROM spans').fetchone()
+        return row[0] if row else None
