@@ -30,7 +30,7 @@ export function Waterfall(props: {
   const narrow = width < 380;
   const labelW = narrow ? 78 : 96;
   const rowH = 34;
-  const m = { t: 6, r: 12, b: props.note ? 24 : 6, l: labelW };
+  const m = { t: 6, r: 12, b: 6, l: labelW };
   const height = m.t + props.steps.length * rowH + m.b;
 
   let run = 0;
@@ -88,13 +88,10 @@ export function Waterfall(props: {
               </g>
             );
           })}
-          {props.note && (
-            <text className="kit-tick" x={m.l} y={height - 6}>
-              {props.note}
-            </text>
-          )}
+
         </Frame>
       )}
+      {props.note && <p className="kit-foot">{props.note}</p>}
       <Tip tip={tip} width={width} />
     </ChartBox>
   );

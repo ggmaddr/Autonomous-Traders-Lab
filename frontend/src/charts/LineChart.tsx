@@ -17,6 +17,8 @@ export interface LineSeries {
   values: (number | null)[];
   width?: number;
   dashed?: boolean;
+  /** Fill between the line and the zero rule (a drawdown strip). */
+  area?: boolean;
   /** Text after the label at the line's end, e.g. "+76.5%". */
   endText?: string;
 }
@@ -45,6 +47,8 @@ export interface LineChartProps {
   height?: number;
   yFormat: (v: number) => string;
   xFormat?: (ms: number) => string;
+  /** Fixed x ticks, for a folded (non-calendar) x axis. */
+  xTicks?: number[];
   log?: boolean;
   /** Value of the reference rule (0% or $10,000). */
   zero?: number;
@@ -111,7 +115,9 @@ export function LineChart(props: LineChartProps) {
   const xs = (ms: number) => x(ms);
   const ys = (v: number) => y(v);
   const yTicks = props.log ? y.ticks(4).filter((_, i, a) => a.length < 7 || i % 2 === 0) : y.ticks(narrow ? 4 : 5);
-  const xTicks = timeTicks(xDomain, iw);
+  const xTicks = props.xTicks
+    ? props.xTicks.filter((t, i, a) => t >= xDomain[0] && t <= xDomain[1] && (i === 0 || x(t) - x(a[i - 1]) > 44))
+    : timeTicks(xDomain, iw);
   const xFormat = props.xFormat ?? timeFormatFor(xDomain);
 
   const line = d3
@@ -208,6 +214,23 @@ export function LineChart(props: LineChartProps) {
               const d = line(props.x.map((t, i) => [t, s.values[i]] as [number, number | null])) ?? "";
               return (
                 <g key={s.id} style={{ opacity: dim(props.focus, s.id) }} className="kit-series">
+                  {s.area && (
+                    <path
+                      d={
+                        d3
+                          .area<[number, number | null]>()
+                          .defined((p) => p[1] !== null && Number.isFinite(p[1]!))
+                          .x((p) => x(p[0]))
+                          .y0(y(props.zero ?? 0))
+                          .y1((p) => y(p[1] as number))
+                          .curve(props.curve === "linear" ? d3.curveLinear : d3.curveStepAfter)(
+                          props.x.map((t, i) => [t, s.values[i]] as [number, number | null]),
+                        ) ?? ""
+                      }
+                      className="kit-area"
+                      style={{ fill: s.color }}
+                    />
+                  )}
                   <path
                     d={d}
                     className="kit-line"

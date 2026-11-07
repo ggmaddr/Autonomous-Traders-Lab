@@ -3485,3 +3485,131 @@ button.rg-cell:not(:disabled) {
   display: grid;
   min-width: 0;
 }
+
+.kit-area {
+  opacity: 0.32;
+  stroke: none;
+}
+
+/* --- Money ----------------------------------------------------------------- */
+
+.kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+}
+
+.kpi {
+  display: grid;
+  gap: 6px;
+  align-content: start;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+}
+
+.kpi-label {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.kpi-value {
+  font-size: 26px;
+  line-height: 32px;
+}
+
+.kpi-sub {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.kpi-spark {
+  display: block;
+}
+
+.kpi-spark path {
+  fill: none;
+  stroke: var(--accent-data);
+  stroke-width: 1.5;
+  vector-effect: non-scaling-stroke;
+}
+
+.kpi-split {
+  display: flex;
+  height: 6px;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.kpi-split [data-part="real"] {
+  background: var(--positive);
+}
+
+.kpi-split [data-part="open"] {
+  background: color-mix(in srgb, var(--positive) 40%, var(--surface));
+}
+
+.multiples {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+}
+
+.multiple {
+  display: grid;
+  gap: 6px;
+  padding: 14px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-card);
+  background: var(--ground);
+  color: var(--text);
+  text-decoration: none;
+  transition: opacity 300ms, border-color 150ms;
+}
+
+.multiple:hover {
+  border-color: var(--control);
+}
+
+.multiple-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-weight: 600;
+}
+
+.multiple-arch,
+.multiple-foot {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.multiple-foot {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.decision-serif.small {
+  font-size: 20px;
+}
+
+.kit-foot {
+  margin-top: 6px;
+  color: var(--muted);
+  font-family: var(--font-figure);
+  font-size: 11px;
+  line-height: 16px;
+}
+
+@media (max-width: 520px) {
+  .kpi-value {
+    font-size: 21px;
+    line-height: 26px;
+  }
+
+  .multiple {
+    padding: 10px;
+  }
+}
