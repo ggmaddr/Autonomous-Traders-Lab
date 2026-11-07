@@ -9,7 +9,18 @@ import { Link } from "react-router-dom";
 import * as d3 from "d3";
 import { Change, Failed, Loading, PageHeader, Panel, Ratio, TraderName } from "../components/bits";
 import { RiskScatter } from "../components/charts";
-import { CountUp, DivergingBars, LineChart, Waterfall, type DataNote, type LineSeries } from "../charts";
+import {
+  CountUp,
+  DivergingBars,
+  LineChart,
+  Scrolly,
+  ViewToggle,
+  Waterfall,
+  useViewMode,
+  type DataNote,
+  type LineSeries,
+  type StoryStep,
+} from "../charts";
 import { useDesk, type Desk } from "../lib/desk";
 import { INITIAL_BALANCE, drawdownOf, maxDrawdown, traderCorrelation, tradeRecord, valueAt, type Book } from "../lib/ledger";
 import { useQuery } from "@tanstack/react-query";
@@ -50,6 +61,7 @@ function finding(desk: Desk) {
 
 export function Money() {
   const { desk, error, loading } = useDesk();
+  const [view] = useViewMode();
   const now = desk?.updatedAt ?? Date.now();
 
   return (
@@ -58,11 +70,16 @@ export function Money() {
         kicker={`Desk report · ${longDate(now)}`}
         title="Money"
         finding={desk ? finding(desk) : loading ? "Reading the books…" : "The books could not be read."}
-        aside={desk && <p className="fresh num">Updated {time(desk.updatedAt)} · every 6 s</p>}
+        aside={
+          <div className="page-aside-stack">
+            <ViewToggle />
+            {desk && <p className="fresh num">Updated {time(desk.updatedAt)} · every 6 s</p>}
+          </div>
+        }
       />
       {error && !desk && <Failed what="the desk" error={error} />}
       {loading && <Loading rows={6} />}
-      {desk && <MoneyBody desk={desk} />}
+      {desk && (view === "story" ? <MoneyStory desk={desk} /> : <MoneyBody desk={desk} />)}
     </div>
   );
 }
@@ -653,5 +670,178 @@ function DeskExposure() {
         stored close.
       </p>
     </Panel>
+  );
+}
+
+// --- Story: how the desk got here ------------------------------------------------
+
+function MoneyStory({ desk }: { desk: Desk }) {
+  const { books, curves } = desk;
+  const traders = books.map((b) => b.trader.name.toLowerCase());
+  const fold = useMemo(() => foldTimes(curves.times), [curves.times]);
+  const funded = INITIAL_BALANCE * books.length;
+  const equity = books.reduce((s, b) => s + b.equity, 0);
+  const change = equity - funded;
+  const realized = books.reduce((s, b) => s + b.realized, 0);
+  const unrealized = books.reduce((s, b) => s + b.unrealized, 0);
+  const ranked = [...books].sort((a, b) => b.change - a.change);
+  const lead = ranked[0].trader.name.toLowerCase();
+  const full: [number, number] = [fold.xs[0], fold.xs[fold.xs.length - 1]];
+  // Where the lines first leave $10k: the end of the flat opening.
+  const firstMove = curves.times.findIndex((_, i) => traders.some((t) => Math.abs(curves.byTrader[t][i] / INITIAL_BALANCE - 1) > 0.01));
+  const openEnd = firstMove > 0 ? fold.xs[Math.min(fold.xs.length - 1, firstMove + 1)] : full[1];
+  const worstDD = Math.min(0, ...curves.drawdown);
+  const worstI = curves.drawdown.indexOf(worstDD);
+  const notes = moneyNotes(desk, fold, "pct", lead);
+  const pctOf = (b: Book) => signedPct(b.change / INITIAL_BALANCE, 1);
+
+  const steps: (StoryStep & { kind: "line" | "waterfall" | "split"; domain?: [number, number]; focus?: string | null; dd?: boolean })[] = [
+    {
+      id: "start",
+      tag: shortDay(curves.times[0] * 1000),
+      title: `${books.length} traders, ${money(INITIAL_BALANCE).replace(/\.\d\d$/, "")} each`,
+      body: (
+        <p>Every account starts in cash, so every line starts flat at 0%. Each trader runs its own strategy on the same local model.</p>
+      ),
+      kind: "line",
+      domain: [full[0], Math.max(openEnd, full[0] + (full[1] - full[0]) * 0.15)],
+    },
+    {
+      id: "lead",
+      tag: notes[0]?.text.split(" · ")[0] ?? "",
+      title: `${cap(lead)} ${ranked[0].change >= 0 ? "breaks away" : "falls behind"}`,
+      body: (
+        <p>
+          {cap(lead)} ends up {pctOf(ranked[0])}. {notes[0]?.sub ? `The biggest open lot: ${notes[0].sub}.` : ""}
+        </p>
+      ),
+      kind: "line",
+      domain: full,
+      focus: lead,
+    },
+    {
+      id: "sink",
+      tag: worstI >= 0 ? stamp(curves.times[worstI] * 1000) : "",
+      title: "The others sink",
+      body: (
+        <p>
+          {ranked
+            .slice(1)
+            .filter((b) => b.change < 0)
+            .map((b) => `${cap(b.trader.name)} ${pctOf(b)}`)
+            .join(", ") || "Nobody else lost money"}
+          . The desk's worst drawdown from its peak was {signedPct(worstDD)}.
+        </p>
+      ),
+      kind: "line",
+      domain: full,
+      dd: true,
+    },
+    {
+      id: "waterfall",
+      tag: "now",
+      title: "Where the money came from",
+      body: (
+        <p>
+          From {money(funded).replace(/\.\d\d$/, "")} funded: {signedMoney(realized)} banked on closed lots and {signedMoney(unrealized)}{" "}
+          still open, for {money(equity).replace(/\.\d\d$/, "")} today.
+        </p>
+      ),
+      kind: "waterfall",
+    },
+    {
+      id: "split",
+      tag: "today",
+      title: `Today's split: ${signedPct(change / funded, 1)} for the desk`,
+      body: <p>{ranked.map((b) => `${cap(b.trader.name)} ${pctOf(b)}`).join(" · ")}.</p>,
+      kind: "split",
+    },
+  ];
+
+  return (
+    <Scrolly
+      label="Story steps"
+      figureTitle={`How the desk got to ${signedPct(change / funded, 1)}`}
+      steps={steps}
+      figure={(i) => {
+        const s = steps[i];
+        if (s.kind === "waterfall")
+          return (
+            <div className="story-swap" key="wf">
+              <WaterfallPanel
+                funded={funded}
+                realized={realized}
+                unrealized={unrealized}
+                equity={equity}
+                spread={books.reduce((n, b) => n + b.spreadPaid, 0)}
+              />
+            </div>
+          );
+        if (s.kind === "split")
+          return (
+            <div className="story-swap" key="split">
+              <DivergingBars
+                rows={ranked.map((b) => ({
+                  id: b.trader.name.toLowerCase(),
+                  label: cap(b.trader.name),
+                  value: b.change,
+                  color: hueVar(b.trader.name),
+                }))}
+                label="Each trader's dollar contribution"
+                format={(v) => signedMoney(v).replace(/\.\d\d$/, "")}
+              />
+            </div>
+          );
+        return (
+          <div className="story-swap" key="line">
+            <LineChart
+              x={fold.xs}
+              series={traders.map((t) => ({
+                id: t,
+                label: cap(t),
+                color: hueVar(t),
+                values: curves.byTrader[t].map((v) => v / INITIAL_BALANCE - 1),
+                endText: signedPct(curves.byTrader[t].at(-1)! / INITIAL_BALANCE - 1, 1),
+              }))}
+              label="Return since funding by trader"
+              height={300}
+              yFormat={(v) => signedPct(v, 0)}
+              zero={0}
+              xTicks={fold.ticks}
+              xFormat={fold.labelOf}
+              xDomain={s.domain}
+              focus={s.focus ?? null}
+              bands={fold.breaks.map((b) => ({ ...b, fill: "var(--raised)" }))}
+              notes={s.id === "lead" ? notes.slice(0, 1) : []}
+            />
+            <LineChart
+              x={fold.xs}
+              series={[
+                {
+                  id: "dd",
+                  label: "Drawdown",
+                  color: "var(--negative)",
+                  values: curves.drawdown,
+                  area: true,
+                  width: 1,
+                  endText: signedPct(worstDD),
+                },
+              ]}
+              label="Desk drawdown"
+              height={90}
+              yFormat={(v) => signedPct(v, 0)}
+              zero={0}
+              xTicks={fold.ticks}
+              xFormat={fold.labelOf}
+              xDomain={s.domain}
+              yDomain={[Math.min(-0.01, worstDD) * 1.1, 0]}
+              notes={
+                s.dd && worstI >= 0 ? [{ x: fold.xs[worstI], y: worstDD, text: `worst ${signedPct(worstDD)}`, dir: "e", len: 20 }] : []
+              }
+            />
+          </div>
+        );
+      }}
+    />
   );
 }

@@ -131,6 +131,8 @@ def market_year(range: str = "ytd") -> dict:
             "rules": [by_day["rules"].get(d, {}).get("label") for d in days],
             "hmm": [by_day["hmm"].get(d, {}).get("label") for d in days],
             "hmm_prob": [by_day["hmm"].get(d, {}).get("prob") for d in days],
+            # All four state probabilities per day, for the probability ribbon.
+            "hmm_probs": [by_day["hmm"].get(d, {}).get("probs") for d in days],
         },
         "read": _read(rows),
         "episodes": eps,

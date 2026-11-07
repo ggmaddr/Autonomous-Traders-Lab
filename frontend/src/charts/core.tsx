@@ -66,7 +66,10 @@ export function useTween<T>(target: T, duration = DURATION): T {
     const interp = d3.interpolate(from.current as never, target as never) as (t: number) => T;
     const timer = d3.timer((elapsed) => {
       const t = Math.min(1, elapsed / duration);
-      const v = interp(d3.easeCubicInOut(t));
+      // d3's array and object interpolators reuse one output object; copy it so
+      // React sees a new value every frame.
+      const raw = interp(d3.easeCubicInOut(t)) as unknown;
+      const v = (Array.isArray(raw) ? [...raw] : raw && typeof raw === "object" ? { ...raw } : raw) as T;
       from.current = v;
       setValue(v);
       if (t >= 1) timer.stop();

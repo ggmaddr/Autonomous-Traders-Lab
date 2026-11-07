@@ -3173,7 +3173,7 @@ button.rg-cell:not(:disabled) {
 }
 
 .scrolly-spacer {
-  height: 30vh;
+  height: 55vh;
 }
 
 .scrolly-figure {
@@ -3201,13 +3201,14 @@ button.rg-cell:not(:disabled) {
     order: -1;
     top: 52px;
     z-index: 3;
-    max-height: 58vh;
+    max-height: 52vh;
     overflow: hidden;
+    padding: 12px 14px;
   }
 
   .scrolly-steps {
-    gap: 50vh;
-    padding-top: 8vh;
+    gap: 30vh;
+    padding-top: 4vh;
     position: relative;
     z-index: 1;
   }
@@ -3612,4 +3613,91 @@ button.rg-cell:not(:disabled) {
   .multiple {
     padding: 10px;
   }
+}
+
+/* --- Market Year story and regime charts ----------------------------------- */
+
+.ribbon {
+  position: relative;
+}
+
+.ribbon-label {
+  color: var(--muted);
+  font-size: 11px;
+  margin: 2px 0 2px;
+}
+
+.story-figure {
+  display: grid;
+  gap: 4px;
+}
+
+.story-stats {
+  margin-top: 8px;
+  font-size: 12px;
+}
+
+.story-sub {
+  margin-top: 6px;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+.scrolly-body p + p {
+  margin-top: 6px;
+}
+
+.gauge {
+  max-width: 320px;
+  margin: 4px auto 8px;
+}
+
+.gauge-track {
+  fill: var(--raised);
+}
+
+.gauge-fill {
+  fill: var(--accent-data);
+}
+
+.gauge-value {
+  fill: var(--text);
+  font-size: 26px;
+  font-weight: 700;
+}
+
+.gauge-sub {
+  fill: var(--muted);
+  font-size: 12px;
+}
+
+/* Story figures that swap form between steps fade in. */
+.story-swap {
+  animation: story-in 400ms ease-out;
+}
+
+@keyframes story-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .story-swap {
+    animation: none;
+  }
+}
+
+.story-hits {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 24px 0;
+}
+
+.story-hits .hit {
+  width: 28px;
+  height: 28px;
+  border-radius: 4px;
 }

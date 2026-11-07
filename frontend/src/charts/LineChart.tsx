@@ -47,6 +47,8 @@ export interface LineChartProps {
   height?: number;
   yFormat: (v: number) => string;
   xFormat?: (ms: number) => string;
+  /** Fixed y ticks (a short strip needs only one or two). */
+  yTicks?: number[];
   /** Fixed x ticks, for a folded (non-calendar) x axis. */
   xTicks?: number[];
   log?: boolean;
@@ -64,6 +66,10 @@ export interface LineChartProps {
   /** Row(s) for the tooltip at sample i; default lists every series. */
   tooltip?: (i: number) => ReactNode;
   /** Extra marks drawn in chart pixels, after the lines. */
+  /** Override the plot margins, to line up with another chart. */
+  pad?: Partial<{ t: number; r: number; b: number; l: number }>;
+  /** Hide the x axis labels (a strip stacked under another chart). */
+  noXAxis?: boolean;
   overlay?: (s: { x: (ms: number) => number; y: (v: number) => number; width: number; height: number }) => ReactNode;
 }
 
@@ -79,7 +85,7 @@ export function LineChart(props: LineChartProps) {
   const narrow = width < 520;
   const endLabels = props.endLabels ?? true;
   const labelW = endLabels ? (narrow ? 84 : 128) : 12;
-  const m = { t: 16, r: labelW, b: 28, l: narrow ? 46 : 58 };
+  const m = { t: 16, r: labelW, b: 28, l: narrow ? 46 : 58, ...props.pad };
 
   const full: [number, number] = [props.x[0] ?? 0, props.x[props.x.length - 1] ?? 1];
   const xDomain = useTween(props.xDomain ?? full);
@@ -114,7 +120,7 @@ export function LineChart(props: LineChartProps) {
   const y = (props.log ? d3.scaleLog() : d3.scaleLinear()).domain(yDomain).range([height - m.b, m.t]);
   const xs = (ms: number) => x(ms);
   const ys = (v: number) => y(v);
-  const yTicks = props.log ? y.ticks(4).filter((_, i, a) => a.length < 7 || i % 2 === 0) : y.ticks(narrow ? 4 : 5);
+  const yTicks = props.yTicks ?? (props.log ? y.ticks(4).filter((_, i, a) => a.length < 7 || i % 2 === 0) : y.ticks(narrow ? 4 : 5));
   const xTicks = props.xTicks
     ? props.xTicks.filter((t, i, a) => t >= xDomain[0] && t <= xDomain[1] && (i === 0 || x(t) - x(a[i - 1]) > 44))
     : timeTicks(xDomain, iw);
@@ -204,7 +210,7 @@ export function LineChart(props: LineChartProps) {
             ))}
           </g>
           <AxisY scale={ys} ticks={yTicks} x0={m.l} x1={m.l + iw} format={props.yFormat} zero={props.zero ?? null} />
-          <AxisX scale={xs} ticks={xTicks} y={height - m.b + 2} format={xFormat} />
+          {!props.noXAxis && <AxisX scale={xs} ticks={xTicks} y={height - m.b + 2} format={xFormat} />}
           {props.zero !== undefined && !yTicks.includes(props.zero) && (
             <line className="kit-zero" x1={m.l} x2={m.l + iw} y1={y(props.zero)} y2={y(props.zero)} />
           )}

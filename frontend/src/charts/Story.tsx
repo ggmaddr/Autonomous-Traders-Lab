@@ -42,24 +42,46 @@ export interface StoryStep {
   body: ReactNode;
 }
 
-/** Index of the step crossing the viewport's middle band. */
+/**
+ * Index of the active step: the last one whose top has crossed the activation
+ * line (the middle of the screen; lower on a phone, where the pinned figure
+ * covers the top). An IntersectionObserver re-checks whenever a step enters or
+ * leaves view, and a rAF-throttled scroll listener catches jumps (keyboard,
+ * scrollbar drags) that skip past a step without it ever intersecting. At the
+ * very bottom of the page the last step is active, so it can always be reached.
+ */
 export function useActiveStep(count: number): [React.MutableRefObject<(HTMLElement | null)[]>, number, (i: number) => void] {
   const refs = useRef<(HTMLElement | null)[]>([]);
   const [active, setActive] = useState(0);
   useEffect(() => {
-    const els = refs.current.slice(0, count).filter(Boolean) as HTMLElement[];
-    if (!els.length || typeof IntersectionObserver === "undefined") return;
-    const obs = new IntersectionObserver(
-      (entries) => {
-        for (const e of entries) {
-          if (e.isIntersecting) setActive(Number((e.target as HTMLElement).dataset.step));
-        }
-      },
-      // On a phone the pinned figure covers the top, so steps activate lower down.
-      { rootMargin: matchMedia("(max-width: 900px)").matches ? "-72% 0px -22% 0px" : "-45% 0px -50% 0px", threshold: 0 },
-    );
-    els.forEach((el) => obs.observe(el));
-    return () => obs.disconnect();
+    const els = () => refs.current.slice(0, count).filter(Boolean) as HTMLElement[];
+    let frame = 0;
+    const compute = () => {
+      frame = 0;
+      const list = els();
+      if (!list.length) return;
+      const line = window.innerHeight * (matchMedia("(max-width: 900px)").matches ? 0.75 : 0.5);
+      const atBottom = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 4;
+      let i = 0;
+      list.forEach((el, k) => {
+        if (el.getBoundingClientRect().top < line) i = k;
+      });
+      setActive(atBottom ? list.length - 1 : i);
+    };
+    const schedule = () => {
+      if (!frame) frame = requestAnimationFrame(compute);
+    };
+    const obs = typeof IntersectionObserver !== "undefined" ? new IntersectionObserver(schedule, { threshold: [0, 0.5, 1] }) : null;
+    els().forEach((el) => obs?.observe(el));
+    window.addEventListener("scroll", schedule, { passive: true });
+    window.addEventListener("resize", schedule);
+    compute();
+    return () => {
+      obs?.disconnect();
+      window.removeEventListener("scroll", schedule);
+      window.removeEventListener("resize", schedule);
+      if (frame) cancelAnimationFrame(frame);
+    };
   }, [count]);
   const go = (i: number) => {
     setActive(i);

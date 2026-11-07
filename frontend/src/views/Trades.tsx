@@ -7,7 +7,7 @@ import { useMemo } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { Change, Failed, Loading, PageHeader, Panel, TraderName } from "../components/bits";
 import { FillsChart } from "../components/charts";
-import { DotPlot, Treemap, type Dot, type TileGroup } from "../charts";
+import { DotPlot, Scrolly, Treemap, ViewToggle, useViewMode, type Dot, type StoryStep, type TileGroup } from "../charts";
 import { hueVar } from "../lib/traders";
 import { useDesk, type Desk } from "../lib/desk";
 import { TraderPills, useTraderFilter } from "../lib/filter";
@@ -45,6 +45,7 @@ function TradesBody({ desk, now }: { desk: Desk | null; now: number }) {
   }, [desk, trader]);
 
   const [, setFocus] = useTraderFilter();
+  const [mode] = useViewMode();
   const setTrader = (t: string | null) => setFocus(t);
   const select = (id: string) => setParams(trader ? { trader, fill: id } : { fill: id });
 
@@ -61,8 +62,11 @@ function TradesBody({ desk, now }: { desk: Desk | null; now: number }) {
         {scope} made {count(view.fills.length)} fills since {shortDay(view.fills[view.fills.length - 1].time)}.{" "}
         {r.closes ? (
           <>
-            Only <span className="strong">{r.wins} of {r.closes}</span> closing sells made money, yet {trader ? "they" : "the desk"} banked{" "}
-            <Change value={r.realized} />.
+            Only{" "}
+            <span className="strong">
+              {r.wins} of {r.closes}
+            </span>{" "}
+            closing sells made money, yet {trader ? "they" : "the desk"} banked <Change value={r.realized} />.
             {payoff(r) !== null && (
               <>
                 {" "}
@@ -83,9 +87,15 @@ function TradesBody({ desk, now }: { desk: Desk | null; now: number }) {
         kicker={`Positions and fills · ${longDate(now)}`}
         title="Trades"
         finding={findingText}
-        aside={desk && <p className="fresh num">Updated {time(desk.updatedAt)} · every 6 s</p>}
+        aside={
+          <div className="page-aside-stack">
+            <ViewToggle />
+            {desk && <p className="fresh num">Updated {time(desk.updatedAt)} · every 6 s</p>}
+          </div>
+        }
       />
-      {desk && view && (
+      {desk && view && mode === "story" && <TradesStory desk={desk} />}
+      {desk && view && mode !== "story" && (
         <>
           <TraderPills
             value={trader}
@@ -101,8 +111,8 @@ function TradesBody({ desk, now }: { desk: Desk | null; now: number }) {
               id="exposure"
               meta={
                 <span className="num">
-                  {desk.books.reduce((n, b) => n + b.positions.length, 0)} open ·{" "}
-                  {money(desk.books.reduce((n, b) => n + b.invested, 0))} · area = value
+                  {desk.books.reduce((n, b) => n + b.positions.length, 0)} open · {money(desk.books.reduce((n, b) => n + b.invested, 0))} ·
+                  area = value
                 </span>
               }
             >
@@ -119,11 +129,7 @@ function TradesBody({ desk, now }: { desk: Desk | null; now: number }) {
             </Panel>
           </div>
 
-          <Panel
-            title="Every closing sell, by P&L"
-            id="payoff"
-            meta={<span>one dot per sell · colour = trader · outlined = a win</span>}
-          >
+          <Panel title="Every closing sell, by P&L" id="payoff" meta={<span>one dot per sell · colour = trader · outlined = a win</span>}>
             <Payoff desk={desk} record={view.record} focus={trader} onSelect={select} />
           </Panel>
 
@@ -152,12 +158,24 @@ function TradesBody({ desk, now }: { desk: Desk | null; now: number }) {
                       <tr>
                         <th scope="col">Symbol</th>
                         <th scope="col">Trader</th>
-                        <th scope="col" className="num">Shares</th>
-                        <th scope="col" className="num">Avg cost</th>
-                        <th scope="col" className="num">Price</th>
-                        <th scope="col" className="num">Value</th>
-                        <th scope="col" className="num">Unrealized</th>
-                        <th scope="col" className="num">Weight</th>
+                        <th scope="col" className="num">
+                          Shares
+                        </th>
+                        <th scope="col" className="num">
+                          Avg cost
+                        </th>
+                        <th scope="col" className="num">
+                          Price
+                        </th>
+                        <th scope="col" className="num">
+                          Value
+                        </th>
+                        <th scope="col" className="num">
+                          Unrealized
+                        </th>
+                        <th scope="col" className="num">
+                          Weight
+                        </th>
                       </tr>
                     </thead>
                     <tbody>
@@ -170,7 +188,9 @@ function TradesBody({ desk, now }: { desk: Desk | null; now: number }) {
                           <td className="num">{count(p.quantity)}</td>
                           <td className="num">{price(p.avgCost)}</td>
                           <td className="num">{price(p.price)}</td>
-                          <td className="num strong money-tone" data-tone={tone(p.unrealized)}>{money(p.value)}</td>
+                          <td className="num strong money-tone" data-tone={tone(p.unrealized)}>
+                            {money(p.value)}
+                          </td>
                           <td className="num">
                             <Change value={p.unrealized} ratio={p.unrealized / p.costBasis} />
                           </td>
@@ -208,7 +228,6 @@ function TradesBody({ desk, now }: { desk: Desk | null; now: number }) {
               )}
               <p className="note">Cost basis is first in, first out, spread included. Weight is the share of that trader's equity.</p>
             </Panel>
-
           </div>
 
           <div className="grid-lead list-detail">
@@ -221,11 +240,21 @@ function TradesBody({ desk, now }: { desk: Desk | null; now: number }) {
                         <th scope="col">Time</th>
                         <th scope="col">Trader</th>
                         <th scope="col">Order</th>
-                        <th scope="col" className="num">Shares</th>
-                        <th scope="col" className="num">Fill</th>
-                        <th scope="col" className="num">Notional</th>
-                        <th scope="col" className="num">Realized</th>
-                        <th scope="col" className="num">Held</th>
+                        <th scope="col" className="num">
+                          Shares
+                        </th>
+                        <th scope="col" className="num">
+                          Fill
+                        </th>
+                        <th scope="col" className="num">
+                          Notional
+                        </th>
+                        <th scope="col" className="num">
+                          Realized
+                        </th>
+                        <th scope="col" className="num">
+                          Held
+                        </th>
                       </tr>
                     </thead>
                     <tbody>
@@ -253,9 +282,7 @@ function TradesBody({ desk, now }: { desk: Desk | null; now: number }) {
                           <td className="num">
                             {f.realized !== undefined ? <Change value={f.realized} /> : <span className="dash">—</span>}
                           </td>
-                          <td className="num muted">
-                            {f.heldMs !== undefined ? duration(f.heldMs) : <span className="dash">—</span>}
-                          </td>
+                          <td className="num muted">{f.heldMs !== undefined ? duration(f.heldMs) : <span className="dash">—</span>}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -263,7 +290,10 @@ function TradesBody({ desk, now }: { desk: Desk | null; now: number }) {
                 </div>
               ) : (
                 <p className="empty">
-                  No fills{trader ? ` for ${cap(trader)}` : ""}. <Link to="/" className="text-link">Back to Money</Link>
+                  No fills{trader ? ` for ${cap(trader)}` : ""}.{" "}
+                  <Link to="/" className="text-link">
+                    Back to Money
+                  </Link>
                 </p>
               )}
             </Panel>
@@ -305,20 +335,28 @@ function Record({ fills }: { fills: Fill[] }) {
             <span key={f.id} className="hit" data-tone={tone(f.realized!)} title={`${f.symbol} ${signedMoney(f.realized!)}`} />
           ))}
       </div>
-      <div className="winloss" role="img" aria-label={`Average win ${signedMoney(r.avgWin ?? 0)}, average loss ${signedMoney(r.avgLoss ?? 0)}`}>
+      <div
+        className="winloss"
+        role="img"
+        aria-label={`Average win ${signedMoney(r.avgWin ?? 0)}, average loss ${signedMoney(r.avgLoss ?? 0)}`}
+      >
         <div className="wl-row">
           <span className="wl-label">Average win</span>
           <span className="wl-track">
             <span className="wl-bar" data-tone="good" style={{ width: `${((r.avgWin ?? 0) / scale) * 100}%` }} />
           </span>
-          <span className="num wl-value money-tone" data-tone="good">{r.avgWin !== null ? signedMoney(r.avgWin) : "—"}</span>
+          <span className="num wl-value money-tone" data-tone="good">
+            {r.avgWin !== null ? signedMoney(r.avgWin) : "—"}
+          </span>
         </div>
         <div className="wl-row">
           <span className="wl-label">Average loss</span>
           <span className="wl-track">
             <span className="wl-bar" data-tone="bad" style={{ width: `${(Math.abs(r.avgLoss ?? 0) / scale) * 100}%` }} />
           </span>
-          <span className="num wl-value money-tone" data-tone="bad">{r.avgLoss !== null ? signedMoney(r.avgLoss) : "—"}</span>
+          <span className="num wl-value money-tone" data-tone="bad">
+            {r.avgLoss !== null ? signedMoney(r.avgLoss) : "—"}
+          </span>
         </div>
       </div>
       {payoff(r) !== null && (
@@ -371,9 +409,7 @@ function Record({ fills }: { fills: Fill[] }) {
 
 function Selected({ desk, fill, onSelect }: { desk: Desk; fill: Fill; onSelect: (id: string) => void }) {
   const same = desk.fills.filter((f) => f.trader === fill.trader && f.symbol === fill.symbol);
-  const position = desk.books
-    .find((b) => b.trader.name.toLowerCase() === fill.trader)
-    ?.positions.find((p) => p.symbol === fill.symbol);
+  const position = desk.books.find((b) => b.trader.name.toLowerCase() === fill.trader)?.positions.find((p) => p.symbol === fill.symbol);
   return (
     <div className="selected">
       <FillsChart fills={same} now={position?.price ?? null} selected={fill.id} onSelect={onSelect} />
@@ -459,7 +495,12 @@ function exposureGroups(desk: Desk): TileGroup[] {
           value: p.value,
           shade: shade(ret),
           lines: [money(p.value), signedPct(ret)],
-          flag: weight > 0.4 ? `${pct(weight)} of account · concentrated` : Math.abs(p.unrealized) > 500 ? signedMoney(p.unrealized) : undefined,
+          flag:
+            weight > 0.4
+              ? `${pct(weight)} of account · concentrated`
+              : Math.abs(p.unrealized) > 500
+                ? signedMoney(p.unrealized)
+                : undefined,
           tip: (
             <>
               <p className="kit-tip-head">
@@ -513,7 +554,11 @@ function Payoff({ desk, record, focus, onSelect }: { desk: Desk; record: Record_
     <DotPlot
       dots={dots}
       label={`Dot plot of ${sells.length} closing sells by realized P&L`}
-      format={(v) => signedMoney(v).replace(".00", "").replace(/\.\d\d$/, "")}
+      format={(v) =>
+        signedMoney(v)
+          .replace(".00", "")
+          .replace(/\.\d\d$/, "")
+      }
       zero={0}
       refs={refs}
       focus={focus}
@@ -581,6 +626,123 @@ function FillTimeline({ desk, focus, onSelect }: { desk: Desk; focus: string | n
       })}
       focus={focus}
       onPick={(d) => onSelect(d.id)}
+    />
+  );
+}
+
+// --- Story: right a minority of the time, still in profit -----------------------------
+
+function TradesStory({ desk }: { desk: Desk }) {
+  const r = tradeRecord(desk.fills);
+  const sells = desk.fills.filter((f) => f.side === "sell" && f.realized !== undefined).sort((a, b) => b.realized! - a.realized!);
+  const best = sells[0];
+  const share = best && r.realized > 0 ? best.realized! / r.realized : null;
+  const ratio = payoff(r);
+  if (!r.closes) return <p className="empty">No closing sells yet, so there is no story to tell.</p>;
+  const steps: StoryStep[] = [
+    {
+      id: "hits",
+      tag: `${r.closes} closing sells`,
+      title: `${r.wins} won, ${r.losses} lost`,
+      body: (
+        <p>
+          Each square is one sell that closed lots, winners first. A {pct(r.winRate!)} hit rate: the desk was wrong on most of its closing
+          trades.
+        </p>
+      ),
+    },
+    {
+      id: "spread",
+      tag: "by size",
+      title: ratio !== null ? `Wins are ${ratio.toFixed(1)}× bigger than losses` : "Spread out by size",
+      body: (
+        <p>
+          The average win is {r.avgWin !== null ? signedMoney(r.avgWin) : "—"}, the average loss{" "}
+          {r.avgLoss !== null ? signedMoney(r.avgLoss) : "—"}. Low hit rate, positive skew: {signedMoney(r.realized)} realized.
+        </p>
+      ),
+    },
+    {
+      id: "best",
+      tag: best ? `${cap(best.trader)} · ${shortDay(best.time)}` : "",
+      title: best ? `${best.symbol} alone: ${signedMoney(best.realized!)}` : "The best sell",
+      body: <p>{share !== null ? `That one sell is ${pct(share)} of everything the desk has realized.` : "No winning sell yet."}</p>,
+    },
+    {
+      id: "open",
+      tag: "still open",
+      title: "What is still at risk",
+      body: (
+        <p>
+          {desk.books.reduce((n, b) => n + b.positions.length, 0)} open positions worth{" "}
+          {money(desk.books.reduce((n, b) => n + b.invested, 0))}. Large tiles are concentration; red ones are underwater.
+        </p>
+      ),
+    },
+  ];
+  const dots = (focusBest: boolean): Dot[] =>
+    sells.map((f) => ({
+      id: f.id,
+      value: f.realized!,
+      color: hueVar(f.trader),
+      group: f.trader,
+      focusId: focusBest ? f.id : undefined,
+      stroke: f.realized! > 0.005 ? "var(--positive)" : undefined,
+      tip: (
+        <p>
+          {cap(f.trader)} sold {f.symbol}: <Change value={f.realized!} />
+        </p>
+      ),
+    }));
+  return (
+    <Scrolly
+      label="Story steps"
+      figureTitle={`${pct(r.winRate!)} right, still in profit`}
+      steps={steps}
+      figure={(i) => {
+        if (i === 0)
+          return (
+            <div className="story-swap story-hits" key="hits">
+              {sells.map((f) => (
+                <span key={f.id} className="hit" data-tone={tone(f.realized!)} title={`${f.symbol} ${signedMoney(f.realized!)}`} />
+              ))}
+            </div>
+          );
+        if (i === 3)
+          return (
+            <div className="story-swap" key="tm">
+              <Treemap groups={exposureGroups(desk)} label="Open positions by trader" height={340} />
+              <ShadeKey />
+            </div>
+          );
+        return (
+          <div className="story-swap" key="dots">
+            <DotPlot
+              dots={dots(i === 2)}
+              label="Closing sells by realized P&L"
+              format={(v) => signedMoney(v).replace(/\.\d\d$/, "")}
+              zero={0}
+              focus={i === 2 && best ? best.id : null}
+              refs={[
+                ...(r.avgWin !== null ? [{ value: r.avgWin, label: `avg win ${signedMoney(r.avgWin)}`, tone: "good" as const }] : []),
+                ...(r.avgLoss !== null ? [{ value: r.avgLoss, label: `avg loss ${signedMoney(r.avgLoss)}`, tone: "bad" as const }] : []),
+              ]}
+              notes={
+                i === 2 && best
+                  ? [
+                      {
+                        id: best.id,
+                        text: `${best.symbol} ${signedMoney(best.realized!)}`,
+                        sub: share !== null ? `${pct(share)} of realized` : undefined,
+                      },
+                    ]
+                  : []
+              }
+              minHeight={220}
+            />
+          </div>
+        );
+      }}
     />
   );
 }

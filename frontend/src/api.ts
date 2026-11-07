@@ -658,6 +658,7 @@ export interface MarketYear {
     rules: (RegimeLabel | null)[];
     hmm: (RegimeLabel | null)[];
     hmm_prob: (number | null)[];
+    hmm_probs: (Record<RegimeLabel, number> | null)[];
   };
   read: {
     day: string;
