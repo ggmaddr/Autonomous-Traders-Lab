@@ -7,13 +7,15 @@
 
 import { useEffect, useMemo, useRef } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQueries, useQuery } from "@tanstack/react-query";
+import * as d3 from "d3";
+import { ChartBox, Tip, useSize, useTip } from "../charts";
 import cytoscape, { type Core } from "cytoscape";
 import { getMemory, getMemoryNode, type MemoryGraph, type MemoryNode } from "../api";
 import { Change, Failed, Loading, PageHeader, Panel, TraderName } from "../components/bits";
 import { useDesk, type Desk } from "../lib/desk";
 import { fillPnl } from "../lib/research";
-import { cssColor, hue } from "../lib/traders";
+import { cssColor, hue, hueVar } from "../lib/traders";
 import { useTheme } from "../lib/theme";
 import { count, longDate, parseIso, stamp, time } from "../lib/format";
 
@@ -76,7 +78,7 @@ export function Memory() {
 
   const set = (patch: Record<string, string | null>) => {
     const next = new URLSearchParams(params);
-    for (const [k, v] of Object.entries(patch)) (v === null ? next.delete(k) : next.set(k, v));
+    for (const [k, v] of Object.entries(patch)) v === null ? next.delete(k) : next.set(k, v);
     setParams(next);
   };
   const select = (of: string, node: string) => set({ node, of: of === trader ? null : of });
@@ -103,7 +105,11 @@ export function Memory() {
       <div className="filter-row">
         <div className="segmented filter" role="group" aria-label="Trader">
           {TRADERS.map((n) => (
-            <button key={n} aria-pressed={trader === n} onClick={() => set({ trader: n, node: null, of: null, compare: compare === n ? null : compare })}>
+            <button
+              key={n}
+              aria-pressed={trader === n}
+              onClick={() => set({ trader: n, node: null, of: null, compare: compare === n ? null : compare })}
+            >
               <TraderName name={n} />
             </button>
           ))}
@@ -127,11 +133,19 @@ export function Memory() {
         </div>
       </div>
       {left.error && <Failed what={`${cap(trader)}'s memory`} error={left.error as Error} />}
+      <WriteRead current={trader} onPick={(n) => set({ trader: n, node: null, of: null, compare: compare === n ? null : compare })} />
       {!left.data && !left.error && <Loading rows={8} />}
       {left.data && shownLeft && !compare && (
         <>
           <div className="grid-lead rows-start">
-            <GraphPanel trader={trader} graph={left.data} shown={shownLeft} win={win.label} selected={selectedOf === trader ? selectedNode : null} onSelect={(n) => select(trader, n)} />
+            <GraphPanel
+              trader={trader}
+              graph={left.data}
+              shown={shownLeft}
+              win={win.label}
+              selected={selectedOf === trader ? selectedNode : null}
+              onSelect={(n) => select(trader, n)}
+            />
             <NodePanel trader={selectedOf} node={selectedNode} desk={desk} />
           </div>
           <NodeList trader={trader} shown={shownLeft} selected={selectedNode} onSelect={(n) => select(trader, n)} />
@@ -140,11 +154,25 @@ export function Memory() {
       {left.data && shownLeft && compare && (
         <>
           <div className="grid-halves rows-start">
-            <GraphPanel trader={trader} graph={left.data} shown={shownLeft} win={win.label} selected={selectedOf === trader ? selectedNode : null} onSelect={(n) => select(trader, n)} />
+            <GraphPanel
+              trader={trader}
+              graph={left.data}
+              shown={shownLeft}
+              win={win.label}
+              selected={selectedOf === trader ? selectedNode : null}
+              onSelect={(n) => select(trader, n)}
+            />
             {right.error ? (
               <Failed what={`${cap(compare)}'s memory`} error={right.error as Error} />
             ) : right.data && shownRight ? (
-              <GraphPanel trader={compare} graph={right.data} shown={shownRight} win={win.label} selected={selectedOf === compare ? selectedNode : null} onSelect={(n) => select(compare, n)} />
+              <GraphPanel
+                trader={compare}
+                graph={right.data}
+                shown={shownRight}
+                win={win.label}
+                selected={selectedOf === compare ? selectedNode : null}
+                onSelect={(n) => select(compare, n)}
+              />
             ) : (
               <Loading rows={8} />
             )}
@@ -161,7 +189,8 @@ function Finding(props: { trader: string; graph?: MemoryGraph; left?: Shown; com
   const { trader, graph, left, compare, right } = props;
   if (!graph || !left) return <>Reading the memory…</>;
   const scope = props.win === "All time" ? "" : ` written in the last ${props.win.toLowerCase()}`;
-  const sizeOf = (s: Shown) => `${plural(s.nodes.length, "entity", "entities")}, ${plural(s.edges.length, "relation")} and ${plural(s.observations, "observation")}`;
+  const sizeOf = (s: Shown) =>
+    `${plural(s.nodes.length, "entity", "entities")}, ${plural(s.edges.length, "relation")} and ${plural(s.observations, "observation")}`;
   if (compare && right) {
     const shared = left.nodes.filter((n) => right.nodes.some((m) => m.name === n.name)).length;
     return (
@@ -190,7 +219,14 @@ function Finding(props: { trader: string; graph?: MemoryGraph; left?: Shown; com
   );
 }
 
-function GraphPanel(props: { trader: string; graph: MemoryGraph; shown: Shown; win: string; selected: string | null; onSelect: (n: string) => void }) {
+function GraphPanel(props: {
+  trader: string;
+  graph: MemoryGraph;
+  shown: Shown;
+  win: string;
+  selected: string | null;
+  onSelect: (n: string) => void;
+}) {
   const { trader, graph, shown } = props;
   return (
     <Panel
@@ -204,7 +240,9 @@ function GraphPanel(props: { trader: string; graph: MemoryGraph; shown: Shown; w
         </span>
       }
     >
-      {shown.nodes.length ? (
+      {shown.nodes.length && !shown.edges.length ? (
+        <Bubbles trader={trader} shown={shown} selected={props.selected} onSelect={props.onSelect} />
+      ) : shown.nodes.length ? (
         <Graph trader={trader} shown={shown} selected={props.selected} onSelect={props.onSelect} />
       ) : (
         <p className="empty graph-empty">
@@ -214,14 +252,26 @@ function GraphPanel(props: { trader: string; graph: MemoryGraph; shown: Shown; w
         </p>
       )}
       <p className="note">
-        Size follows the number of observations. A dashed outline is a name a relation points to that was never stored. Drag to
-        move, scroll to zoom; the node list below works with the keyboard.
+        {shown.nodes.length && !shown.edges.length
+          ? "No relations link these entities, so they are drawn as bubbles grouped by kind, sized by observations; small ones are named on hover. "
+          : "Size follows the number of observations. A dashed outline is a name a relation points to that was never stored. Drag to move, scroll to zoom; "}
+        The node list below works with the keyboard.
       </p>
     </Panel>
   );
 }
 
-function Graph({ trader, shown, selected, onSelect }: { trader: string; shown: Shown; selected: string | null; onSelect: (n: string) => void }) {
+function Graph({
+  trader,
+  shown,
+  selected,
+  onSelect,
+}: {
+  trader: string;
+  shown: Shown;
+  selected: string | null;
+  onSelect: (n: string) => void;
+}) {
   const box = useRef<HTMLDivElement>(null);
   const cy = useRef<Core | null>(null);
   const { theme } = useTheme();
@@ -288,7 +338,13 @@ function Graph({ trader, shown, selected, onSelect }: { trader: string; shown: S
           },
         },
       ],
-      layout: { name: shown.nodes.length > 1 ? "cose" : "grid", animate: false, padding: 30, nodeRepulsion: () => 24000, idealEdgeLength: () => 110 } as cytoscape.LayoutOptions,
+      layout: {
+        name: shown.nodes.length > 1 ? "cose" : "grid",
+        animate: false,
+        padding: 30,
+        nodeRepulsion: () => 24000,
+        idealEdgeLength: () => 110,
+      } as cytoscape.LayoutOptions,
       minZoom: 0.3,
       maxZoom: 3,
       wheelSensitivity: 0.3,
@@ -311,10 +367,27 @@ function Graph({ trader, shown, selected, onSelect }: { trader: string; shown: S
     if (selected) c.getElementById(selected).select();
   }, [selected, shown, theme]);
 
-  return <div ref={box} className="graph-canvas" role="img" aria-label={`${cap(trader)}'s memory graph: ${plural(shown.nodes.length, "node")}, ${plural(shown.edges.length, "relation")}. The node list below has the same contents.`} />;
+  return (
+    <div
+      ref={box}
+      className="graph-canvas"
+      role="img"
+      aria-label={`${cap(trader)}'s memory graph: ${plural(shown.nodes.length, "node")}, ${plural(shown.edges.length, "relation")}. The node list below has the same contents.`}
+    />
+  );
 }
 
-function NodeList({ trader, shown, selected, onSelect }: { trader: string; shown: Shown; selected: string | null; onSelect: (n: string) => void }) {
+function NodeList({
+  trader,
+  shown,
+  selected,
+  onSelect,
+}: {
+  trader: string;
+  shown: Shown;
+  selected: string | null;
+  onSelect: (n: string) => void;
+}) {
   const degree = (name: string) => shown.edges.filter((e) => e.source === name || e.target === name).length;
   const rows = [...shown.nodes].sort((a, b) => (writtenAt(b) ?? 0) - (writtenAt(a) ?? 0));
   return (
@@ -326,10 +399,18 @@ function NodeList({ trader, shown, selected, onSelect }: { trader: string; shown
               <tr>
                 <th scope="col">Name</th>
                 <th scope="col">Kind</th>
-                <th scope="col" className="num">Observations</th>
-                <th scope="col" className="num">Relations</th>
-                <th scope="col" className="num">Last written</th>
-                <th scope="col" className="num">Read by runs</th>
+                <th scope="col" className="num">
+                  Observations
+                </th>
+                <th scope="col" className="num">
+                  Relations
+                </th>
+                <th scope="col" className="num">
+                  Last written
+                </th>
+                <th scope="col" className="num">
+                  Read by runs
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -362,7 +443,19 @@ function NodeList({ trader, shown, selected, onSelect }: { trader: string; shown
   );
 }
 
-function Shared({ a, b, left, right, onSelect }: { a: string; b: string; left: Shown; right: Shown; onSelect: (of: string, n: string) => void }) {
+function Shared({
+  a,
+  b,
+  left,
+  right,
+  onSelect,
+}: {
+  a: string;
+  b: string;
+  left: Shown;
+  right: Shown;
+  onSelect: (of: string, n: string) => void;
+}) {
   const names = new Set(right.nodes.map((n) => n.name));
   const both = left.nodes.filter((n) => names.has(n.name));
   return (
@@ -383,8 +476,7 @@ function Shared({ a, b, left, right, onSelect }: { a: string; b: string; left: S
         </ul>
       ) : (
         <p className="empty">
-          {cap(a)} and {cap(b)} share no entity by name. Each researcher keeps its own graph, so what one learns the other does
-          not see.
+          {cap(a)} and {cap(b)} share no entity by name. Each researcher keeps its own graph, so what one learns the other does not see.
         </p>
       )}
     </Panel>
@@ -481,7 +573,8 @@ function NodePanel({ trader, node, desk }: { trader: string; node: string | null
                       <span className="num">{u.at ? stamp(parseIso(u.at)!) : "—"}</span>{" "}
                       <span className="muted">
                         {u.tool}
-                        {u.query ? ` "${u.query}"` : ""} · {u.mode === "trade" ? "trading run" : u.mode === "rebalance" ? "rebalancing run" : "run"} ·{" "}
+                        {u.query ? ` "${u.query}"` : ""} ·{" "}
+                        {u.mode === "trade" ? "trading run" : u.mode === "rebalance" ? "rebalancing run" : "run"} ·{" "}
                         {!u.run_had_orders ? "no orders followed" : u.before_order ? "before its first order" : "after it had traded"}
                       </span>
                     </p>
@@ -513,13 +606,179 @@ function NodePanel({ trader, node, desk }: { trader: string; node: string | null
               </ul>
             ) : (
               <p className="muted">
-                No saved run has read it yet. A read counts when a memory search or graph read returns this node inside a
-                trader's run.
+                No saved run has read it yet. A read counts when a memory search or graph read returns this node inside a trader's run.
               </p>
             )}
           </section>
         </div>
       )}
     </Panel>
+  );
+}
+
+/** Written against read, per trader: what each researcher stored, and how often a saved run read it back. */
+function WriteRead({ current, onPick }: { current: string; onPick: (n: string) => void }) {
+  const graphs = useQueries({
+    queries: TRADERS.map((n) => ({ queryKey: ["memory", n], queryFn: () => getMemory(n), refetchInterval: MEMORY_POLL_MS })),
+  });
+  if (graphs.some((g) => g.isLoading)) return null;
+  const rows = TRADERS.map((n, i) => {
+    const g = graphs[i].data;
+    return {
+      n,
+      written: g ? g.nodes.reduce((s, x) => s + x.observations.length, 0) : 0,
+      entities: g?.nodes.length ?? 0,
+      reads: g?.reads ?? 0,
+    };
+  });
+  const max = Math.max(1, ...rows.map((r) => Math.max(r.written, r.reads)));
+  const written = rows.reduce((s, r) => s + r.written, 0);
+  const reads = rows.reduce((s, r) => s + r.reads, 0);
+  return (
+    <Panel
+      title={reads ? "Written, and read back" : "Written, never read"}
+      id="write-read"
+      className={reads ? "" : "panel-alert"}
+      meta={
+        <span className="num">
+          {count(written)} observations written · {count(reads)} runs read
+        </span>
+      }
+    >
+      <div className="wr">
+        {rows.map((r) => (
+          <button key={r.n} className="wr-row" aria-pressed={r.n === current} onClick={() => onPick(r.n)}>
+            <span className="wr-name">
+              <TraderName name={r.n} />
+            </span>
+            <span className="wr-bars">
+              <span className="wr-line">
+                <span className="wr-bar" style={{ width: `${(r.written / max) * 100}%`, background: hueVar(r.n) }} />
+                <span className="num wr-val">{plural(r.written, "observation")}</span>
+              </span>
+              <span className="wr-line">
+                {r.reads ? (
+                  <span className="wr-bar" style={{ width: `${(r.reads / max) * 100}%`, background: "var(--text)" }} />
+                ) : (
+                  <span className="wr-bar wr-none" />
+                )}
+                <span className="num wr-val" data-tone={r.reads ? undefined : "bad"}>
+                  read {r.reads ? plural(r.reads, "time") : "0 times"}
+                </span>
+              </span>
+            </span>
+          </button>
+        ))}
+      </div>
+      <p className="note">
+        Top bar: observations each researcher stored. Bottom bar: saved runs whose memory reads returned something. An empty bottom bar
+        means the traders write memory but never use it.
+      </p>
+    </Panel>
+  );
+}
+
+const KIND_ORDER = ["Stock or company", "Lesson", "Pattern", "Unstored"];
+const kindOf = (n: MemoryNode) =>
+  n.type === "Lesson" ? "Lesson" : n.type === "Pattern" ? "Pattern" : n.type ? "Stock or company" : "Unstored";
+
+/** With no relations a force layout collapses into a grid; pack the entities by kind instead. */
+function Bubbles({
+  trader,
+  shown,
+  selected,
+  onSelect,
+}: {
+  trader: string;
+  shown: Shown;
+  selected: string | null;
+  onSelect: (n: string) => void;
+}) {
+  const [ref, width] = useSize<HTMLDivElement>();
+  const { tip, show, hide } = useTip();
+  const height = Math.max(260, Math.min(440, width * 0.62));
+  type Leaf = { name: string; value?: number; node?: MemoryNode; children?: Leaf[] };
+  const groups = KIND_ORDER.map((k) => ({
+    name: k,
+    children: shown.nodes.filter((n) => kindOf(n) === k).map((n) => ({ name: n.name, node: n, value: 1 + n.observations.length })),
+  })).filter((g) => g.children.length);
+  const root = d3
+    .hierarchy<Leaf>({ name: "root", children: groups })
+    .sum((d) => d.value ?? 0)
+    .sort((a, b) => (b.value ?? 0) - (a.value ?? 0));
+  const packed = d3
+    .pack<Leaf>()
+    .size([Math.max(1, width), height])
+    .padding((d) => (d.depth === 0 ? 14 : 4))(root);
+  return (
+    <ChartBox boxRef={ref} className="bubbles">
+      {width > 0 && (
+        <svg
+          viewBox={`0 0 ${width} ${height}`}
+          width="100%"
+          role="img"
+          aria-label={`${cap(trader)}'s ${shown.nodes.length} memory entities as bubbles by kind`}
+          onPointerLeave={hide}
+        >
+          {packed.children?.map((g) => (
+            <g key={g.data.name}>
+              {groups.length > 1 && <circle cx={g.x} cy={g.y} r={g.r} className="bubble-group" />}
+              {groups.length > 1 && (
+                <text x={g.x} y={g.y - g.r + 14} textAnchor="middle" className="bubble-kind">
+                  {g.data.name}
+                </text>
+              )}
+              {g.children?.map((leaf) => {
+                const n = leaf.data.node!;
+                const big = leaf.r > 18;
+                return (
+                  <g
+                    key={n.name}
+                    className="bubble"
+                    data-selected={selected === n.name || undefined}
+                    tabIndex={0}
+                    role="button"
+                    aria-label={`${n.name}, ${plural(n.observations.length, "observation")}`}
+                    onClick={() => onSelect(n.name)}
+                    onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), onSelect(n.name))}
+                    onPointerEnter={() =>
+                      show(
+                        leaf.x,
+                        leaf.y - leaf.r,
+                        <>
+                          <p className="strong">{n.name}</p>
+                          <p className="muted">
+                            {kindOf(n)} · {plural(n.observations.length, "observation")}
+                            {n.used ? ` · read by ${plural(n.used, "run")}` : " · never read"}
+                          </p>
+                        </>,
+                      )
+                    }
+                    onPointerLeave={hide}
+                  >
+                    <circle
+                      cx={leaf.x}
+                      cy={leaf.y}
+                      r={leaf.r}
+                      style={{
+                        stroke: hueVar(trader),
+                        fill: n.type ? `color-mix(in srgb, ${hueVar(trader)} 22%, var(--surface))` : "none",
+                      }}
+                      strokeDasharray={n.type ? undefined : "3 3"}
+                    />
+                    {big && (
+                      <text x={leaf.x} y={leaf.y + 4} textAnchor="middle" className="bubble-label">
+                        {n.name.length > leaf.r / 3.6 ? n.name.slice(0, Math.max(2, Math.floor(leaf.r / 3.6) - 1)) + "…" : n.name}
+                      </text>
+                    )}
+                  </g>
+                );
+              })}
+            </g>
+          ))}
+        </svg>
+      )}
+      <Tip tip={tip} width={width} />
+    </ChartBox>
   );
 }

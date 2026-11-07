@@ -658,6 +658,7 @@ export interface MarketYear {
     rules: (RegimeLabel | null)[];
     hmm: (RegimeLabel | null)[];
     hmm_prob: (number | null)[];
+    hmm_probs: (Record<RegimeLabel, number> | null)[];
   };
   read: {
     day: string;
@@ -665,6 +666,9 @@ export interface MarketYear {
     hmm: (RegimeSince & { prob: number; probs: Record<RegimeLabel, number> }) | null;
     agree: boolean;
     raw: Record<RegimeModel, RegimeLabel | null>;
+    /** Trading days each model's raw daily label has held; it confirms at `dwell`. */
+    raw_days: Record<RegimeModel, number>;
+    dwell: number;
     switches_this_month: number;
     features: { key: string; label: string; unit: string; value: number | null }[];
   };
@@ -679,4 +683,32 @@ export type MarketYearResponse = MarketYear | { ready: false; bars: { n: number 
 
 export function getMarketYear(range: YearRange): Promise<MarketYearResponse> {
   return get(`/api/market-year?range=${range}`);
+}
+
+// --- Health: recent agent activity from the saved spans (backend/runs.py) -------
+
+export interface ActivitySpan {
+  trader: string;
+  trace_id: string;
+  kind: "turn" | "generation" | "function" | "mcp_tools";
+  name: string;
+  started_at: string | null;
+  ended_at: string | null;
+  error: boolean;
+}
+
+export interface Activity {
+  start: string;
+  end: string;
+  now: string;
+  /** Set when nothing ran in the window: the window then ends at the last span. */
+  idle_since: string | null;
+  spans: ActivitySpan[];
+  errors: number;
+  tokens_per_second: number | null;
+  db_bytes: number | null;
+}
+
+export function getActivity(minutes: number): Promise<Activity> {
+  return get(`/api/health/activity?minutes=${minutes}`);
 }

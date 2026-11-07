@@ -16,31 +16,25 @@ import {
   type YearRange,
 } from "../api";
 import { Failed, Loading, PageHeader, Panel, TraderName } from "../components/bits";
+import { ViewToggle, useViewMode } from "../charts";
+import { PositionGauge, ProbRibbon } from "../components/RegimeCharts";
+import { MarketStory } from "./MarketStory";
 import { niceTicks, useWidth } from "../components/charts";
 import { host, money, pct, price, signedPct, time } from "../lib/format";
+import { MONTHS, bestSignal, dayLabel, deskRiskOn, fill, hmmPhrase, longDay } from "../lib/regime";
 
 const MODEL_NAME: Record<RegimeModel, string> = { rules: "Rules", hmm: "HMM" };
 const RANGE_NAME: Record<YearRange, string> = { ytd: "YTD", "2y": "2 y", "10y": "10 y" };
 type Window = "blend" | "ytd" | "10y";
 const WINDOW_NAME: Record<Window, string> = { blend: "Blend", ytd: "This year", "10y": "Prior 10 y" };
 
-const slug = (l: string) => l.toLowerCase().replace(/\s+/g, "-");
-const fill = (l: string) => (l === "Volatile bull" ? "url(#rg-hatch)" : `var(--rg-${slug(l)})`);
-const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-
-/** "13 Jul" from an ISO day, without a timezone shift. */
-function dayLabel(d: string): string {
-  return `${Number(d.slice(8, 10))} ${MONTHS[Number(d.slice(5, 7)) - 1]}`;
-}
-
-function longDay(d: string): string {
-  return `${dayLabel(d)} ${d.slice(0, 4)}`;
-}
-
 export function MarketYear() {
   const [range, setRange] = useState<YearRange>("ytd");
   const [model, setModel] = useState<RegimeModel>("rules");
-  const q = useQuery({ queryKey: ["market-year", range], queryFn: () => getMarketYear(range), refetchInterval: 300_000 });
+  const [view] = useViewMode();
+  // The story always tells this year's transitions.
+  const shown = view === "story" ? "ytd" : range;
+  const q = useQuery({ queryKey: ["market-year", shown], queryFn: () => getMarketYear(shown), refetchInterval: 300_000 });
   const year = q.data?.ready ? q.data : null;
 
   return (
@@ -49,49 +43,47 @@ export function MarketYear() {
         kicker={year ? `Regime report · as of the close on ${longDay(year.as_of)}` : "Regime report"}
         title="Market Year"
         finding={
-          year ? <Finding year={year} /> : q.isLoading ? "Reading the regimes…" : q.data && !q.data.ready ? (
+          year ? (
+            <Finding year={year} />
+          ) : q.isLoading ? (
+            "Reading the regimes…"
+          ) : q.data && !q.data.ready ? (
             "No regimes yet. Run uv run -m backend.quant to load the bars and compute them."
           ) : (
             "The regimes could not be read."
           )
         }
         aside={
-          year && (
-            <p className="fresh num">
-              Pipeline ran {time(new Date(year.computed_at).getTime())} · daily after the close
-            </p>
-          )
+          <div className="page-aside-stack">
+            <ViewToggle />
+            {year && <p className="fresh num">Pipeline ran {time(new Date(year.computed_at).getTime())} · daily after the close</p>}
+          </div>
         }
       />
       {q.error && !q.data && <Failed what="the market year" error={q.error} />}
       {q.isLoading && <Loading rows={8} />}
-      {year && <Body year={year} range={range} setRange={setRange} model={model} setModel={setModel} />}
+      {year &&
+        (view === "story" ? (
+          <MarketStory year={year} />
+        ) : (
+          <Body year={year} range={range} setRange={setRange} model={model} setModel={setModel} />
+        ))}
     </div>
   );
 }
 
-function bestSignal(year: Year, model: RegimeModel, regime: RegimeLabel) {
-  const cells = year.scores[model].cells.filter((c) => c.regime === regime && c.window === "blend" && c.sharpe !== null);
-  const best = cells.sort((a, b) => b.sharpe! - a.sharpe!)[0];
-  return best ? { ...best, label: year.signals.find((s) => s.id === best.signal)!.label } : null;
-}
-
-function deskRiskOn(year: Year): number {
-  const equity = year.exposure.reduce((s, e) => s + e.equity, 0);
-  return equity ? year.exposure.reduce((s, e) => s + e.risk_on, 0) / equity : 0;
-}
-
 function Finding({ year }: { year: Year }) {
-  const { rules, hmm, agree } = year.read;
+  const { rules } = year.read;
   const best = bestSignal(year, "rules", rules.label);
+  const hmmText = hmmPhrase(year);
   return (
     <>
       {rules.label} for <span className="num">{rules.days}</span> trading days since {dayLabel(rules.since)}
-      {hmm && (agree ? `; the HMM agrees (${pct(hmm.prob)})` : `; the HMM reads ${hmm.label} (${pct(hmm.prob)})`)}.{" "}
+      {hmmText && `; ${hmmText}`}.{" "}
       {best && (
         <>
-          In this regime {best.label.toLowerCase()} has paid best, Sharpe{" "}
-          <span className="num">{signed(best.sharpe!)}</span> over <span className="num">{best.n_days}</span> days.{" "}
+          In this regime {best.label.toLowerCase()} has paid best, Sharpe <span className="num">{signed(best.sharpe!)}</span> over{" "}
+          <span className="num">{best.n_days}</span> days.{" "}
         </>
       )}
       The desk is <span className="num">{pct(deskRiskOn(year))}</span> risk-on.
@@ -144,10 +136,11 @@ function Body(props: {
         >
           <RegimeLegend labels={year.labels} risk={year.risk} />
           <RegimeChart year={year} model={model} episodes={episodes} picked={picked} onPick={setPicked} />
+          <ProbRibbon year={year} under={{ l: 64, r: 12 }} height={46} />
           <p className="note">
-            Shading: the {MODEL_NAME[model]} model. Strips: both models, day by day. Dashed: the 200-day average.
-            Numbered marks are transitions; pick one to see its episode and the news. Labels change only after the new
-            regime has held 5 trading days, so every turn is confirmed late.
+            Shading: the {MODEL_NAME[model]} model. Strips: both models, day by day. Dashed: the 200-day average. Numbered marks are
+            transitions; pick one to see its episode and the news. Labels change only after the new regime has held 5 trading days, so every
+            turn is confirmed late.
           </p>
         </Panel>
         <RegimeNow year={year} />
@@ -164,8 +157,8 @@ function Body(props: {
         <ul className="my-notes">
           <li>
             Bars: <span className="num">{year.bars.n.toLocaleString("en-US")}</span> daily bars for{" "}
-            <span className="num">{year.bars.symbols}</span> symbols, {year.bars.first} to {year.bars.last}, from{" "}
-            {year.bars.source}. Every value for a day uses bars up to that day only.
+            <span className="num">{year.bars.symbols}</span> symbols, {year.bars.first} to {year.bars.last}, from {year.bars.source}. Every
+            value for a day uses bars up to that day only.
           </li>
           {models.map((m) => (
             <li key={m}>
@@ -234,7 +227,13 @@ function xTicks(days: string[], range: YearRange): number[] {
   days.forEach((d, i) => {
     const prev = days[i - 1];
     if (!prev) return;
-    if (range === "10y" ? d.slice(0, 4) !== prev.slice(0, 4) : range === "2y" ? d.slice(0, 7) !== prev.slice(0, 7) && ["01", "04", "07", "10"].includes(d.slice(5, 7)) : d.slice(0, 7) !== prev.slice(0, 7))
+    if (
+      range === "10y"
+        ? d.slice(0, 4) !== prev.slice(0, 4)
+        : range === "2y"
+          ? d.slice(0, 7) !== prev.slice(0, 7) && ["01", "04", "07", "10"].includes(d.slice(5, 7))
+          : d.slice(0, 7) !== prev.slice(0, 7)
+    )
       out.push(i);
   });
   return out;
@@ -349,7 +348,11 @@ function RegimeChart(props: {
           ))}
           {ticks.map((i) => (
             <text key={i} x={x(i)} y={height - 6} textAnchor="middle" className="tick">
-              {year.range === "10y" ? days[i].slice(0, 4) : year.range === "2y" ? `${MONTHS[Number(days[i].slice(5, 7)) - 1]} ${days[i].slice(2, 4)}` : MONTHS[Number(days[i].slice(5, 7)) - 1]}
+              {year.range === "10y"
+                ? days[i].slice(0, 4)
+                : year.range === "2y"
+                  ? `${MONTHS[Number(days[i].slice(5, 7)) - 1]} ${days[i].slice(2, 4)}`
+                  : MONTHS[Number(days[i].slice(5, 7)) - 1]}
             </text>
           ))}
           {marks.map(({ e, n, i }, k) => (
@@ -394,7 +397,9 @@ function RegimeChart(props: {
           <>
             <span className="strong">{longDay(days[last])}</span>
             <span>SPY {price(spy[last])}</span>
-            <span>{signedPct(spy[last] / spy[0] - 1)} since {longDay(days[0])}</span>
+            <span>
+              {signedPct(spy[last] / spy[0] - 1)} since {longDay(days[0])}
+            </span>
           </>
         )}
       </p>
@@ -426,7 +431,9 @@ function featureValue(unit: string, v: number | null, key: string): string {
 }
 
 function RegimeNow({ year }: { year: Year }) {
-  const { rules, hmm, agree, switches_this_month } = year.read;
+  const { rules, hmm, agree, switches_this_month, raw, raw_days, dwell } = year.read;
+  const hmmTurning = !!hmm && !!raw.hmm && raw.hmm !== hmm.label;
+  const rulesTurning = !!raw.rules && raw.rules !== rules.label;
   const features = Object.keys(KEY_FEATURES)
     .map((k) => year.read.features.find((f) => f.key === k)!)
     .filter(Boolean);
@@ -438,13 +445,35 @@ function RegimeNow({ year }: { year: Year }) {
       </div>
       <p className="answer-sub my-answer-sub">
         Rules · <span className="num">{rules.days}</span> trading days since {dayLabel(rules.since)} · {rules.risk}
+        {rulesTurning && (
+          <>
+            {" "}
+            · daily read <span className="strong">{raw.rules}</span> for <span className="num">{raw_days.rules}</span> of{" "}
+            <span className="num">{dwell}</span> days
+          </>
+        )}
       </p>
       {hmm && (
         <div className="my-hmm">
           <p>
-            HMM <span className="strong">{hmm.label}</span> <span className="num">{pct(hmm.prob)}</span>{" "}
+            HMM <span className="strong">{hmm.label}</span>{" "}
+            {hmmTurning ? <span className="muted">confirmed</span> : <span className="num">{pct(hmm.prob)}</span>}{" "}
             <span className={agree ? "tag" : "tag my-disagree"}>{agree ? "agrees" : "disagrees"}</span>
+            {hmmTurning && (
+              <span
+                className="tag my-disagree"
+                title="The raw daily label differs from the confirmed one; it confirms after it holds for the dwell period."
+              >
+                turning
+              </span>
+            )}
           </p>
+          {hmmTurning && (
+            <p className="my-hmm-raw">
+              Daily read <span className="strong">{raw.hmm}</span> <span className="num">{pct(hmm.probs[raw.hmm!] ?? 0)}</span> for{" "}
+              <span className="num">{raw_days.hmm}</span> of <span className="num">{dwell}</span> days needed to switch.
+            </p>
+          )}
           <div className="my-probs" role="img" aria-label={year.labels.map((l) => `${l} ${pct(hmm.probs[l] ?? 0)}`).join(", ")}>
             <svg width="100%" height="10" preserveAspectRatio="none" viewBox="0 0 100 10" aria-hidden="true">
               <RegimeDefs />
@@ -572,9 +601,9 @@ function Scoreboard({ year, model }: { year: Year; model: RegimeModel }) {
         </table>
       </div>
       <p className="note">
-        Annualized Sharpe of each signal on the days each regime was in force ({MODEL_NAME[model]} model); small grey
-        figures are trading days. Blend shrinks this year toward the prior ten with weight n / (n + 63). Hover a cell for
-        its 95% interval; a regime with a few dozen days says little. The column marked is today's regime.
+        Annualized Sharpe of each signal on the days each regime was in force ({MODEL_NAME[model]} model); small grey figures are trading
+        days. Blend shrinks this year toward the prior ten with weight n / (n + 63). Hover a cell for its 95% interval; a regime with a few
+        dozen days says little. The column marked is today's regime.
       </p>
     </Panel>
   );
@@ -586,6 +615,7 @@ function Positioned({ year }: { year: Year }) {
   const risk = year.read.rules.risk;
   return (
     <Panel title="Who is positioned for it" id="positioned" meta={<span>Regime is {risk}</span>}>
+      <PositionGauge year={year} />
       <ul className="my-exposure">
         {year.exposure.map((e) => {
           const on = e.equity ? e.risk_on / e.equity : 0;
@@ -597,11 +627,7 @@ function Positioned({ year }: { year: Year }) {
                 <TraderName name={e.trader} />
                 <span className="num muted">{money(e.equity)}</span>
               </div>
-              <div
-                className="split"
-                role="img"
-                aria-label={`Risk-on ${pct(on)}, defensive ${pct(def)}, cash ${pct(cash)}`}
-              >
+              <div className="split" role="img" aria-label={`Risk-on ${pct(on)}, defensive ${pct(def)}, cash ${pct(cash)}`}>
                 <span className="split-bar" style={{ width: `${on * 100}%`, background: `var(--t-${e.trader})` }} />
                 <span className="split-bar my-def" style={{ width: `${def * 100}%`, background: `var(--t-${e.trader})` }} />
               </div>
@@ -620,8 +646,8 @@ function Positioned({ year }: { year: Year }) {
         })}
       </ul>
       <p className="note">
-        Defensive: utilities, staples, health care, Treasuries, investment-grade credit, gold and the inverse S&P fund.
-        Valued at the last stored close; * at the last fill, for symbols the pipeline does not load.
+        Defensive: utilities, staples, health care, Treasuries, investment-grade credit, gold and the inverse S&P fund. Valued at the last
+        stored close; * at the last fill, for symbols the pipeline does not load.
       </p>
     </Panel>
   );
@@ -642,11 +668,7 @@ function Episodes(props: {
   }, [props.picked]);
   const numbered = props.episodes.map((e, n) => ({ e, n })).reverse();
   return (
-    <Panel
-      title="Episodes"
-      id="episodes"
-      meta={<span>{MODEL_NAME[props.model]} model · newest first</span>}
-    >
+    <Panel title="Episodes" id="episodes" meta={<span>{MODEL_NAME[props.model]} model · newest first</span>}>
       <div className="table-wrap">
         <table className="table my-episodes">
           <thead>
@@ -655,10 +677,18 @@ function Episodes(props: {
               <th scope="col">Regime</th>
               <th scope="col">From</th>
               <th scope="col">To</th>
-              <th scope="col" className="num">Days</th>
-              <th scope="col" className="num">SPY</th>
-              <th scope="col" className="num">Max DD</th>
-              <th scope="col" className="num">Vol</th>
+              <th scope="col" className="num">
+                Days
+              </th>
+              <th scope="col" className="num">
+                SPY
+              </th>
+              <th scope="col" className="num">
+                Max DD
+              </th>
+              <th scope="col" className="num">
+                Vol
+              </th>
               <th scope="col">Led · lagged</th>
               <th scope="col">What turned it</th>
             </tr>
@@ -686,10 +716,16 @@ function Episodes(props: {
                 <td className="num">{signedPct(e.max_drawdown, 1)}</td>
                 <td className="num">{e.vol === null ? "—" : pct(e.vol, 1)}</td>
                 <td className="nowrap my-sectors">
-                  {e.leaders.slice(0, 2).map((l) => `${l.symbol} ${signedPct(l.return, 1)}`).join(", ")}
+                  {e.leaders
+                    .slice(0, 2)
+                    .map((l) => `${l.symbol} ${signedPct(l.return, 1)}`)
+                    .join(", ")}
                   <br />
                   <span className="muted">
-                    {e.laggards.slice(0, 2).map((l) => `${l.symbol} ${signedPct(l.return, 1)}`).join(", ")}
+                    {e.laggards
+                      .slice(0, 2)
+                      .map((l) => `${l.symbol} ${signedPct(l.return, 1)}`)
+                      .join(", ")}
                   </span>
                 </td>
                 <td className="my-news">
@@ -701,7 +737,14 @@ function Episodes(props: {
                       {props.picked === e.start && <p className="my-news-summary">{e.event.summary}</p>}
                       <span className="my-sources">
                         {e.event.sources.slice(0, props.picked === e.start ? 5 : 2).map((s) => (
-                          <a key={s.url} href={s.url} target="_blank" rel="noreferrer" className="text-link" onClick={(ev) => ev.stopPropagation()}>
+                          <a
+                            key={s.url}
+                            href={s.url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-link"
+                            onClick={(ev) => ev.stopPropagation()}
+                          >
                             {host(s.url)}
                           </a>
                         ))}
@@ -717,9 +760,8 @@ function Episodes(props: {
         </table>
       </div>
       <p className="note">
-        SPY return runs from the close before the episode to its last close. Led and lagged: the best and worst two sector
-        funds over the episode. The news comes from one Researcher run per transition, searching the days around it; pick a
-        row for the full summary.
+        SPY return runs from the close before the episode to its last close. Led and lagged: the best and worst two sector funds over the
+        episode. The news comes from one Researcher run per transition, searching the days around it; pick a row for the full summary.
       </p>
     </Panel>
   );

@@ -362,3 +362,65 @@ def memory_reads(trader: str) -> list[dict]:
             }
         )
     return reads
+
+
+ACTIVITY_TYPES = {"generation", "function", "mcp_tools"}
+
+
+def activity(minutes: int = 10) -> dict:
+    """Health's swimlanes: every span of the trader runs in the last `minutes`, as
+    trader, kind, name, start and end. When nothing ran in that window the window
+    ends at the last span instead, and idle_since says when that was. Also the
+    window's model speed (output tokens per generation second) and failed spans."""
+    from datetime import timedelta, timezone
+
+    from .database import latest_span_end, read_spans_between
+
+    now = datetime.now(timezone.utc)
+    end = now
+    start = end - timedelta(minutes=minutes)
+    spans = read_spans_between(start.isoformat(), end.isoformat())
+    idle_since = None
+    if not spans:
+        last = latest_span_end()
+        if last:
+            idle_since = last
+            end = datetime.fromisoformat(last)
+            start = end - timedelta(minutes=minutes)
+            spans = read_spans_between(start.isoformat(), end.isoformat())
+    out, gen_ms, gen_tokens, errors = [], 0.0, 0, 0
+    for s in spans:
+        d = _data(s)
+        kind = d.get("type")
+        if kind == "custom" and d.get("name") == "turn":
+            kind = "turn"
+        if kind not in ACTIVITY_TYPES and kind != "turn":
+            continue
+        trader = trader_of(s.get("trace_id") or "")
+        if not trader or trader == "lab":
+            continue
+        if s.get("error"):
+            errors += 1
+        if kind == "generation":
+            ms = _ms(s.get("started_at"), s.get("ended_at")) or 0
+            gen_ms += ms
+            gen_tokens += int(((d.get("usage") or {}).get("output_tokens")) or 0)
+        out.append({
+            "trader": trader,
+            "trace_id": s.get("trace_id"),
+            "kind": kind,
+            "name": "" if kind in ("turn", "generation") else _name(s),
+            "started_at": s.get("started_at"),
+            "ended_at": s.get("ended_at"),
+            "error": bool(s.get("error")),
+        })
+    return {
+        "start": start.isoformat(),
+        "end": end.isoformat(),
+        "now": now.isoformat(),
+        "idle_since": idle_since,
+        "spans": out,
+        "errors": errors,
+        "tokens_per_second": round(gen_tokens / (gen_ms / 1000), 1) if gen_ms else None,
+        "db_bytes": os.path.getsize("accounts.db") if os.path.exists("accounts.db") else None,
+    }

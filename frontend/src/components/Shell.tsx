@@ -7,6 +7,7 @@ import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { NAV } from "../nav";
 import { useMarket } from "../lib/desk";
 import { useTheme } from "../lib/theme";
+import { useTraderFilter } from "../lib/filter";
 
 export function Mark() {
   // One stroke per trader, in each trader's colour.
@@ -40,6 +41,9 @@ export function Shell() {
   const [open, setOpen] = useState(false);
   const location = useLocation();
   const { theme, toggle } = useTheme();
+  // The trader in focus follows you between tabs.
+  const [trader] = useTraderFilter();
+  const search = trader ? `?trader=${trader}` : "";
   useEffect(() => setOpen(false), [location.pathname]);
 
   const current = NAV.flatMap((g) => g.items).find((i) => i.path === location.pathname);
@@ -78,7 +82,7 @@ export function Shell() {
               <ul>
                 {group.items.map((item) => (
                   <li key={item.path}>
-                    <NavLink to={item.path} end className="nav-item" data-soon={!!item.shows}>
+                    <NavLink to={{ pathname: item.path, search }} end className="nav-item" data-soon={!!item.shows}>
                       <span>{item.label}</span>
                       {item.phase && <span className="nav-phase">Phase {item.phase}</span>}
                     </NavLink>

@@ -51,7 +51,6 @@ export const NAV: NavGroup[] = [
         path: "/health",
         label: "Health",
         question: "Is the infrastructure OK?",
-        shows: ["MCP servers, model speed and queue", "Market feed freshness", "Database size and errors"],
       },
     ],
   },

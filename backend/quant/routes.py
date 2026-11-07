@@ -11,7 +11,7 @@ from fastapi import APIRouter, HTTPException
 from ..accounts import Account
 from . import bars, store
 from .features import FEATURES
-from .regimes import LABELS, RISK, episodes, sma_line
+from .regimes import DWELL, LABELS, RISK, episodes, sma_line
 from .signals import SIGNALS
 from .universe import DEFENSIVE
 
@@ -38,6 +38,16 @@ def _since(rows: list[dict]) -> dict:
     return {"label": last["label"], "since": rows[-n]["day"], "days": n, "risk": RISK[last["label"]]}
 
 
+def _raw_run(rows: list[dict]) -> int:
+    """How many trading days the latest raw (unconfirmed) label has held."""
+    n = 0
+    for r in reversed(rows):
+        if r["raw_label"] != rows[-1]["raw_label"]:
+            break
+        n += 1
+    return n
+
+
 def _read(rows: dict[str, list[dict]]) -> dict:
     rules, hmm = rows["rules"], rows.get("hmm") or []
     f = rules[-1]["features"]
@@ -49,6 +59,10 @@ def _read(rows: dict[str, list[dict]]) -> dict:
         "hmm": {**_since(hmm), "prob": hmm[-1]["prob"], "probs": hmm[-1]["probs"]} if hmm else None,
         "agree": bool(hmm) and hmm[-1]["label"] == rules[-1]["label"],
         "raw": {"rules": rules[-1]["raw_label"], "hmm": hmm[-1]["raw_label"] if hmm else None},
+        # Days each model's raw label has held: a raw label that differs from the
+        # confirmed one becomes confirmed after DWELL days.
+        "raw_days": {"rules": _raw_run(rules), "hmm": _raw_run(hmm) if hmm else 0},
+        "dwell": DWELL,
         "switches_this_month": switches,
         "features": [{"key": k, "label": FEATURES[k][0], "unit": FEATURES[k][1], "value": f.get(k)} for k in FEATURES],
     }
@@ -117,6 +131,8 @@ def market_year(range: str = "ytd") -> dict:
             "rules": [by_day["rules"].get(d, {}).get("label") for d in days],
             "hmm": [by_day["hmm"].get(d, {}).get("label") for d in days],
             "hmm_prob": [by_day["hmm"].get(d, {}).get("prob") for d in days],
+            # All four state probabilities per day, for the probability ribbon.
+            "hmm_probs": [by_day["hmm"].get(d, {}).get("probs") for d in days],
         },
         "read": _read(rows),
         "episodes": eps,
