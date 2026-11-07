@@ -276,3 +276,30 @@ export function tradeRecord(fills: Fill[]): Record_ {
     worst: byRealized.length ? byRealized[byRealized.length - 1] : null,
   };
 }
+
+/**
+ * Pearson correlation between each pair of traders' sample-to-sample equity changes.
+ * Null where a trader's equity never moved (all cash) or there are too few samples.
+ */
+export function traderCorrelation(curves: Curves, traders: string[]): (number | null)[][] {
+  const changes = traders.map((t) => {
+    const v = curves.byTrader[t] ?? [];
+    return v.slice(1).map((x, i) => (v[i] ? x / v[i] - 1 : 0));
+  });
+  const corr = (a: number[], b: number[]): number | null => {
+    const n = Math.min(a.length, b.length);
+    if (n < 5) return null;
+    const ma = a.reduce((s, x) => s + x, 0) / n;
+    const mb = b.reduce((s, x) => s + x, 0) / n;
+    let sab = 0;
+    let saa = 0;
+    let sbb = 0;
+    for (let i = 0; i < n; i++) {
+      sab += (a[i] - ma) * (b[i] - mb);
+      saa += (a[i] - ma) ** 2;
+      sbb += (b[i] - mb) ** 2;
+    }
+    return saa > 0 && sbb > 0 ? sab / Math.sqrt(saa * sbb) : null;
+  };
+  return changes.map((a) => changes.map((b) => corr(a, b)));
+}

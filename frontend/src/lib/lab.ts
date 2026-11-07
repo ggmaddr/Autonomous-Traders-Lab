@@ -6,7 +6,18 @@
 import type { Arm, Dimension, ExperimentSpec, LabCatalog } from "../api";
 import { hueVar } from "./traders";
 
-export const DIMS: Dimension["id"][] = ["researcher", "model", "prompt", "strategy"];
+export const DIMS: Dimension["id"][] = ["agent", "researcher", "model", "prompt", "strategy"];
+export const JIM_AGENTS = ["jim", "jim_raw"];
+
+/** Arms an experiment will run. Jim trades his own playbook with the fixed prompt, so his
+ *  arms do not multiply by strategy or prompt (backend/lab/arms.py combinations). */
+export function armCount(chosen: Record<string, string[]>): number {
+  const n = (d: string) => chosen[d]?.length ?? 0;
+  const agents = chosen.agent ?? ["trader"];
+  const jim = agents.filter((a) => JIM_AGENTS.includes(a)).length;
+  const trader = agents.includes("trader") ? 1 : 0;
+  return trader * n("researcher") * n("model") * n("prompt") * n("strategy") + jim * n("researcher") * n("model");
+}
 
 export function valueLabel(catalog: LabCatalog | undefined, dim: string, id: string): string {
   return catalog?.dimensions.find((d) => d.id === dim)?.values.find((v) => v.id === id)?.label ?? id;
@@ -37,7 +48,15 @@ export type Shape = "circle" | "square" | "diamond" | "triangle";
 const SHAPES: Shape[] = ["circle", "square", "diamond", "triangle"];
 // The reference value in ink, the first alternative in the data accent, the rest in greys.
 const TONES = ["var(--text)", "var(--accent-data)", "var(--muted)", "var(--faint)"];
-const PERSONA: Record<string, string> = { value: "warren", macro: "george", risk_parity: "ray", thematic: "cathie" };
+const PERSONA: Record<string, string> = {
+  value: "warren",
+  value_playbook: "warren",
+  macro: "george",
+  macro_playbook: "george",
+  risk_parity: "ray",
+  thematic: "cathie",
+  jim: "jim",
+};
 
 export interface Mark {
   shape: Shape;

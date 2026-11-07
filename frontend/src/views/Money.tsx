@@ -1,6 +1,6 @@
 // Money: where is the money, and how is it doing? The desk's equity leads, each
 // trader's curve beside the others with the desk drawdown underneath; then the
-// latest decision in the agent's own words, the P&L by period, the four traders
+// latest decision in the agent's own words, the P&L by period, the traders
 // side by side, where the money sits, and return against risk.
 
 import { useState } from "react";
@@ -9,7 +9,9 @@ import { Change, Failed, Loading, PageHeader, Panel, Ratio, TraderName } from ".
 import { EquityChart, type Mode } from "../components/EquityChart";
 import { AllocationList, RiskScatter, type AllocationRow } from "../components/charts";
 import { useDesk, type Desk } from "../lib/desk";
-import { INITIAL_BALANCE, maxDrawdown, tradeRecord, valueAt } from "../lib/ledger";
+import { INITIAL_BALANCE, maxDrawdown, traderCorrelation, tradeRecord, valueAt } from "../lib/ledger";
+import { useQuery } from "@tanstack/react-query";
+import { getMarketYear } from "../api";
 import { count, longDate, money, pct, price, signedPct, stamp, time, tone } from "../lib/format";
 import { archetype } from "../lib/traders";
 
@@ -79,7 +81,7 @@ function MoneyBody({ desk, mode, setMode }: { desk: Desk; mode: Mode; setMode: (
         trader: p.trader,
       })),
     ),
-    { key: "cash", label: "Cash", sub: "all four traders", value: cash },
+    { key: "cash", label: "Cash", sub: "every trader", value: cash },
   ].sort((a, b) => b.value - a.value);
 
   return (
@@ -200,7 +202,7 @@ function MoneyBody({ desk, mode, setMode }: { desk: Desk; mode: Mode; setMode: (
         </div>
       </div>
 
-      <Panel title="The four traders" id="traders" className="desk-panel">
+      <Panel title="The traders" id="traders" className="desk-panel">
         <div className="desk">
           {books.map((b) => {
             const name = b.trader.name.toLowerCase();
@@ -288,6 +290,116 @@ function MoneyBody({ desk, mode, setMode }: { desk: Desk; mode: Mode; setMode: (
           </p>
         </Panel>
       </div>
+
+      <div className="grid-halves">
+        <Panel title="Are the traders one bet?" id="correlation" meta="Correlation of equity changes">
+          <CorrelationTable traders={traders} matrix={traderCorrelation(curves, traders)} />
+          <p className="note">
+            Each cell compares two traders' equity changes between samples. Near +1 they move together, so the desk is one
+            bet in several accounts; a dash means one of them never moved (all cash) or there are too few samples.
+          </p>
+        </Panel>
+        <DeskExposure />
+      </div>
     </>
+  );
+}
+
+function signedCorr(v: number): string {
+  const r = Number(v.toFixed(2));
+  return (r > 0 ? "+" : r < 0 ? "−" : "") + Math.abs(r).toFixed(2);
+}
+
+function CorrelationTable({ traders, matrix }: { traders: string[]; matrix: (number | null)[][] }) {
+  const tint = (v: number | null) =>
+    v === null ? undefined : `color-mix(in srgb, var(${v >= 0 ? "--negative" : "--positive"}) ${Math.round(Math.abs(v) * 30)}%, transparent)`;
+  return (
+    <div className="table-wrap">
+      <table className="table corr-table">
+        <thead>
+          <tr>
+            <th scope="col" />
+            {traders.map((t) => (
+              <th key={t} scope="col" className="num">
+                {cap(t)}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {traders.map((a, i) => (
+            <tr key={a}>
+              <th scope="row">
+                <TraderName name={a} />
+              </th>
+              {traders.map((b, j) => {
+                const v = i === j ? null : matrix[i][j];
+                return (
+                  <td key={b} className="num" style={{ background: tint(v) }}>
+                    {i === j ? "" : v === null ? <span className="dash">—</span> : signedCorr(v)}
+                  </td>
+                );
+              })}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+/** The whole desk's money by what it is positioned for, from the Market Year read. */
+function DeskExposure() {
+  const q = useQuery({ queryKey: ["market-year", "ytd"], queryFn: () => getMarketYear("ytd"), refetchInterval: 300_000 });
+  const year = q.data?.ready ? q.data : null;
+  if (!year) {
+    return (
+      <Panel title="Desk exposure" id="exposure">
+        <p className="muted">{q.isLoading ? "Reading…" : "No Market Year yet: run uv run -m backend.quant."}</p>
+      </Panel>
+    );
+  }
+  const total = year.exposure.reduce((s, e) => s + e.equity, 0);
+  const parts = [
+    { key: "risk_on", label: "Risk-on", value: year.exposure.reduce((s, e) => s + e.risk_on, 0) },
+    { key: "defensive", label: "Defensive", value: year.exposure.reduce((s, e) => s + e.defensive, 0) },
+    { key: "cash", label: "Cash", value: year.exposure.reduce((s, e) => s + e.cash, 0) },
+  ];
+  return (
+    <Panel
+      title="Desk exposure"
+      id="exposure"
+      meta={
+        <Link className="text-link" to="/market-year">
+          Regime: {year.read.rules.label}, {year.read.rules.risk}
+        </Link>
+      }
+    >
+      <div className="split split-lg" role="img" aria-label={parts.map((p) => `${p.label} ${pct(p.value / total)}`).join(", ")}>
+        {year.exposure.map((e) => (
+          <span key={e.trader} className="split-bar" style={{ width: `${(e.risk_on / total) * 100}%`, background: `var(--t-${e.trader})` }} />
+        ))}
+        {year.exposure.map((e) => (
+          <span key={`${e.trader}-d`} className="split-bar my-def" style={{ width: `${(e.defensive / total) * 100}%`, background: `var(--t-${e.trader})` }} />
+        ))}
+      </div>
+      <table className="table kv">
+        <tbody>
+          {parts.map((p) => (
+            <tr key={p.key}>
+              <th scope="row">{p.label}</th>
+              <td className="num">
+                {money(p.value)} · {pct(p.value / total, 1)}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <p className="note">
+        Risk-on: everything that is not cash or a defensive holding (utilities, staples, health care, Treasuries,
+        investment-grade credit, gold, the inverse S&amp;P fund). Solid segments are risk-on, faded ones defensive, each in its
+        trader's colour. Valued at the last stored close.
+      </p>
+    </Panel>
   );
 }

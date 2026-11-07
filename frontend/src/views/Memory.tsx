@@ -26,7 +26,7 @@ const WINDOWS = [
   { id: "1d", label: "24 hours", ms: DAY },
 ];
 const FIT_ZOOM = 1.25;
-const TRADERS = ["warren", "george", "ray", "cathie"];
+const TRADERS = ["warren", "george", "ray", "cathie", "jim"];
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 const plural = (n: number, one: string, many = `${one}s`) => `${count(n)} ${n === 1 ? one : many}`;
 

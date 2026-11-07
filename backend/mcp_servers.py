@@ -30,11 +30,18 @@ else:
         "cwd": PROJECT_DIR
     }
 
-def trader_mcp_servers(name: str, trace_id: str | None = None) -> list[MCPServerStdio]:
-    """The trader's MCP servers: our Accounts server, Push Notification and Market data.
+# Traders whose playbooks are computed by the Quant, and those whose strategy is a fixed playbook (plan §4.4).
+QUANT_TRADERS = {"Warren", "George", "Jim"}
+PLAYBOOK_TRADERS = {"Warren", "George", "Jim"}
 
-    The Accounts server is bound to this trader's account through its environment, so
-    the agent cannot name another account (D4), and it stamps each trade with the trace.
+
+def trader_mcp_servers(name: str, trace_id: str | None = None) -> list[MCPServerStdio]:
+    """The trader's MCP servers: our Accounts server, Push Notification and Market data,
+    and the Quant for the traders whose playbooks use it.
+
+    The Accounts and Quant servers are bound to this trader's account through their
+    environment, so the agent cannot name another account (D4); the Accounts server
+    also stamps each trade with the trace.
     """
     accounts_env = {"LAB_ACCOUNT": name, "LAB_TRACE_ID": trace_id or ""}
     params = [
@@ -42,11 +49,19 @@ def trader_mcp_servers(name: str, trace_id: str | None = None) -> list[MCPServer
         {"command": "uv", "args": ["run", "-m", "backend.push_server"], "cwd": PROJECT_DIR},
         market_params,
     ]
-    return [MCPServerStdio(p, client_session_timeout_seconds=TIMEOUT) for p in params]
+    if name in QUANT_TRADERS:
+        params.append({"command": "uv", "args": ["run", "-m", "backend.quant_server"], "cwd": PROJECT_DIR,
+                       "env": {"QUANT_ACCOUNT": name}})
+    servers = [MCPServerStdio(p, client_session_timeout_seconds=TIMEOUT) for p in params]
+    if name in PLAYBOOK_TRADERS:
+        # A playbook is fixed (plan §4.4): its trader gets no tool to rewrite it.
+        servers[0] = MCPServerStdio(params[0], client_session_timeout_seconds=TIMEOUT,
+                                    tool_filter=create_static_tool_filter(blocked_tool_names=["change_strategy"]))
+    return servers
 
 
-def researcher_mcp_servers(name: str) -> list[MCPServerStdio]:
-    """The researcher's MCP servers: Fetch, Tavily web search and Memory.
+def web_mcp_servers() -> list[MCPServerStdio]:
+    """Fetch and Tavily web search.
 
     Tavily's server offers several tools; we restrict it to web search so the
     researcher reaches for plain search rather than its heavier crawl or deep-research tools.
@@ -60,6 +75,11 @@ def researcher_mcp_servers(name: str) -> list[MCPServerStdio]:
         client_session_timeout_seconds=TIMEOUT,
         tool_filter=create_static_tool_filter(allowed_tool_names=["tavily_search"]),
     )
+    return [fetch, search]
+
+
+def researcher_mcp_servers(name: str) -> list[MCPServerStdio]:
+    """The researcher's MCP servers: Fetch, Tavily web search and Memory."""
     memory = MCPServerStdio(
         {
             "command": "npx",
@@ -68,5 +88,5 @@ def researcher_mcp_servers(name: str) -> list[MCPServerStdio]:
         },
         client_session_timeout_seconds=TIMEOUT,
     )
-    return [fetch, search, memory]
+    return [*web_mcp_servers(), memory]
     

@@ -28,7 +28,7 @@ import { Failed, Loading, PageHeader, Panel } from "../components/bits";
 import { EffectTable, Frontier, RunGrid, type CostAxis } from "../components/labCharts";
 import { Timeline } from "./Decisions";
 import { count, longDate, parseIso, price, signedPct, stamp, time, tokens } from "../lib/format";
-import { DIMS, armLabel, dimLabel, fixedLabel, markOf, points, runLength, scorePct, shapePath, valueLabel, varying } from "../lib/lab";
+import { DIMS, JIM_AGENTS, armCount, armLabel, dimLabel, fixedLabel, markOf, points, runLength, scorePct, shapePath, valueLabel, varying } from "../lib/lab";
 
 const MAX_TRIALS = 400;
 const GRADE_WORD: Record<Grade, string> = { pass: "Pass", partial: "Partial", fail: "Fail" };
@@ -148,13 +148,17 @@ function Rig({ catalog, onQueued }: { catalog: LabCatalog; onQueued: (id: string
   );
   const [trials, setTrials] = useState(3);
   const [name, setName] = useState("");
-  const arms = DIMS.reduce((n, d) => n * (chosen[d]?.length ?? 0), 1);
+  const arms = armCount(chosen);
+  const synthetic = catalog.scenarios.filter((s) => scenarios.includes(s.id) && s.family !== "regime");
+  const jimChosen = (chosen.agent ?? []).some((a) => JIM_AGENTS.includes(a));
   const runs = arms * scenarios.length * trials;
   const eta = runs * catalog.estimate.seconds;
   const missing = DIMS.find((d) => !chosen[d]?.length);
   const problem = !scenarios.length
     ? "Pick at least one scenario"
-    : missing
+    : jimChosen && synthetic.length
+      ? `Jim trades on real bars: pick only regime scenarios (not ${synthetic.map((s) => s.title).join(", ")})`
+      : missing
       ? `Pick at least one ${dimLabel(catalog, missing).toLowerCase()}`
       : runs > MAX_TRIALS
         ? `${count(runs)} runs is over the ${MAX_TRIALS} limit`
@@ -565,6 +569,9 @@ function Trials({ cell, onOpen }: { cell?: Experiment["scenarios"][string][strin
 
 function ArmsTable({ exp, catalog, lens }: { exp: Experiment; catalog: LabCatalog; lens: string | null }) {
   const rows = [...exp.summary].sort((a, b) => (b.score.mean ?? 0) - (a.score.mean ?? 0));
+  // Columns for metrics only some experiments have: playbook rules and a written thesis.
+  const playbooks = rows.some((r) => r.adherence?.n);
+  const theses = rows.some((r) => r.uncited?.n);
   const iv = (s: ArmSummary["score"], f: (v: number) => string) =>
     s.lo === null ? "" : `${f(s.lo)}–${f(s.hi!)}`;
   return (
@@ -580,6 +587,8 @@ function ArmsTable({ exp, catalog, lens }: { exp: Experiment; catalog: LabCatalo
             <th scope="col" className="num">Time</th>
             <th scope="col" className="num">Research</th>
             <th scope="col" className="num">Broke a rule</th>
+            {playbooks && <th scope="col" className="num">Playbook kept</th>}
+            {theses && <th scope="col" className="num">Uncited claims</th>}
             <th scope="col" className="num">Finished</th>
           </tr>
         </thead>
@@ -607,6 +616,28 @@ function ArmsTable({ exp, catalog, lens }: { exp: Experiment; catalog: LabCatalo
                 <td className="num">{runLength(r.seconds.mean ?? 0)}</td>
                 <td className="num">{(r.research_calls.mean ?? 0).toFixed(1)} calls</td>
                 <td className="num">{Math.round(r.violated * 100)}%</td>
+                {playbooks && (
+                  <td className="num">
+                    {r.adherence?.n ? (
+                      <>
+                        {scorePct(r.adherence.mean)} <span className="ci-note">{iv(r.adherence, scorePct)}</span>
+                      </>
+                    ) : (
+                      <span className="dash">—</span>
+                    )}
+                  </td>
+                )}
+                {theses && (
+                  <td className="num">
+                    {r.uncited?.n ? (
+                      <>
+                        {scorePct(r.uncited.mean)} <span className="ci-note">{(r.conflicts.mean ?? 0).toFixed(1)} conflicts</span>
+                      </>
+                    ) : (
+                      <span className="dash">—</span>
+                    )}
+                  </td>
+                )}
                 <td className="num">{Math.round(r.completed * 100)}%</td>
               </tr>
             );
@@ -616,6 +647,8 @@ function ArmsTable({ exp, catalog, lens }: { exp: Experiment; catalog: LabCatalo
       <p className="note">
         Edge: the return the decision added over keeping the starting portfolio on the scenario's frozen path, in percentage
         points. Broke a rule: trials with at least one refused order (unknown symbol, more than the cash, more shares than held).
+        {playbooks && " Playbook kept: the share of playbook rule checks the filled orders passed; a persona is held to its playbook's rules (E14)."}
+        {theses && " Uncited claims: the share of the Synthesizer thesis's claims citing nothing the trial had, and the conflicts it named (E13)."}
       </p>
     </div>
   );
@@ -639,6 +672,16 @@ function Manifest({ exp }: { exp: Experiment }) {
 // --- Baselines (shown before any experiment) -------------------------------------
 
 function Baselines({ scenarios }: { scenarios: ScenarioInfo[] }) {
+  // One column per baseline any scenario has, in a fixed order; the regime scenarios add
+  // the rules E12 compares against, the others show a dash there.
+  const order = ["hold", "spy", "equal", "mechanical", "trend_200d", "sixty_forty", "vol_target", "random"];
+  const cols = order
+    .map((id) => scenarios.flatMap((s) => s.baselines).find((b) => b.id === id))
+    .filter((b): b is ScenarioInfo["baselines"][number] => !!b);
+  const moves = (s: ScenarioInfo) =>
+    s.universe.length > 6
+      ? `${s.universe.length} symbols · SPY ${signedPct(s.universe.find((u) => u.symbol === "SPY")?.move ?? 0, 1)}`
+      : s.universe.map((u) => `${u.symbol} ${signedPct(u.move, 1)}`).join(", ");
   return (
     <Panel title="The scenarios and their baselines" id="baselines" meta={<span>what simple rules make on each frozen path</span>}>
       <div className="table-wrap">
@@ -646,10 +689,11 @@ function Baselines({ scenarios }: { scenarios: ScenarioInfo[] }) {
           <thead>
             <tr>
               <th scope="col">Scenario</th>
-              <th scope="col" className="num">Do nothing</th>
-              <th scope="col" className="num">All in SPY</th>
-              <th scope="col" className="num">Equal weight</th>
-              <th scope="col" className="num">Random agent</th>
+              {cols.map((b) => (
+                <th key={b.id} scope="col" className="num" title={b.detail}>
+                  {b.label}
+                </th>
+              ))}
             </tr>
           </thead>
           <tbody>
@@ -659,26 +703,38 @@ function Baselines({ scenarios }: { scenarios: ScenarioInfo[] }) {
                   <span className="duel-scenario">
                     <span className="strong">{s.title}</span>
                     <span className="muted">
-                      {s.family} · {s.horizon_days} days · {s.universe.map((u) => `${u.symbol} ${signedPct(u.move, 1)}`).join(", ")}
+                      {s.family} · {s.horizon_days} days · {moves(s)}
                     </span>
                   </span>
                 </th>
-                {s.baselines.map((b) => (
-                  <td key={b.id} className="num">
-                    <span className="change" data-tone={b.return > 0.0005 ? "good" : b.return < -0.0005 ? "bad" : "flat"}>
-                      {signedPct(b.return, 2)}
-                    </span>
-                    <span className="ci-note">{b.grade ? GRADE_WORD[b.grade] : `quality ${scorePct(b.score)}`}</span>
-                  </td>
-                ))}
+                {cols.map(({ id }) => {
+                  const b = s.baselines.find((x) => x.id === id);
+                  return (
+                    <td key={id} className="num" title={b?.detail}>
+                      {b ? (
+                        <>
+                          <span className="change" data-tone={b.return > 0.0005 ? "good" : b.return < -0.0005 ? "bad" : "flat"}>
+                            {signedPct(b.return, 2)}
+                          </span>
+                          <span className="ci-note">{b.grade ? GRADE_WORD[b.grade] : `quality ${scorePct(b.score)}`}</span>
+                        </>
+                      ) : (
+                        <span className="dash">—</span>
+                      )}
+                    </td>
+                  );
+                })}
               </tr>
             ))}
           </tbody>
         </table>
       </div>
       <p className="note">
-        Returns over each scenario's horizon. Tickers are synthetic, so a model cannot know the path. The random agent takes 400
-        seeded valid actions; it never breaks a rule, so on the constraint scenarios it sets a high bar for rule-keeping.
+        Returns over each scenario's horizon. Hand-written scenarios use synthetic tickers, so a model cannot know the path.
+        Regime scenarios replay real bars from each of this year's regime turns; the local model's training ends before 2026.
+        They pass a trial that beats the mechanical regime rule (E12) and call it partial when it beats only the 200-day rule.
+        The random agent takes 400 seeded valid actions; it never breaks a rule, so on the constraint scenarios it sets a high
+        bar for rule-keeping.
       </p>
     </Panel>
   );
@@ -734,6 +790,12 @@ function TrialSheet({ id, catalog, exp, onClose }: { id: number; catalog: LabCat
                 ["Recovered tool calls", count(g.recovered)],
                 ["Loops", count(g.loops)],
                 ["Cited the evidence", g.evidence_cited ? "yes" : "no"],
+                ...(g.adherence !== undefined && g.adherence !== null
+                  ? [["Playbook rules kept", `${scorePct(g.adherence)} of ${g.rule_checks}`]]
+                  : []),
+                ...(g.uncited !== undefined && g.uncited !== null
+                  ? [["Thesis claims uncited", scorePct(g.uncited)], ["Conflicts named", count(g.conflicts ?? 0)]]
+                  : []),
               ].map(([k, v]) => (
                 <div key={k}>
                   <dt>{k}</dt>

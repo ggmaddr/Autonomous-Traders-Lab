@@ -35,13 +35,13 @@ plan_tier = 0
 
 
 def get_share_price(symbol: str) -> float:
-    """Return the current price for a symbol, from Massive or the simulator."""
-    if massive_api_key:
-        try:
-            return get_share_price_massive(symbol)
-        except Exception as e:
-            print(f"Massive API unavailable ({e}); using a simulated price")
-    return simulated_price(symbol)
+    """The price an order fills at: from Massive when there is a key, else the simulator.
+    A failed Massive call raises instead of falling back to a simulated price, so an
+    unknown ticker or an outage rejects the order rather than filling it at a made-up
+    price in a live portfolio (D1)."""
+    if not massive_api_key:
+        return simulated_price(symbol)
+    return get_share_price_massive(symbol)
 
 
 def get_share_price_massive(symbol: str) -> float:

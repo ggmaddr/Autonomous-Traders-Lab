@@ -7,6 +7,7 @@ export const ARCHETYPES: Record<string, string> = {
   george: "Macro, contrarian",
   ray: "Risk parity, systematic",
   cathie: "Disruptive growth, crypto ETFs",
+  jim: "Regime quant",
 };
 
 export function archetype(name: string): string {

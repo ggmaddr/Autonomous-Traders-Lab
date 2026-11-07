@@ -12,7 +12,7 @@ from pydantic import BaseModel, Field
 
 from .. import runs
 from . import store
-from .arms import DIMENSION_IDS, arm_id, combinations, dimensions, validate
+from .arms import DIMENSION_IDS, JIM_AGENTS, arm_id, combinations, dimensions, validate
 from .runner import manifest, plan_trials
 from .scenarios import load_all
 from .stats import by_arm, by_scenario, effects
@@ -64,7 +64,11 @@ def create(spec: ExperimentSpec) -> dict:
     problem = validate(spec.arms)
     if problem:
         raise HTTPException(400, problem)
-    body = {"scenarios": spec.scenarios, "arms": {d: spec.arms[d] for d in DIMENSION_IDS}, "trials": spec.trials}
+    arms = {d: spec.arms.get(d) or ["trader"] for d in DIMENSION_IDS}
+    synthetic = [sid for sid in spec.scenarios if scenarios[sid].family != "regime"]
+    if set(arms["agent"]) & JIM_AGENTS and synthetic:
+        raise HTTPException(400, f"Jim trades on real bars; pick only regime scenarios, not {', '.join(synthetic)}")
+    body = {"scenarios": spec.scenarios, "arms": arms, "trials": spec.trials}
     planned = plan_trials(body)
     if len(planned) > MAX_TRIALS:
         raise HTTPException(400, f"{len(planned)} trials is more than {MAX_TRIALS}; choose fewer options")

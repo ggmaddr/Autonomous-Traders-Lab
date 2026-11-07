@@ -6,8 +6,10 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "fastapi>=0.136.1,<1",
+    "hmmlearn>=0.3.3,<0.4",
     "massive>=2.8.0,<3",
     "mcp>=1.27,<2",
+    "numpy>=2,<3",
     # openai-agents 0.15 fails on newer openai releases (InputTokensDetails.cache_write_tokens),
     # so these two are pinned to the pair this project was tested with.
     "openai>=2.34.0,<2.35",

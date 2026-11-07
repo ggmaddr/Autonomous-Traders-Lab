@@ -235,7 +235,7 @@ These matter for V2 because several of them would quietly corrupt evaluation dat
 | Researcher | own instance, same prompt, own memory DB | ← | ← | ← |
 | **Strategy text** | value | contrarian macro | risk parity | crypto-ETF innovation |
 
-**Conclusion:** the four traders are **one agent with four persona prompts**, and the agents can rewrite those prompts at runtime. That is fine, but it should be stated honestly. As it stands, the floor is an informal test of how sensitive one agent is to its prompt. V2 makes that test formal, and does not add more personas.
+**Conclusion:** the four traders are **one agent with four persona prompts**, and the agents can rewrite those prompts at runtime. That is fine, but it should be stated honestly. As it stands, the floor is an informal test of how sensitive one agent is to its prompt. V2 makes that test formal. The one new trader (Jim, §4.4) is added because he is a *different agent*, with a deterministic Quant tool server and a Synthesizer sub-agent, not because the floor needs another prompt.
 
 **Duplication:** four identical Researcher agents. Four copies of the same MCP process tree on every cycle (6 servers plus 2 resource-read subprocesses per trader). Two near-identical task messages. Strategy text that names real people.
 
@@ -270,7 +270,190 @@ No new agent is added by default. Each candidate is an experimental arm with a f
 | **E8** | Self-modifying strategy | change_strategy on vs off | strategy drift (embedding distance from v0), adherence, outcome variance | Self-modification increases variance without improving outcomes. |
 | **E9** | Persistent memory | memory on (persistent) / on (episode-scoped) / off | groundedness, stale-fact citations, cost | Persistent memory brings in stale "facts" that undermine groundedness. |
 | **E11** | Do learned lessons improve later decisions? | lessons review + recall on vs off, same episodes | risk-adjusted return vs baselines, repeated-mistake rate, groundedness | Lessons cut repeated mistakes, but only if old lessons are checked for staleness. |
+| **E12** | Does the LLM add anything to a regime strategy? | Jim (full agent) vs the same regime rules + scoreboard run mechanically vs the 200-day timing rule | risk-adjusted return, max drawdown, turnover, cost | The mechanical rules capture most of the return. The LLM earns its cost only around transitions, when news explains the numbers. |
+| **E13** | Does a Synthesizer improve decisions? | trader reads raw research + quant outputs vs trader receives the Synthesizer's `TradeThesis` | decision quality, groundedness, conflicts noticed, tokens, latency | The Synthesizer catches story-vs-numbers conflicts the trader misses, at about 1.5× the tokens. |
+| **E14** | Playbooks vs persona prompts | Warren and George on persona text vs on rule playbooks (§4.4), same frozen evidence | rule adherence per trade, strategy drift, action divergence (E3), return vs baselines | Playbooks raise adherence and divergence between traders. Return differences need Phase 8's episodes to be measurable. |
 | **E10** | Prompt–tool consistency | current prompts vs prompts fixed per D11 | calls to non-existent tools, recovery-hack firings | A fix that costs nothing and can be measured. A good first result to show. |
+
+### 4.4 Strategy playbooks and the fifth trader (Phase 5)
+
+**Why.** The live data (accounts.db, 2026-11-04) shows the personas are too thin to trade on:
+
+- Warren's and Ray's stored strategies are empty strings.
+- George rewrote his macro strategy into "short-term trading opportunities in the tech sector". Cathie rewrote hers into "growth stock investing … high-tech and health tech". That is strategy drift (E8) in practice.
+- Memory graphs: Warren and George have 2 entities each and no relations. Ray has 7 entities and 7 relations. Cathie has 9 entities and 28 observations.
+
+A one-paragraph persona gives the model nothing it can check. So it drifts toward generic tech-momentum buying and writes little to memory.
+
+The fix has two parts:
+
+1. **Playbooks.** Warren and George get explicit, rule-based strategies. Tools compute the numbers, and fixed rules say what to write to memory.
+2. **A fifth trader built differently from the other four.** He has new tools and a new sub-agent, not just another persona prompt. That answers §4.1's "one agent with four prompts" critique instead of repeating it.
+
+Playbooks are stored as strategy text plus a machine-readable rule list, so the Decisions view can show which rules each trade passed. `change_strategy` is off for playbook traders. Edits are versioned and visible, never silent.
+
+#### 4.4.1 Warren: quality at a reasonable price
+
+This blends Buffett's quality focus, Greenblatt's Magic Formula and the Piotroski F-score. It is the most widely used systematic version of value investing, because cheap-but-bad "value traps" sank plain value for a decade.
+
+- **Universe.** S&P 500, excluding financials and REITs (their accounts break these screens).
+- **Screen** (a deterministic tool):
+  - ROIC above 15%, averaged over 5 years.
+  - Positive free cash flow in each of the last 5 years.
+  - Net debt / EBITDA below 2.
+  - Piotroski F-score of 7 or more.
+  - In the top third by earnings yield (EBIT / enterprise value).
+- **Valuation.** A tool runs an owner-earnings DCF with bear, base and bull cases. Warren buys only at a margin of safety of at least 25% to the base case. The LLM never does this arithmetic.
+- **Moat check** (the Researcher reads filings and news): pricing power (stable gross margin), switching costs, network effects, scale. Read the 10-K risk factors for anything that breaks the thesis.
+- **Portfolio.**
+  - 8–12 positions, at most 15% each, with a 10% cash floor.
+  - Adds to a position after a fall only if the thesis still holds.
+- **Sell rules.** Sell only when one of these is true:
+  - Price is above 1.1× the base-case value.
+  - A kill criterion written at purchase is hit.
+  - Another candidate offers at least 15 points more margin of safety.
+  - Never because the price fell.
+- **Memory.** One entity per company. Its observations hold the value range with its date, the moat verdict and the kill criteria. Relations: `competes_with`, `supplies`, `held_by`.
+
+#### 4.4.2 George: global macro with trend confirmation
+
+This joins Soros-style reflexivity (find the imbalance, size up when it proves right) with time-series momentum, the core of managed-futures funds. Long-only, so it trades through ETFs.
+
+- **Universe.**
+  - Equity indices: SPY, QQQ, IWM, EFA, EEM.
+  - The 11 sector SPDRs.
+  - Rates: TLT, IEF, SHY. Credit: HYG, LQD.
+  - Dollar UUP, gold GLD, oil USO.
+  - SH (inverse S&P) only as a hedge, held 5 days or less.
+- **Macro dashboard** (a deterministic tool). It places the market in a growth × inflation quadrant (Goldilocks, Reflation, Stagflation, Deflation) using market proxies:
+  - credit: HYG/IEF trend
+  - dollar: UUP trend
+  - breakevens: TIP/IEF
+  - growth vs safety: copper/gold
+  - curve shape: SHY/IEF
+- **Events.** The Researcher compares expected with actual results for FOMC, CPI and payrolls, because the surprise is what moves prices.
+- **Entry.**
+  - A macro thesis needs trend confirmation: 12-1 month momentum above zero and price above its 100-day average.
+  - A contrarian entry is allowed only at extremes: RSI(14) below 25, plus a volatility spike, plus a named catalyst.
+- **Sizing.**
+  - Risk 1% of equity per idea at an ATR-based stop of 2 ATR.
+  - Add 50% after a move of +1 ATR in his favour (reflexivity: press winners).
+  - At most 5 themes at once. Gross exposure at most 100%.
+- **Memory.** One entity per macro theme ("Fed cutting cycle", "dollar weakness"). Observations hold the evidence. Each theme links to ETFs via `expressed_via`, and its status and P&L update when it closes.
+
+#### 4.4.3 Jim, the regime quant (the fifth trader)
+
+Jim is named in homage to Jim Simons, following the floor's convention (§19.6). If personas are renamed, his archetype is "Regime quant".
+
+His colour is peacock teal: `--t-jim: #00798c` in light mode (4.8:1 on the surface) and `#22d3c5` in dark mode (9.7:1). The hue sits between the positive green and Ray's blue, so neither is confused with it.
+
+**The financial idea.** Markets switch between regimes, and which strategies pay depends on the regime:
+
+- Trend and momentum pay in calm, trending markets, then crash at reversals.
+- Short-term mean reversion pays in choppy, range-bound markets.
+- Low-volatility and quality defend in corrections.
+- Cash, short Treasuries and gold carry a portfolio through stress.
+
+Jim does not try to predict prices. His edge has three parts:
+
+1. Knowing which regime the market is in, measured.
+2. Knowing which signals have paid in each regime, measured on this year's data and checked against ten years.
+3. Sizing by volatility, so no single regime change can blow him up.
+
+**Learning the year: the Market Year pipeline.** Deterministic Python that runs once a day after the close.
+
+1. **Data.** Daily adjusted bars from 2026-01-02 to today, plus 2016–2025 as a longer prior. Symbols: SPY, QQQ, IWM, the 11 sector SPDRs, TLT, IEF, SHY, HYG, LQD, UUP, GLD, USO, VIXY (as a volatility proxy) and the 20 largest S&P 500 names. Cached in a `bars` table.
+2. **Daily features.**
+   - 20- and 60-day realized volatility, and its percentile against ten years.
+   - SPY against its 50- and 200-day averages, and the 200-day slope.
+   - Drawdown from the 52-week high.
+   - Breadth: the share of sectors above their 50-day average.
+   - Average 60-day correlation between sectors (when it is high, the market is risk-off).
+   - The trends in credit (HYG/IEF), the dollar and rates.
+3. **Two regime models, shown side by side.**
+   - *Rules* (transparent): trend × volatility gives four regimes. Calm bull, Volatile bull, Calm chop, Stress.
+   - *Learned*: a 3–4 state Gaussian HMM on return, log volatility, credit and breadth. It is fitted on 2016–2025 and run **forward-filtered** on 2026: each day's label uses only data up to that day.
+4. **Episodes.** Runs of one regime, with hysteresis (at least 5 days). These are the year's risk-on and risk-off swings. Each episode records its dates, SPY return, maximum drawdown, volatility, and the sectors that led and lagged.
+5. **Signal scoreboard.** A fixed, pre-registered menu of eight well-known signals, scored per regime on return, hit rate and Sharpe:
+   - 12-1 cross-sectional momentum (top 3 sectors)
+   - time-series trend (price above its 200-day average)
+   - short-term mean reversion (RSI(2) below 10, Connors-style)
+   - low volatility (lowest-volatility third)
+   - post-earnings drift (positive surprise and gap up, hold 20 days)
+   - 55-day breakout (Turtle rule)
+   - defensive rotation (XLU, XLP, TLT, GLD)
+   - buy and hold
+
+   Scores are computed for the year to date and for ten years. Ten years is the prior; this year updates it with weight n_ytd / (n_ytd + k).
+6. **Memory.** The pipeline writes into Jim's memory graph:
+   - entities: regime episodes, signals, sectors, events
+   - relations: `followed_by`, `led_by`, `signal_worked_in`, `signal_failed_in`, `triggered_by`
+
+   An event comes from the Researcher's news on the transition dates. This gives the floor its richest graph: the year as a chain of regimes.
+
+**Jim's agent team.** Each member appears as nested spans in the Decisions view, so no new tracing is needed.
+
+- **Researcher** (existing). Asked only what the numbers cannot answer: why did the market flip on that date, and what is scheduled this week?
+- **Quant** (new; a deterministic MCP server `quant_server.py`, no LLM):
+  - `regime_now()`
+  - `regime_history(from, to)`
+  - `signal_scoreboard(regime)`
+  - `signal_scan(signal)`: today's candidates
+  - `portfolio_risk(weights)`: volatility, beta to SPY, correlation, 95% CVaR, historical worst drawdown
+  - `size_positions(target_weights, target_vol)`: quantities
+
+  Warren and George use the same server for their screens and dashboard.
+- **Synthesizer** (new; an LLM sub-agent through `Agent.as_tool`, returning a structured `TradeThesis`). It takes the research report, the Quant's outputs and the lessons Jim recalls. It returns:
+  - the regime and its confidence
+  - the signals for and against
+  - each conflict between story and numbers, and which side wins and why (for example, "news is bullish, but breadth is collapsing and correlation is spiking")
+  - target weights
+  - what would invalidate the thesis
+  - the holding horizon
+
+  Every claim must cite a tool call or a source. Claims without one are flagged in the UI (groundedness).
+- **Risk limits** (deterministic):
+  - 12% annualized volatility target
+  - at most 25% per ETF and 10% per stock
+  - at most 3 regime-driven switches a month
+  - halve exposure at −8% from peak; move to SHY or cash at −12%
+
+**Jim's cycle.**
+
+1. Call `regime_now`.
+2. On a regime change or the weekly rebalance, read the scoreboard and scan the signals that work in this regime.
+3. Ask the Researcher for catalysts only.
+4. The Synthesizer writes the thesis.
+5. `size_positions` turns it into quantities.
+6. Trade only positions more than 2% away from target.
+7. Write the thesis and its regime to memory.
+
+Cycles in between check only stops and the drawdown brake.
+
+**Baselines Jim must beat.** If Jim does not beat these, the LLM layer adds nothing:
+
+- SPY buy and hold
+- 60/40 SPY/IEF
+- the 200-day timing rule on SPY (Faber)
+- volatility-targeted SPY
+- the rules regime model with the same scoreboard, run mechanically with no LLM (E12)
+
+#### 4.4.4 Complications to handle when implementing
+
+| Complication | Why it bites | How we handle it |
+|---|---|---|
+| **Look-ahead bias** | "Learn the whole year, then trade it" is the classic backtest lie. Smoothed HMM labels, a scoreboard built on the full year, and today's index members all leak the future. | Compute everything as of date *t* (`as_of` parameter everywhere). Use a forward-filtered HMM only. Use a point-in-time universe. Run the masked-ticker look-ahead check (§10). |
+| **Tiny sample** | One year is about 210 trading days and perhaps 3–6 regime episodes. Per-regime signal statistics rest on a handful of them. | Use the ten-year prior with shrinkage. Show n and confidence intervals on every score. Keep the signal menu pre-registered (no searching for winners). Use a deflated Sharpe ratio if the menu ever grows. |
+| **Regime lag and whipsaw** | Every detector confirms late. Flip-flopping near a boundary pays costs both ways. | Hysteresis and a minimum dwell time. A turnover budget. Scale exposure with regime probability instead of all-in switches. |
+| **Data access** | The Massive plan tier may not include ten years of daily bars or fundamentals (Warren's screen needs them). Rate limits, split and dividend adjustment, and VIX itself is not tradable. | Backfill once into `bars`, using adjusted closes. Use VIXY as the volatility proxy. Fall back to Alpaca historical (IEX) (§19.4). **Never** fall back to the simulator (D1 must be fixed first). If fundamentals are missing, Warren's screen says so in the UI instead of guessing. |
+| **Long-only** | There are no shorts in V2 (§12), so risk-off means cash, SHY/TLT, GLD and defensive sectors. Leveraged and inverse ETFs decay. | Exclude leveraged ETFs. Allow SH as a hedge only, held 5 days or less. |
+| **Local model limits** | qwen2.5-coder 32B has about 32k of context, and its tool calls are unreliable (needs the `local_llm.py` fix-up). Three sub-agents add minutes to every cycle. | Tools return compact tables (≤ 30 rows). `TradeThesis` is structured output. Call the Synthesizer only on a regime change or the weekly rebalance. Try qwen3:32b for the Synthesizer (E6). |
+| **Correlated traders** | Jim, George and Ray all hold ETFs and react to the same regime, so the desk can become one big bet. | A correlation panel for trader returns on the Money view, and a desk-level exposure panel. |
+| **Cadence mismatch** | The floor runs every few minutes; Jim's model uses daily bars. | The pipeline runs once a day. Intraday cycles only check stops and the drawdown brake. |
+| **Judging honestly** | A regime trader looks brilliant on the year it was designed on. | Freeze Jim's rules and signal menu on a set date. Judge only on days after the freeze (live, then Phase 8's held-out episodes). Always against all five baselines. |
+| **Memory bloat** | A daily regime write would create thousands of observations. | Write episodes and transitions only. Deduplicate. At most one scoreboard observation per signal, per regime, per week. |
+| **Playbook data and drift** | Playbooks are useless if the model ignores them or rewrites them. | Turn `change_strategy` off for playbook traders. Measure rule adherence per trade (E14). |
+| **Plumbing** | A fifth trader touches every place that assumes four. | Places to update: `names` / `lastnames` / `model_names` in `trading_floor.py`, `reset.py`, `traders.ts`, `PERSONA` in `lab.ts`, the Shell logo bars, `--t-jim` in both themes, `mcp_servers.py` (quant server), `runs.py` (Synthesizer spans; Quant calls as market calls). New tables: `bars` and `regimes`. They hold market data, not traces. |
 
 ---
 
@@ -681,6 +864,7 @@ same episode (frozen market + frozen research + same initial portfolio)
 | **Decision drill-down** | Why did this trade happen? | One screen per decision: the research it used, the quotes it saw, the strategy text in force, the justification, the order and fill, the portfolio before and after, and a link to the SDK trace for the raw model and tool calls |
 | **Lessons** ("what to relearn") | What have the agents learned, and is it still true? | After each cycle a review step compares past decisions with what happened next and writes short lessons ("bought on an earnings beat, gave back gains within 3 days"), each linked to its trades and P&L. The view lists lessons by trader with how often each recurs, flags lessons that later trades contradict, and shows which lessons the agent recalled before trading. |
 | **Memory graph** | What does each agent's long-term memory contain? | Interactive graph of the entities, relations and observations that `mcp-memory-libsql` already stores in `memory/<name>.db` (companies, sectors, themes, lessons). Click a node to see its observations, when they were written, and which decisions used them. Filter by trader and time; compare two traders' graphs. Today Warren's graph has 1 entity, 0 relations and 5 observations, so the agents barely use memory. Showing it makes that visible, and the Lessons review step gives memory something worth storing. |
+| **Market Year** | What kind of market is this, and who is positioned for it? | The year's SPY line shaded by regime (rules and HMM side by side), transition markers with the news that came with them, episode table (dates, return, drawdown, leaders and laggards), signal scoreboard heatmap (signals × regimes, year to date vs ten years, with n), Jim's current regime and probability, each trader's exposure against the regime |
 | **Experiments & Evaluation** | Which configuration is better, by how much, at what cost? | Pick scenarios and arms, launch, then paired comparisons with confidence intervals; return vs cost frontier; metric matrix with per-scenario drill-down |
 | **Replay** | Step through a past episode | Timeline scrubber, price chart with order and fill markers, portfolio over time, side-by-side with a counterfactual run |
 | **Failure Lab** | How does the system behave when X breaks? | Fault catalogue, expected vs actual outcome, before/after table, links to traces |
@@ -722,16 +906,16 @@ Every capability must answer: **"What engineering question does this help us tes
 | Benchmark comparison | Does agent complexity beat simple rules? | **Include** (§10.2) |
 | Portfolio rebalancing to target weights | Is the "rebalance" task even well-defined? Lets us grade deterministically against target weights. | **Include** |
 | Earnings / news research | Core of the researcher-value question (E1) | **Include** via frozen corpora |
-| Execution quality (fill vs decision quote) | Sim-vs-Alpaca calibration | **Include, Phase 6** |
+| Execution quality (fill vs decision quote) | Sim-vs-Alpaca calibration | **Include, Phase 7** |
 | Simulated latency | Does decision staleness change outcomes? Tests staleness guards. | **Include** as a sim parameter |
-| Diversification / correlation awareness (a deterministic `portfolio_risk` tool: weights, sector, correlation) | Does giving structured risk context improve adherence for Ray-type strategies? | **Later**, as an experiment arm |
-| Market regime context (simple, deterministic regime label) | Do agents change behavior given explicit context, or ignore it? | **Later** |
-| Fundamental data (Massive) | Is the tool used when available, and does it improve groundedness? | **Later** (already reachable via `mcp_massive`) |
-| Technical signals (RSI, moving averages as a tool) | Tool use vs hallucinated indicators | **Later**, low priority |
+| Diversification / correlation awareness (a deterministic `portfolio_risk` tool: weights, sector, correlation) | Does giving structured risk context improve adherence for Ray-type strategies? | **Include, Phase 5** (Quant server, §4.4) |
+| Market regime context (simple, deterministic regime label) | Do agents change behavior given explicit context, or ignore it? | **Include, Phase 5** (Jim, §4.4.3) |
+| Fundamental data (Massive) | Is the tool used when available, and does it improve groundedness? | **Include, Phase 5** (Warren's screen, §4.4.1) |
+| Technical signals (RSI, moving averages as a tool) | Tool use vs hallucinated indicators | **Include, Phase 5** (George's trend checks, Jim's scoreboard) |
 | Shorting / margin | Tests risk-rule edge cases, but doubles the ledger complexity | **Reject for V2** |
 | Options / derivatives | No new agent-engineering question | **Reject** |
 | Direct crypto trading | Cathie can use crypto ETFs. A second asset class adds nothing to evaluate. | **Reject** |
-| ML price prediction / sentiment models (as tools the agent can call) | Does a model-based signal improve risk-adjusted return out of sample, or only in-sample? | **Later**, after Phase 7, with walk-forward tests |
+| ML price prediction / sentiment models (as tools the agent can call) | Does a model-based signal improve risk-adjusted return out of sample, or only in-sample? | **Later**, after Phase 8, with walk-forward tests |
 | HFT / order-book microstructure | Wrong timescale for LLM agents | **Reject** |
 | Tuning strategies for return | Does a tuned strategy keep its edge on episodes it was not tuned on? | **Later**, only with walk-forward / held-out episodes; never judged on in-sample results |
 
@@ -837,31 +1021,180 @@ Each phase lists: **what you will see**, **what gets built**, **the one-line pit
 - **First results to publish:** E1 (does the researcher earn its cost?) and E10 (prompt fix).
 - **Pitch:** "Does an AI research assistant actually make a trader better? Measured: +X quality for Y× the cost."
 
-**Phase 5: Failure Lab** *(~1–2 weeks)*
+**Phase 5: Strategy playbooks + Jim, the regime quant** *(~3 weeks)*
+
+- **You will see:**
+  - **Jim**, in peacock teal, on every desk view.
+  - A new **Market Year** view (§11.2): this year's SPY line shaded by risk-on and risk-off regimes, the transitions with the news behind them, a signal scoreboard heatmap (which strategies paid in which regime), and Jim's current regime read.
+  - On **Decisions**:
+    - Jim's Synthesizer thesis: signals for and against, the story-vs-numbers conflicts and how they were resolved, what would invalidate it, and uncited claims flagged.
+    - The Quant tool calls.
+    - A **Playbook check** (which rules each Warren or George trade passed or broke).
+  - On **Memory**: Jim's graph as the year's chain of regimes, signals and events, and Warren's company entities with dated intrinsic-value ranges.
+  - On **Money**: correlation between traders and desk-level exposure.
+- **Gets built:**
+  - The Warren and George playbooks (§4.4.1–4.4.2), with `change_strategy` off for them.
+  - The Quant MCP server (`regime_now`, `regime_history`, `signal_scoreboard`, `signal_scan`, `portfolio_risk`, `size_positions`).
+  - The daily Market Year pipeline (bars cache, features, rules and forward-filtered HMM regimes, episodes, scoreboard, memory writes).
+  - The Synthesizer sub-agent with a structured `TradeThesis`, and Jim's risk limits.
+  - The fifth trader wired through every four-trader assumption (§4.4.4 Plumbing).
+  - Experiment arms E12–E14 in the Experiment Lab.
+- **Prerequisites:** D1 fixed (real prices only). A historical data source chosen (§19.4).
+- **Complications:** §4.4.4. Above all, look-ahead bias, the tiny sample of regimes in one year, and judging Jim only after his rules are frozen.
+- **Pitch:** "An AI quant that learned this year's risk-on/risk-off swings from market data, argues with its own researcher through a Synthesizer, and is benchmarked against the simple rule it is trying to beat."
+- **Start with:** `Read CLAUDE.md and docs/V2_ARCHITECTURE_PLAN.md §4.4 and Phase 5 of §16. First propose the Quant server's tool signatures, the Market Year tables, the TradeThesis schema and the Market Year view layout (taste-skill app-screen run, kind markets). Show me before writing code. Build in this order: bars backfill + Market Year view; Quant server; Warren/George playbooks; Jim + Synthesizer; E12–E14 arms.`
+I've gone through CLAUDE.md, §1.4, §4.3–4.4, §11.2 and Phase 5. I also checked two things in the code and against the Massive API before proposing anything, and both change the plan.
+
+
+#### Quant MCP server (`backend/quant_server.py`, deterministic, no LLM)
+
+`as_of` and the trader's account are fixed when the server starts (env `QUANT_AS_OF`, `QUANT_TRADER`), never passed by the model. That is the same capability-scoping lesson as D4, and it is what stops look-ahead in the Lab. Every output states "as of close YYYY-MM-DD" and stays at 30 rows or fewer.
+
+```python
+regime_now() -> {as_of, rules: {label, day_in_regime, since},
+                 hmm: {label, prob, probs}, agree: bool,
+                 features: [{name, value, unit, pct_10y}], switches_this_month: int}
+
+regime_history(start: str, end: str, model: Literal["rules","hmm"] = "rules")
+    -> [{label, start, end, days, spy_return, max_drawdown, vol_ann, leaders[3], laggards[3]}]
+
+signal_scoreboard(regime: str | None = None)        # None = today's rules regime
+    -> [{signal, ytd: {sharpe, hit, ann_return, n_episodes}, ten_y: {...},
+         blend_sharpe, ci: [lo, hi], weight_ytd}]   # weight = n_ytd / (n_ytd + k)
+
+signal_scan(signal: Literal["xs_momentum_12_1","trend_200d","rsi2_reversion","low_vol",
+                            "earnings_drift","breakout_55d","defensive_rotation","buy_hold"])
+    -> [{symbol, trigger, value, close, atr14}]     # today's candidates, ≤15
+
+portfolio_risk(weights: dict[str, float])
+    -> {vol_ann, beta_spy, avg_corr, cvar95_1d, worst_drawdown_10y,
+        contributions: [{symbol, weight, risk_share}]}
+
+size_positions(target_weights: dict[str, float], target_vol: float = 0.12)
+    -> {equity, scale, brake: "none"|"halved"|"to_shy",
+        rows: [{symbol, target_w, capped_w, capped_by, shares_now, shares_target,
+                delta, price, trade: bool}]}        # trade only if >2% off target
+```
+
+`size_positions` applies Jim's limits itself: 25% per ETF, 10% per stock, the −8%/−12% brake, and the switch budget. The model can't negotiate them.
+
+Step 3 adds `macro_dashboard()` for George (quadrant from HYG/IEF, UUP, TIP/IEF, copper/gold, SHY/IEF) and `quality_screen()` / `owner_earnings_dcf(symbol)` for Warren. Those two report "no fundamentals" when the data isn't there.
+
+#### 3. TradeThesis (the Synthesizer's `output_type`)
+
+```python
+class Claim(BaseModel):
+    text: str
+    source: str          # "regime_now" | "signal_scoreboard" | "research:<url>" | "lesson:<id>"
+
+class SignalView(BaseModel):
+    signal: str
+    stance: Literal["for", "against"]
+    evidence: Claim
+
+class Conflict(BaseModel):
+    story: Claim         # what the research says
+    numbers: Claim       # what the Quant says
+    winner: Literal["story", "numbers", "unresolved"]
+    why: str
+
+class TargetWeight(BaseModel):
+    symbol: str
+    weight: float        # 0–1; whatever's left over is cash
+    reason: str
+
+class TradeThesis(BaseModel):
+    regime: str
+    confidence: float    # 0–1
+    summary: str         # ≤ 2 sentences
+    signals: list[SignalView]
+    conflicts: list[Conflict]
+    targets: list[TargetWeight]
+    invalidation: list[Claim]
+    horizon_days: int
+    lessons_used: list[int]
+```
+
+The thesis gets no new table; it lives in the Synthesizer span. Groundedness is computed in `runs.py` from that run's spans: a `source` has to match a tool actually called, a URL the Researcher fetched, or a lesson recalled. Anything else is flagged as uncited in Decisions.
+
+#### 4. Market Year view
+
+The taste-skill sheet is saved in [.taste-skill/market-year/direction.json](.taste-skill/market-year/direction.json): data-terminal, analytics screen, palette and type kept. I'm keeping the app's existing labelled sidebar rather than the icon rail the sheet dealt. The shell is already set, and switching shells on one screen would break it.
+
+- **The screen's question:** what kind of market is this, and who is positioned for it?
+- **Its face:** the regime strip itself. Two thin bands under the SPY line (Rules over HMM) make the year read as a chain of regimes.
+- **Colour:** goes on regimes and P&L only. Stress is a pale negative tint, the bulls are positive tints, chop is grey, and SPY is the one data hue.
+
+```
+Regime report · as of close Tue 3 Nov 2026                     Pipeline ran 16:40 · daily after close
+Market Year.                                                    ← big, as Money
+Calm bull for 18 days since 9 Oct; rules and HMM agree (0.81). Trend has paid in this regime
+(blended Sharpe +1.12, n 4). Jim is 64% risk-on; George sits 41% in defensives.
+┌──────────────────────────────────────────────┬──────────────────────────┐
+│ SPY 2026 by regime      ■Calm bull ■Vol bull │ Jim's read               │
+│ ■Chop ■Stress           [YTD  2025  10 y]    │ Calm bull      day 18    │
+│ $720 ┤          ╱╲    ╱‾‾‾╲      ╱‾‾          │ HMM  Calm bull  0.81     │
+│ $680 ┤ ╱‾╲  ╱‾‾╱  ╲__╱     ╲____╱             │ ▕████████▏▕▏▕▏ probs     │
+│ $640 ┤╱   ╲╱      ①       ②     ③            │ Vol 20d   11.2%  34th pct│
+│ Rules ▓▓▓▓░░▓▓▓▓▓▓▒▒▒▒▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓       │ SPY vs 200d      +6.1%   │
+│ HMM   ▓▓▓▓▓░░▓▓▓▓▓▒▒▒▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓       │ From 52w high    −2.3%   │
+│       Jan  Mar  May  Jul  Sep  Nov           │ Breadth  8 / 11 sectors  │
+│                                              │ Sector corr 60d  0.41    │
+│                                              │ Switches this month 1 / 3│
+├─────────────────────────────┬────────────────┴──────────────────────────┤
+│ Signal scoreboard  [Blend YTD 10y]           │ Who is positioned for it  │
+│              CalmBull VolBull Chop  Stress   │ Jim    ████████░░▒▒  64/24/12│
+│ Trend 200d    +1.12▕  +0.40  −0.31  −0.85    │ Warren ██████████▒   88/0/12 │
+│  n            4     2      3      2          │ George ████░░░░░▒▒  35/41/24 │
+│ XS momentum   …                              │ Ray    …  Cathie …          │
+│ (8 rows; cell tint = Sharpe; current regime  │ risk-on / defensive / cash│
+│  column marked by the 1px accent line)       │                           │
+├──────────────────────────────────────────────┴───────────────────────────┤
+│ Episodes                                                                  │
+│ #  Regime      From    To     Days  SPY    Max DD  Vol   Led    Lagged   What turned it  │
+│ ③  Calm bull   10-09   —      18   +4.2%  −1.1%   10.8%  XLK…  XLU…   "CPI cooler…" ↗ trace│
+│ ②  Stress      09-02   10-08  26   −7.9%  −9.4%   24.1%  XLP…  XLK…   "…"                  │
+└───────────────────────────────────────────────────────────────────────────┘
+```
+
+- Clicking a transition marker (①②③) or an episode row opens its news and links to the Researcher trace. That's the screen's main job.
+- When there is no data, the panels keep their frames and say so plainly, e.g. "HMM needs the prior: 2016–2024 bars not loaded".
+- On a phone, the panels stack and the episodes become two-line rows.
+
+#### Build order (each step ends visible)
+
+1. **Bars backfill + Market Year view.** Fix D1 in fills. Load the ~40 symbols into `bars` (Massive for recent bars, rate-limited and resumable). Then run features, rules and HMM regimes, and the scoreboard. Add `uv run -m backend.market_year` and the view. New deps: `numpy` and `hmmlearn` (fit only).
+2. **Quant server.** Wire it into `mcp_servers.py`; Quant calls appear as market calls in Decisions.
+3. **Warren and George playbooks.** Add rule lists, turn off `change_strategy`, and add the Playbook check in Decisions.
+4. **Jim + Synthesizer.** Wire the fifth trader through everything that assumes four, add `--t-jim`, the thesis panel and the groundedness flags.
+5. **E12–E14 arms.** E12 needs a new scenario family: decision points built from real bars on 2026 transition and rebalance dates, with the Quant bound to `as_of` and grading on forward risk-adjusted return against the mechanical-rules arm and the 200-day arm. E13 is a Synthesizer on/off dimension. E14 adds playbook values to the strategy dimension, graded on rule adherence.
+
+
+**Phase 6: Failure Lab** *(~1–2 weeks)*
 
 - **You will see:** a catalogue of failures (market data down, stale prices, researcher timeout, broker rejection, duplicate order, model returns garbage). Pick one, run it, and see the expected vs actual outcome, the trace, and a before/after table showing how V1 behaved vs now.
 - **Gets built:** fault injection at the model, tool, data and broker layers (§7), the outcome taxonomy, and the recovery mechanisms: duplicate-order protection, staleness guard, loop detector, market clock that fails closed (fixes D2).
 - **Pitch:** "Chaos testing for AI agents: break the market feed mid-trade and watch how each agent copes."
 
-**Phase 6: Alpaca paper trading** *(~1–2 weeks)*
+**Phase 7: Alpaca paper trading** *(~1–2 weeks)*
 
 - **You will see:** a mode switch (Simulated / Alpaca paper / Shadow) and a "Sim vs Paper" view comparing fill price, slippage, latency and rejections for the same decisions.
 - **Gets built:** the Alpaca paper broker (§9), reconciliation, the live-URL guard.
 - **Pitch:** "The same AI decisions executed on a real paper brokerage and in my simulator, side by side."
 
-**Phase 7: Backtest + Replay viewer** *(~1–2 weeks)*
+**Phase 8: Backtest + Replay viewer** *(~1–2 weeks)*
 
 - **You will see:** a timeline scrubber over a historical episode: price chart with order and fill markers, portfolio over time, and a counterfactual run (another model or strategy) on the same days, side by side.
 - **Gets built:** the episode library (§10), long-horizon baseline runs, the masked-ticker look-ahead check.
 - **Pitch:** "Rewind any trading day and replay it with a different AI model."
 
-**Phase 8: C++ simulation engine** *(~3 weeks)*
+**Phase 9: C++ simulation engine** *(~3 weeks)*
 
 - **You will see:** an Engine page with a benchmark chart (Python vs C++ episodes per second) and a parity badge showing both engines produce identical results; Experiment Lab gains large baseline sweeps that were too slow before.
 - **Gets built:** the §8 core with pybind11, parity tests, benchmarks.
 - **Pitch:** "A C++20 execution engine that runs N× faster than the Python version, with results proven identical."
 
-**Phase 9: Demo mode + launch** *(~1 week)*
+**Phase 10: Demo mode + launch** *(~1 week)*
 
 - **You will see:** `lab demo` plays a curated 3-minute story with no LLM or network: a news shock → research → traders disagree → a broker rejects an order → recovery → evaluation scorecard.
 - **Gets built:** the demo recording, README screenshots and GIFs, a short video, the write-up of experiment results.
@@ -870,10 +1203,10 @@ Each phase lists: **what you will see**, **what gets built**, **the one-line pit
 ### 16.3 Order
 
 ```text
-P1 Money UI ─► P2 Researcher + Decisions ─► P3 Lessons + Memory ─► P4 Experiment Lab ─► P5 Failure Lab
+P1 Money UI ─► P2 Researcher + Decisions ─► P3 Lessons + Memory ─► P4 Experiment Lab ─► P5 Playbooks + Jim ─► P6 Failure Lab
                                                                           │
-                                                   P6 Alpaca paper ◄──────┤
-                                                   P7 Backtest/Replay ◄───┘ ─► P8 C++ engine ─► P9 Demo + launch
+                                                   P7 Alpaca paper ◄──────┤
+                                                   P8 Backtest/Replay ◄───┘ ─► P9 C++ engine ─► P10 Demo + launch
 ```
 
 ---
@@ -883,15 +1216,15 @@ P1 Money UI ─► P2 Researcher + Decisions ─► P3 Lessons + Memory ─► P
 1. **The money-first dashboard (Phase 1).** It is the first thing anyone sees, and it turns the project from "four log panels" into a product.
 2. **Decision drill-down with research (Phase 2).** "Click a trade, see why" is the most convincing 10 seconds of any demo.
 3. **Experiment Lab with the researcher result (Phase 4).** A measured answer to a real question, with a chart, is the strongest claim the project can make.
-4. **Failure Lab (Phase 5).** Visible chaos testing for AI agents is rare and easy to show in a short video.
+4. **Failure Lab (Phase 6).** Visible chaos testing for AI agents is rare and easy to show in a short video.
 5. **Lessons + Memory graph (Phase 3).** Agents that visibly learn, with a graph you can explore, are memorable.
 
 ---
 
 ## 18. Top 5 impressive-sounding ideas to NOT prioritize
 
-1. **More trader personas or more agents.** The four current traders are already one agent with four prompts. More agents add cost and confounds, not insight. Add agents only as experiment arms (E4, E7c).
-2. **Chasing returns before the harness exists** (strategy tuning, ML signals, sentiment models). Profit is the goal, but without held-out episodes and baselines any "edge" is likely overfitting. These come after Phase 7 (§12).
+1. **More trader personas or more agents.** The four current traders are already one agent with four prompts. More prompt-only personas add cost and confounds, not insight. Add agents only when they bring a different architecture (Jim's Quant and Synthesizer, §4.4) or as experiment arms (E4, E7c, E12, E13).
+2. **Chasing returns before the harness exists** (strategy tuning, ML signals, sentiment models). Profit is the goal, but without held-out episodes and baselines any "edge" is likely overfitting. These come after Phase 8 (§12). Phase 5's playbooks and regime trader are the exception: they use only well-known, pre-registered signals and are judged only on days after their rules are frozen.
 3. **Building our own tracing system.** The OpenAI Agents SDK (and Google ADK) already capture model calls, tool calls, timing and usage. Rebuilding that adds code and no information; effort goes into the financial and research views instead.
 4. **Moving everything to C++ / building an HFT-style order book.** The agents are LLM-bound at seconds per decision. C++ belongs only in the batch simulation kernel, where a benchmark shows it matters.
 5. **Supporting many agent frameworks** (LangGraph, CrewAI, AutoGen, …). One extra adapter (`PlainLoopAdapter`) proves the harness is framework-independent. More adapters only add maintenance.
@@ -916,3 +1249,4 @@ P1 Money UI ─► P2 Researcher + Decisions ─► P3 Lessons + Memory ─► P
 12. **Profit thresholds.** What risk-adjusted bar (e.g. beat SPY on Sharpe with a 95% CI over N episodes, max drawdown below X%) must a configuration clear before moving from simulation to paper, and from paper toward real money?
 13. **Google ADK.** Stay on the OpenAI Agents SDK only, or add ADK as the second framework adapter (its OpenTelemetry tracing would then be reused the same way)?
 14. **MCP topology.** Keep spawn-per-trader-per-cycle stdio servers (simple; recommended until Phase 2 measures the cost) or move to long-lived servers?
+15. **The fifth trader.** Keep the homage name "Jim" (Jim Simons) or use the archetype "Regime quant" (follows decision 6)? Run the Synthesizer on qwen2.5-coder:32b or qwen3:32b? And the freeze date after which Jim's results count.

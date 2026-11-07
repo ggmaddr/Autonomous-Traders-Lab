@@ -29,6 +29,7 @@ export const NAV: NavGroup[] = [
       { path: "/decisions", label: "Decisions", question: "Why did this trade happen?" },
       { path: "/lessons", label: "Lessons", question: "What have the agents learned, and is it still true?" },
       { path: "/memory", label: "Memory", question: "What does each agent's long-term memory contain?" },
+      { path: "/market-year", label: "Market Year", question: "What kind of market is this, and who is positioned for it?" },
     ],
   },
   {
@@ -38,7 +39,7 @@ export const NAV: NavGroup[] = [
       {
         path: "/failures",
         label: "Failures",
-        phase: 5,
+        phase: 6,
         question: "How does the system behave when something breaks?",
         shows: [
           "A catalogue of faults: feed down, stale prices, researcher timeout, broker rejection",

@@ -7,7 +7,16 @@
 import { useMemo } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { getRun, type AccountState, type RunDetail, type TimelineSpan, type ToolCall } from "../api";
+import {
+  getRun,
+  type AccountState,
+  type Claim,
+  type PlaybookCheck,
+  type RunDetail,
+  type ThesisCheck,
+  type TimelineSpan,
+  type ToolCall,
+} from "../api";
 import { Change, Failed, Loading, PageHeader, Panel, TraderName } from "../components/bits";
 import { useDesk, type Desk } from "../lib/desk";
 import type { Fill } from "../lib/ledger";
@@ -153,6 +162,8 @@ function RunPanels({ run, fill, desk }: { run: RunDetail; fill: Fill; desk: Desk
   const otherFills = desk.fills.filter((f) => f.traceId === run.trace_id && f.id !== fill.id);
   return (
     <>
+      {run.thesis && <ThesisPanel check={run.thesis} />}
+      {run.playbook && <PlaybookPanel check={run.playbook} fill={fill} />}
       <Panel
         title="Research it had"
         id="research"
@@ -219,7 +230,7 @@ function RunPanels({ run, fill, desk }: { run: RunDetail; fill: Fill; desk: Desk
         <Panel title="Portfolio before and after this run" id="portfolio">
           <BeforeAfter before={run.before} after={run.after} />
         </Panel>
-        <Panel title="Strategy in force" id="strategy" meta={run.mode && <span>{run.mode === "trade" ? "Trading run" : "Rebalancing run"}</span>}>
+        <Panel title="Strategy in force" id="strategy" meta={run.mode && <span>{MODE[run.mode] ?? run.mode}</span>}>
           {run.strategy?.trim() ? <p className="strategy-text">{run.strategy.trim()}</p> : <p className="muted">Not recorded.</p>}
         </Panel>
       </div>
@@ -246,6 +257,195 @@ function RunPanels({ run, fill, desk }: { run: RunDetail; fill: Fill; desk: Desk
         {run.output && <blockquote className="decision-quote small">{run.output}</blockquote>}
       </Panel>
     </>
+  );
+}
+
+const MODE: Record<string, string> = {
+  trade: "Trading run",
+  rebalance: "Rebalancing run",
+  "thesis-first": "First thesis run",
+  "thesis-regime": "Thesis run: the regime changed",
+  "thesis-weekly": "Thesis run: weekly rebalance",
+  check: "Brake check",
+};
+
+const STATUS: Record<string, string> = { pass: "Passed", fail: "Broke", unknown: "Unknown" };
+
+/** A claim and where it came from; a source the run never had is flagged. */
+function Cited({ claim, grounded }: { claim: Claim; grounded: boolean }) {
+  return (
+    <>
+      {claim.text}{" "}
+      <span className="tag" data-tone={grounded ? undefined : "bad"} title={grounded ? "Found in this run" : "This run had no such source"}>
+        {grounded ? claim.source : `uncited: ${claim.source || "no source"}`}
+      </span>
+    </>
+  );
+}
+
+/** Jim's Synthesizer: the thesis it wrote, with every claim checked against the run's own sources. */
+function ThesisPanel({ check }: { check: ThesisCheck }) {
+  const t = check.thesis;
+  const ok = (c: Claim) => check.claims.find((x) => x.text === c.text && x.source === c.source)?.grounded ?? false;
+  if (!t) {
+    return (
+      <Panel title="Synthesizer thesis" id="thesis">
+        <p className="muted">The Synthesizer's reply was not a readable thesis.</p>
+        {check.raw && <blockquote className="decision-quote small">{check.raw}</blockquote>}
+      </Panel>
+    );
+  }
+  return (
+    <Panel
+      title="Synthesizer thesis"
+      id="thesis"
+      meta={
+        <span className="num">
+          {t.regime} · confidence {Math.round(t.confidence * 100)}% · {t.horizon_days} days
+        </span>
+      }
+    >
+      <p className="decision-head">
+        {check.uncited ? (
+          <span className="money-tone" data-tone="bad">
+            {check.uncited} of {check.claims.length} claims cite nothing this run had
+          </span>
+        ) : (
+          <span className="money-tone" data-tone="good">Every claim cites a source from this run</span>
+        )}
+      </p>
+      <blockquote className="decision-quote small">{t.summary}</blockquote>
+      <div className="grid-halves rows-start thesis-grid">
+        <div>
+          <h3 className="sub-head">Signals</h3>
+          <ul className="thesis-list">
+            {t.signals.map((s, i) => (
+              <li key={i}>
+                <span className="tag" data-tone={s.stance === "for" ? "good" : "bad"}>
+                  {s.stance}
+                </span>{" "}
+                <span className="strong">{s.signal}</span>: <Cited claim={s.evidence} grounded={ok(s.evidence)} />
+              </li>
+            ))}
+          </ul>
+          <h3 className="sub-head">Story against numbers</h3>
+          {t.conflicts.length ? (
+            <ul className="thesis-list">
+              {t.conflicts.map((c, i) => (
+                <li key={i}>
+                  <p>
+                    Story: <Cited claim={c.story} grounded={ok(c.story)} />
+                  </p>
+                  <p>
+                    Numbers: <Cited claim={c.numbers} grounded={ok(c.numbers)} />
+                  </p>
+                  <p className="muted">
+                    <span className="strong">{c.winner === "unresolved" ? "Unresolved" : `${c.winner === "story" ? "Story" : "Numbers"} win`}</span>
+                    : {c.why}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="muted">No conflict named.</p>
+          )}
+        </div>
+        <div>
+          <h3 className="sub-head">Target weights</h3>
+          {t.targets.length ? (
+            <table className="table">
+              <tbody>
+                {t.targets.map((w) => (
+                  <tr key={w.symbol}>
+                    <th scope="row" className="ident">{w.symbol}</th>
+                    <td className="num">{(w.weight * 100).toFixed(1)}%</td>
+                    <td className="muted">{w.reason}</td>
+                  </tr>
+                ))}
+                <tr className="kv-break">
+                  <th scope="row">Cash</th>
+                  <td className="num">{(Math.max(0, 1 - t.targets.reduce((s, w) => s + w.weight, 0)) * 100).toFixed(1)}%</td>
+                  <td />
+                </tr>
+              </tbody>
+            </table>
+          ) : (
+            <p className="muted">All cash.</p>
+          )}
+          <h3 className="sub-head">Invalidated if</h3>
+          <ul className="thesis-list">
+            {t.invalidation.map((c, i) => (
+              <li key={i}>
+                <Cited claim={c} grounded={ok(c)} />
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    </Panel>
+  );
+}
+
+/** Which rules of the trader's playbook this order passed or broke, from what the run saw. */
+function PlaybookPanel({ check, fill }: { check: PlaybookCheck; fill: Fill }) {
+  const mine = check.orders.find((o) => o.order.symbol === fill.symbol && o.order.side === fill.side);
+  const others = check.orders.filter((o) => o !== mine);
+  const broke = mine?.rules.filter((r) => r.status === "fail").length ?? 0;
+  return (
+    <Panel
+      title="Playbook check"
+      id="playbook"
+      meta={
+        <span>
+          {check.name} · <span className="num">{check.id}</span>
+        </span>
+      }
+    >
+      {mine ? (
+        <>
+          <p className="decision-head">
+            {broke ? (
+              <span className="money-tone" data-tone="bad">
+                Broke {broke} of {mine.rules.length} rules
+              </span>
+            ) : (
+              <span className="money-tone" data-tone="good">
+                Kept all {mine.rules.length} rules it could be checked on
+              </span>
+            )}
+          </p>
+          <table className="table playbook-rules">
+            <tbody>
+              {mine.rules.map((r) => (
+                <tr key={r.id}>
+                  <th scope="row" className="num">{r.id}</th>
+                  <td>{r.text}</td>
+                  <td>
+                    <span className="tag" data-tone={r.status === "pass" ? "good" : r.status === "fail" ? "bad" : undefined}>
+                      {STATUS[r.status]}
+                    </span>
+                  </td>
+                  <td className="muted">{r.evidence}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </>
+      ) : (
+        <p className="muted">This fill's order was not found among the run's completed orders.</p>
+      )}
+      {others.length > 0 && (
+        <p className="note">
+          Other orders in this run:{" "}
+          {others
+            .map((o) => {
+              const n = o.rules.filter((r) => r.status === "fail").length;
+              return `${o.order.side} ${o.order.symbol} ${n ? `broke ${n}` : "kept all"}`;
+            })
+            .join(" · ")}
+        </p>
+      )}
+    </Panel>
   );
 }
 

@@ -6,6 +6,9 @@ from datetime import datetime, timezone
 from agents import add_trace_processor
 from .market import is_market_open
 from .review import review
+from .quant import pipeline as market_year
+from .quant.bars import last_closed_session
+from .quant.store import read_regimes
 from dotenv import load_dotenv
 import os
 from local_llm import MODEL_NAME
@@ -17,11 +20,11 @@ RUN_EVEN_WHEN_MARKET_IS_CLOSED = (
     os.getenv("RUN_EVEN_WHEN_MARKET_IS_CLOSED", "false").strip().lower() == "true"
 )
 
-names = ["Warren", "George", "Ray", "Cathie"]
-lastnames = ["Patience", "Bold", "Systematic", "Crypto"]
+names = ["Warren", "George", "Ray", "Cathie", "Jim"]
+lastnames = ["Patience", "Bold", "Systematic", "Crypto", "Quant"]
 
-model_names = [MODEL_NAME] * 4
-short_model_names = ["Qwen2.5 Coder 32B"] * 4
+model_names = [MODEL_NAME] * len(names)
+short_model_names = ["Qwen2.5 Coder 32B"] * len(names)
 
 
 def create_traders() -> List[Trader]:
@@ -35,7 +38,18 @@ async def run_every_n_minutes():
     add_trace_processor(LogTracer())
     add_trace_processor(SpanStore())
     traders = create_traders()
+    ran_for = None
     while True:
+        # The Market Year pipeline runs once a day, after the close (plan §4.4.3); on a
+        # weekend or holiday it finds no new bar and only tries once.
+        session = last_closed_session()
+        latest = read_regimes("rules")[-1:]
+        if ran_for != session and (not latest or latest[0]["day"] < session):
+            ran_for = session
+            try:
+                await market_year.run()
+            except Exception as e:
+                print(f"Market Year pipeline failed: {type(e).__name__}: {e}")
         if RUN_EVEN_WHEN_MARKET_IS_CLOSED or is_market_open():
             cycle_id = f"cycle_{datetime.now(timezone.utc):%Y%m%dT%H%M%SZ}"
             await asyncio.gather(*[trader.run(cycle_id) for trader in traders])

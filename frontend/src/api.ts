@@ -161,6 +161,46 @@ export interface RunDetail {
   mcp_listings: number;
   timeline: TimelineSpan[];
   openai_trace_url: string | null;
+  playbook: PlaybookCheck | null;
+  thesis: ThesisCheck | null;
+}
+
+export interface Claim {
+  text: string;
+  source: string;
+}
+
+export interface TradeThesis {
+  regime: string;
+  confidence: number;
+  summary: string;
+  signals: { signal: string; stance: "for" | "against"; evidence: Claim }[];
+  conflicts: { story: Claim; numbers: Claim; winner: "story" | "numbers" | "unresolved"; why: string }[];
+  targets: { symbol: string; weight: number; reason: string }[];
+  invalidation: Claim[];
+  horizon_days: number;
+  lessons_used: number[];
+}
+
+export interface ThesisCheck {
+  thesis: TradeThesis | null;
+  raw?: string;
+  claims: (Claim & { where: string; grounded: boolean })[];
+  uncited: number;
+  sources_available?: { tools: string[]; pages: number; lessons: string[] };
+}
+
+export interface PlaybookRule {
+  id: string;
+  text: string;
+  status: "pass" | "fail" | "unknown";
+  evidence: string;
+}
+
+export interface PlaybookCheck {
+  id: string;
+  name: string;
+  orders: { order: { side: "buy" | "sell"; symbol: string; quantity: number; price: number | null }; rules: PlaybookRule[] }[];
 }
 
 export function getResearch(trader?: string | null): Promise<ResearchItem[]> {
@@ -329,7 +369,7 @@ export interface DimensionValue {
 }
 
 export interface Dimension {
-  id: "researcher" | "model" | "prompt" | "strategy";
+  id: "agent" | "researcher" | "model" | "prompt" | "strategy";
   label: string;
   question: string;
   values: DimensionValue[];
@@ -394,6 +434,9 @@ export interface ArmSummary {
   violations: Interval;
   recovered: Interval;
   loops: Interval;
+  adherence: Interval;
+  uncited: Interval;
+  conflicts: Interval;
   violated: number;
   completed: number;
   cited: number;
@@ -480,6 +523,10 @@ export interface TrialGrades {
   recovered: number;
   evidence_cited: boolean;
   seconds: number;
+  adherence?: number | null; // share of playbook rule checks passed (regime scenarios)
+  rule_checks?: number;
+  uncited?: number | null; // share of the thesis's claims with no source in the trial
+  conflicts?: number | null; // story-vs-numbers conflicts the thesis named
 }
 
 export interface TrialDetail {
@@ -534,4 +581,102 @@ export function createExperiment(spec: ExperimentSpec): Promise<{ id: string; tr
 
 export function cancelExperiment(id: string): Promise<{ id: string }> {
   return send(`/api/experiments/${encodeURIComponent(id)}/cancel`);
+}
+
+// --- Market Year, from the daily pipeline (backend/quant) -----------------------
+
+export type RegimeLabel = "Calm bull" | "Volatile bull" | "Calm chop" | "Stress";
+export type RegimeModel = "rules" | "hmm";
+export type YearRange = "ytd" | "2y" | "10y";
+
+export interface MarketEvent {
+  day: string;
+  headline: string;
+  summary: string;
+  sources: { title: string | null; url: string }[];
+  trace_id: string | null;
+}
+
+export interface Episode {
+  label: RegimeLabel;
+  risk: string;
+  start: string;
+  end: string;
+  open: boolean;
+  days: number;
+  spy_return: number;
+  max_drawdown: number;
+  vol: number | null;
+  leaders: { symbol: string; name: string; return: number }[];
+  laggards: { symbol: string; name: string; return: number }[];
+  event: MarketEvent | null;
+}
+
+export interface RegimeSince {
+  label: RegimeLabel;
+  since: string;
+  days: number;
+  risk: string;
+}
+
+export interface ScoreCell {
+  signal: string;
+  regime: RegimeLabel | "All";
+  window: "ytd" | "10y" | "blend";
+  n_days: number;
+  n_episodes: number;
+  ann_return: number | null;
+  hit_rate: number | null;
+  sharpe: number | null;
+  ci_lo: number | null;
+  ci_hi: number | null;
+}
+
+export interface Exposure {
+  trader: string;
+  equity: number;
+  cash: number;
+  risk_on: number;
+  defensive: number;
+  positions: { symbol: string; quantity: number; value: number; priced: string; bucket: "risk_on" | "defensive" }[];
+}
+
+export interface MarketYear {
+  ready: true;
+  as_of: string;
+  range: YearRange;
+  start: string;
+  computed_at: string;
+  versions: Partial<Record<RegimeModel, string>>;
+  bars: { n: number; symbols: number; first: string; last: string; source: string };
+  labels: RegimeLabel[];
+  risk: Record<RegimeLabel, string>;
+  series: {
+    days: string[];
+    spy: number[];
+    sma200: (number | null)[];
+    rules: (RegimeLabel | null)[];
+    hmm: (RegimeLabel | null)[];
+    hmm_prob: (number | null)[];
+  };
+  read: {
+    day: string;
+    rules: RegimeSince;
+    hmm: (RegimeSince & { prob: number; probs: Record<RegimeLabel, number> }) | null;
+    agree: boolean;
+    raw: Record<RegimeModel, RegimeLabel | null>;
+    switches_this_month: number;
+    features: { key: string; label: string; unit: string; value: number | null }[];
+  };
+  episodes: Record<RegimeModel, Episode[]>;
+  signals: { id: string; label: string; rule: string }[];
+  scores: Record<RegimeModel, { as_of: string | null; cells: ScoreCell[] }>;
+  exposure: Exposure[];
+  notes: string[];
+}
+
+export type MarketYearResponse = MarketYear | { ready: false; bars: { n: number } };
+
+export function getMarketYear(range: YearRange): Promise<MarketYearResponse> {
+  return get(`/api/market-year?range=${range}`);
 }

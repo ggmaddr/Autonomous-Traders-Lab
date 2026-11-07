@@ -10,6 +10,7 @@ import os
 import re
 from datetime import datetime
 
+from . import playbooks
 from .database import read_run, read_runs, read_researcher_trace_ids, read_spans, read_tool_spans
 
 RESEARCHER = "Researcher"
@@ -240,7 +241,97 @@ def run_detail(trace_id: str) -> dict | None:
         "mcp_listings": sum(1 for s in spans if _data(s).get("type") == "mcp_tools"),
         "timeline": timeline,
         "openai_trace_url": f"https://platform.openai.com/traces/trace?trace_id={trace_id}" if key else None,
+        "playbook": playbook_check(run, functions),
+        "thesis": thesis(spans, kids, researcher_ids),
     }
+
+
+LESSON_REF = re.compile(r"Lesson (\d+)")
+
+
+def _norm(url: str) -> str:
+    return url.rstrip("/").split("#")[0].lower()
+
+
+def thesis(spans: list[dict], kids: dict, researcher_ids: set[str]) -> dict | None:
+    """The Synthesizer's TradeThesis, with each claim checked against what the run
+    actually had: a tool it called, a page the Researcher saw, or a lesson it recalled.
+    A claim with no such source is flagged (groundedness, plan §4.4.3)."""
+    synth = [s for s in spans if _data(s).get("type") == "function" and _data(s).get("name") == "Synthesizer"]
+    if not synth:
+        return None
+    value = playbooks.parse_json(tool_text(_data(synth[-1]).get("output")))
+    if not value:
+        return {"thesis": None, "raw": tool_text(_data(synth[-1]).get("output"))[:PREVIEW], "claims": [], "uncited": 0}
+    tools = {_data(s).get("name") for s in spans if _data(s).get("type") == "function"} - {"Synthesizer", RESEARCHER}
+    research_spans = [d for rid in researcher_ids for d in _descendants(rid, kids)]
+    urls = {_norm(x["url"]) for x in _sources(research_spans)}
+    answers = " ".join(tool_text(_data(s).get("output")) for s in spans if s["id"] in researcher_ids)
+    urls |= {_norm(u) for u in URL.findall(answers)}
+    lessons = set(LESSON_REF.findall(answers))
+
+    def grounded(source: str) -> bool:
+        source = (source or "").strip()
+        if source.startswith("research:"):
+            return _norm(source.split(":", 1)[1].strip()) in urls
+        if source.startswith("lesson:"):
+            return source.split(":", 1)[1].strip() in lessons
+        return source in tools
+
+    claims = []
+    for i, sig in enumerate(value.get("signals") or []):
+        claims.append({"where": f"signal {sig.get('signal')} ({sig.get('stance')})", **(sig.get("evidence") or {})})
+    for c in value.get("conflicts") or []:
+        claims.append({"where": "conflict: story", **(c.get("story") or {})})
+        claims.append({"where": "conflict: numbers", **(c.get("numbers") or {})})
+    for c in value.get("invalidation") or []:
+        claims.append({"where": "invalidation", **c})
+    for c in claims:
+        c["grounded"] = grounded(c.get("source", ""))
+    return {"thesis": value, "claims": claims, "uncited": sum(not c["grounded"] for c in claims),
+            "sources_available": {"tools": sorted(t for t in tools if t), "pages": len(urls), "lessons": sorted(lessons)}}
+
+
+QUANT_TOOLS = {"regime_now", "regime_history", "signal_scoreboard", "signal_scan", "portfolio_risk", "size_positions",
+               "quality_screen", "owner_earnings_dcf", "macro_dashboard", "Synthesizer"}
+
+
+def quant_seen(functions: list[dict]) -> dict[str, list[dict]]:
+    """The Quant's and the Synthesizer's results in a run, parsed, by tool name."""
+    seen: dict[str, list[dict]] = {}
+    for s in functions:
+        d = _data(s)
+        if d.get("name") in QUANT_TOOLS and (v := playbooks.parse_json(tool_text(d.get("output")))):
+            seen.setdefault(d["name"], []).append(v)
+    return seen
+
+
+def _book(raw: str | None) -> dict:
+    a = _args(raw)
+    return {"holdings": a.get("holdings") or {}, "cash": a.get("balance"), "equity": a.get("total_portfolio_value"),
+            "transactions": a.get("transactions") or []}
+
+
+def playbook_check(run: dict | None, functions: list[dict]) -> dict | None:
+    """Each filled order of a playbook run against its rules, from the Quant results the
+    run saw (plan §4.4). None for traders without a playbook or runs before it."""
+    pb = playbooks.playbook_of((run or {}).get("trader"))
+    if not pb or pb["id"] not in ((run or {}).get("strategy") or ""):
+        return None
+    seen = quant_seen(functions)
+    before, after = _book(run.get("account_before")), _book(run.get("account_after"))
+    fills = [t for t in after["transactions"] if t.get("trace_id") == run["trace_id"]]
+    orders = []
+    for s in functions:
+        d = _data(s)
+        if d.get("name") not in ORDER_TOOLS or s.get("error") or not tool_text(d.get("output")).startswith("Completed"):
+            continue
+        a = _args(d.get("input"))
+        sym = str(a.get("symbol", "")).upper()
+        fill = next((t for t in fills if t["symbol"] == sym), None)
+        orders.append({"side": "buy" if d["name"] == "buy_shares" else "sell", "symbol": sym, "quantity": a.get("quantity"),
+                       "rationale": a.get("rationale"), "price": fill["price"] if fill else None})
+    return {"id": pb["id"], "name": pb["name"], "orders": playbooks.check(run["trader"], orders, seen, before, after)}
 
 
 def memory_reads(trader: str) -> list[dict]:

@@ -1,4 +1,5 @@
 from .accounts import Account
+from .playbooks import GEORGE, JIM, WARREN
 
 warren_strategy = """
 You are Warren, and you are named in homage to your role model, Warren Buffett.
@@ -40,10 +41,13 @@ You focus your trading on crypto ETFs.
 
 
 def reset_traders():
-    Account.get("Warren").reset(warren_strategy)
-    Account.get("George").reset(george_strategy)
+    # Warren and George trade fixed playbooks (plan §4.4); the persona texts above stay
+    # for the Lab's persona arm (E14).
+    Account.get("Warren").reset(WARREN["text"])
+    Account.get("George").reset(GEORGE["text"])
     Account.get("Ray").reset(ray_strategy)
     Account.get("Cathie").reset(cathie_strategy)
+    Account.get("Jim").reset(JIM["text"])
 
 
 if __name__ == "__main__":

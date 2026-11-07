@@ -2,7 +2,7 @@ from pydantic import BaseModel
 import json
 from dotenv import load_dotenv
 from datetime import datetime
-from .market import get_share_price
+from .market import get_share_price, quote
 from .database import write_account, read_account, write_log
 
 load_dotenv(override=True)
@@ -24,6 +24,18 @@ class Transaction(BaseModel):
     
     def __repr__(self):
         return f"{abs(self.quantity)} shares of {self.symbol} at {self.price} each."
+
+
+def fill_price(symbol: str) -> float:
+    """The price to fill at, or a ValueError the agent can read when there is none:
+    an unknown ticker or a data outage rejects the order (D1, D3)."""
+    try:
+        price = get_share_price(symbol)
+    except Exception as e:
+        raise ValueError(f"No price for {symbol}: unknown ticker or market data unavailable. Order not placed.") from e
+    if price <= 0:
+        raise ValueError(f"Unrecognized symbol {symbol}")
+    return price
 
 
 class Account(BaseModel):
@@ -79,14 +91,12 @@ class Account(BaseModel):
 
     def buy_shares(self, symbol: str, quantity: int, rationale: str, trace_id: str | None = None) -> str:
         """ Buy shares of a stock if sufficient funds are available. """
-        price = get_share_price(symbol)
+        price = fill_price(symbol)
         buy_price = price * (1 + SPREAD)
         total_cost = buy_price * quantity
-        
+
         if total_cost > self.balance:
             raise ValueError("Insufficient funds to buy shares.")
-        elif price==0:
-            raise ValueError(f"Unrecognized symbol {symbol}")
         
         # Update holdings
         self.holdings[symbol] = self.holdings.get(symbol, 0) + quantity
@@ -106,7 +116,7 @@ class Account(BaseModel):
         if self.holdings.get(symbol, 0) < quantity:
             raise ValueError(f"Cannot sell {quantity} shares of {symbol}. Not enough shares held.")
         
-        price = get_share_price(symbol)
+        price = fill_price(symbol)
         sell_price = price * (1 - SPREAD)
         total_proceeds = sell_price * quantity
         
@@ -131,8 +141,16 @@ class Account(BaseModel):
         """ Calculate the total value of the user's portfolio. """
         total_value = self.balance
         for symbol, quantity in self.holdings.items():
-            total_value += get_share_price(symbol) * quantity
+            total_value += self.mark_price(symbol) * quantity
         return total_value
+
+    def mark_price(self, symbol: str) -> float:
+        """A holding's value per share: the live quote, or the last price this account
+        traded it at when there is none. Never a simulated stand-in (D1)."""
+        price = quote(symbol)
+        if price is None:
+            price = next(t.price for t in reversed(self.transactions) if t.symbol == symbol)
+        return price
 
     def calculate_profit_loss(self, portfolio_value: float):
         """ Calculate profit or loss from the initial spend. """

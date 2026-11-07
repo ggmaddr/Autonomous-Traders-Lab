@@ -18,6 +18,7 @@ import { Experiments } from "./views/Experiments";
 import { Coming } from "./views/Coming";
 import { Loading } from "./components/bits";
 import { Health } from "./views/Health";
+import { MarketYear } from "./views/MarketYear";
 import { NAV } from "./nav";
 
 // The memory graph brings Cytoscape; only its own view loads it.
@@ -50,6 +51,7 @@ createRoot(document.getElementById("root")!).render(
               {coming.map((item) => (
                 <Route key={item.path} path={item.path.slice(1)} element={<Coming item={item} />} />
               ))}
+              <Route path="market-year" element={<MarketYear />} />
               <Route path="experiments" element={<Experiments />} />
               <Route path="health" element={<Health />} />
               <Route path="*" element={<Navigate to="/" replace />} />

@@ -7,7 +7,13 @@ from agents import Agent, Tool, Runner, trace
 from dotenv import load_dotenv
 import json
 from local_llm import local_model, MODEL_NAME
+from . import jim
+from .accounts import Account
+from .database import read_spans
+from .playbooks import playbook_of
+from .runs import _data, tool_text
 from .templates import (
+    playbook_trader_instructions,
     researcher_instructions,
     trader_instructions,
     trade_message,
@@ -50,14 +56,23 @@ class Trader:
         self.do_trade = True
         self.trace_id = None
         self.cycle_id = None
+        self.playbook = playbook_of(name)
+        self.jim_mode: str | None = None  # Jim's cycle: thesis-first, thesis-regime, thesis-weekly or check
 
     async def create_agent(self, trader_mcp_servers, researcher_mcp_servers) -> Agent:
-        tool = await get_researcher_tool(researcher_mcp_servers, self.model_name)
+        tools = [await get_researcher_tool(researcher_mcp_servers, self.model_name)]
+        if self.name == jim.NAME:
+            tools.append(jim.synthesizer_tool(get_model(self.model_name)))
+        instructions = (
+            playbook_trader_instructions(self.name, synthesizer=self.name == jim.NAME)
+            if self.playbook
+            else trader_instructions(self.name)
+        )
         self.agent = Agent(
             name=self.name,
-            instructions=trader_instructions(self.name),
+            instructions=instructions,
             model=get_model(self.model_name),
-            tools=[tool],
+            tools=tools,
             mcp_servers=trader_mcp_servers,
         )
         return self.agent
@@ -70,14 +85,23 @@ class Trader:
 
     async def run_agent(self, trader_mcp_servers, researcher_mcp_servers):
         self.agent = await self.create_agent(trader_mcp_servers, researcher_mcp_servers)
+        if self.playbook:
+            ensure_playbook(self.name, self.playbook)
         account = await self.get_account_report()
         strategy = await read_strategy_resource(self.name)
         start_run(self.trace_id, self.cycle_id, self.name, self.mode, strategy, account, _now())
-        message = (
-            trade_message(self.name, strategy, account)
-            if self.do_trade
-            else rebalance_message(self.name, strategy, account)
-        )
+        if self.jim_mode:
+            message = (
+                jim.check_message(strategy, account)
+                if self.jim_mode == "check"
+                else jim.thesis_message(strategy, account, self.jim_mode)
+            )
+        else:
+            message = (
+                trade_message(self.name, strategy, account)
+                if self.do_trade
+                else rebalance_message(self.name, strategy, account, playbook=bool(self.playbook))
+            )
         result = await Runner.run(self.agent, message, max_turns=MAX_TURNS)
         return str(result.final_output)
 
@@ -95,18 +119,23 @@ class Trader:
 
     @property
     def mode(self) -> str:
-        return "trade" if self.do_trade else "rebalance"
+        return self.jim_mode or ("trade" if self.do_trade else "rebalance")
 
     async def run_with_trace(self):
-        trace_name = f"{self.name}-trading" if self.do_trade else f"{self.name}-rebalancing"
+        if self.jim_mode:
+            trace_name = f"{self.name}-{self.jim_mode}"
+        else:
+            trace_name = f"{self.name}-trading" if self.do_trade else f"{self.name}-rebalancing"
         metadata = {"trader": self.name, "mode": self.mode, "cycle_id": self.cycle_id, "model": self.model_name}
-        # group_id puts the four traders of one cycle together in the OpenAI trace viewer.
+        # group_id puts the traders of one cycle together in the OpenAI trace viewer.
         with trace(trace_name, trace_id=self.trace_id, group_id=self.cycle_id, metadata=metadata):
             return await self.run_with_mcp_servers()
 
     async def run(self, cycle_id: str | None = None):
         self.cycle_id = cycle_id
         self.trace_id = make_trace_id(f"{self.name.lower()}")
+        if self.name == jim.NAME:
+            self.jim_mode = jim.cycle_mode()
         output, error = None, None
         try:
             output = await self.run_with_trace()
@@ -118,7 +147,28 @@ class Trader:
         except Exception:
             after = None
         end_run(self.trace_id, after, output, error, _now())
+        if self.jim_mode and self.jim_mode != "check":
+            self.remember_thesis()
         self.do_trade = not self.do_trade
+
+    def remember_thesis(self):
+        """Jim's thesis from this run's Synthesizer span, into his memory graph."""
+        for span in reversed(read_spans([self.trace_id])):
+            d = _data(span)
+            if d.get("type") == "function" and d.get("name") == "Synthesizer":
+                try:
+                    jim.remember_thesis(json.loads(tool_text(d.get("output"))), self.trace_id)
+                except (ValueError, KeyError, TypeError) as e:
+                    print(f"Jim's thesis not stored: {type(e).__name__}: {e}")
+                return
+
+
+def ensure_playbook(name: str, playbook: dict):
+    """A playbook trader always runs on its playbook's current text. A new version
+    replaces the old one here, and the run records which text it ran under."""
+    account = Account.get(name)
+    if account.strategy.strip() != playbook["text"].strip():
+        account.change_strategy(playbook["text"])
 
 
 def _now() -> str:

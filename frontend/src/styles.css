@@ -32,6 +32,16 @@
   --t-george: #b88a00;
   --t-ray: #0a46e8;
   --t-cathie: #e0137d;
+  --t-jim: #00798c;
+
+  /* Regimes are data: pale bands under the SPY line and full strips under it. The
+     bulls take the positive hue (volatile also hatched, so it never rests on colour
+     alone), chop is stone, stress the negative hue. */
+  --rg-calm-bull: #b9dcc4;
+  --rg-volatile-bull: #d7ebdd;
+  --rg-volatile-line: #8cc6a0;
+  --rg-calm-chop: #c8cfcb;
+  --rg-stress: #efbccb;
 
   --radius-card: 6px;
   --radius-control: 4px;
@@ -68,6 +78,12 @@
   --t-george: #ffd23f;
   --t-ray: #5b8cff;
   --t-cathie: #ff5fa2;
+  --t-jim: #22d3c5;
+  --rg-calm-bull: #34461a;
+  --rg-volatile-bull: #232d14;
+  --rg-volatile-line: #4c6420;
+  --rg-calm-chop: #2c3531;
+  --rg-stress: #5a1f2a;
   color-scheme: dark;
 }
 
@@ -752,7 +768,7 @@ button {
 
 .desk {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
 }
 
 .desk-col {
@@ -2338,4 +2354,300 @@ button.rg-cell:not(:disabled) {
     transition: none;
     animation: none;
   }
+}
+
+/* Market Year ---------------------------------------------------------------- */
+
+.my-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.rg-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 18px;
+  margin: 0 0 10px;
+  padding: 0;
+  list-style: none;
+  font-size: var(--fs-small);
+}
+
+.rg-legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.rg-swatch {
+  flex: none;
+  vertical-align: -1px;
+}
+
+.rg-band {
+  opacity: 0.55;
+}
+
+.my-spy {
+  fill: none;
+  stroke: var(--accent-data);
+  stroke-width: 2;
+  stroke-linejoin: round;
+}
+
+.my-sma {
+  fill: none;
+  stroke: var(--muted);
+  stroke-width: 1;
+  stroke-dasharray: 4 4;
+}
+
+.my-strip-pick {
+  stroke: var(--text);
+  stroke-width: 1;
+}
+
+.my-cursor {
+  stroke: var(--muted);
+  stroke-width: 1;
+}
+
+.my-dot {
+  fill: var(--accent-data);
+  stroke: var(--surface);
+  stroke-width: 2;
+}
+
+.my-mark {
+  cursor: pointer;
+  outline: none;
+}
+
+.my-mark circle {
+  fill: var(--surface);
+  stroke: var(--control);
+  stroke-width: 1;
+}
+
+.my-mark text {
+  fill: var(--text);
+  font-family: var(--font-figure);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.my-mark-line {
+  stroke: var(--control);
+  stroke-width: 1;
+  stroke-dasharray: 2 3;
+}
+
+.my-mark:hover circle,
+.my-mark:focus-visible circle,
+.my-mark[data-picked="true"] circle {
+  stroke: var(--text);
+  stroke-width: 1.5;
+}
+
+.my-mark[data-picked="true"] .my-mark-line {
+  stroke: var(--text);
+}
+
+.my-readout {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 18px;
+  min-height: 20px;
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: var(--fs-small);
+}
+
+.my-answer {
+  align-items: center;
+  margin-bottom: 2px;
+}
+
+.my-answer .rg-swatch {
+  width: 18px;
+  height: 14px;
+}
+
+.my-answer-sub {
+  margin: 0 0 16px;
+  font-size: var(--fs-small);
+}
+
+.my-hmm {
+  margin-bottom: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--rule);
+}
+
+.my-hmm p {
+  margin: 0 0 8px;
+}
+
+.my-disagree {
+  color: var(--negative);
+}
+
+.my-probs {
+  height: 10px;
+  overflow: hidden;
+  border-radius: 2px;
+  background: var(--raised);
+}
+
+.my-probs svg {
+  display: block;
+}
+
+.my-probs-key {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 14px;
+  margin-top: 6px !important;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.my-board th[data-now="true"],
+.my-board td[data-now="true"] {
+  box-shadow: inset 0 -1px 0 var(--accent-data);
+}
+
+.my-board thead th[data-now="true"] {
+  color: var(--text);
+}
+
+.my-board tbody th {
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.my-cell {
+  white-space: nowrap;
+}
+
+.my-cell-sharpe {
+  font-weight: 600;
+}
+
+.my-cell-n {
+  margin-left: 6px;
+  color: var(--muted);
+  font-size: 11.5px;
+}
+
+.my-exposure {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.my-exposure li + li {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--rule);
+}
+
+.my-exp-line {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.split-bar.my-def {
+  opacity: 0.4;
+}
+
+.my-holdings {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.my-episodes tbody tr {
+  cursor: pointer;
+}
+
+.my-episodes tbody tr:hover td {
+  background: var(--raised);
+}
+
+.my-episodes tbody tr[aria-selected="true"] td {
+  background: var(--active);
+}
+
+.my-episodes td {
+  vertical-align: top;
+  padding-top: 10px;
+  padding-bottom: 10px;
+}
+
+.my-sectors {
+  font-size: var(--fs-small);
+}
+
+.my-news {
+  min-width: 260px;
+}
+
+.my-news-summary {
+  margin: 6px 0;
+  color: var(--text);
+  font-size: var(--fs-small);
+  line-height: 19px;
+}
+
+.my-sources {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 12px;
+  margin-top: 4px;
+  font-size: 12px;
+}
+
+.my-notes {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--muted);
+  font-size: var(--fs-small);
+  line-height: 20px;
+}
+
+/* Playbook check on Decisions */
+.playbook-rules th {
+  width: 40px;
+  color: var(--muted);
+}
+
+.playbook-rules td {
+  vertical-align: top;
+  padding-top: 8px;
+  padding-bottom: 8px;
+}
+
+/* Jim's thesis on Decisions */
+.thesis-list {
+  margin: 0 0 16px;
+  padding: 0;
+  list-style: none;
+  font-size: var(--fs-small);
+  line-height: 20px;
+}
+
+.thesis-list li + li {
+  margin-top: 8px;
+}
+
+.thesis-list p {
+  margin: 0;
+}
+
+.thesis-grid .table td {
+  vertical-align: top;
 }

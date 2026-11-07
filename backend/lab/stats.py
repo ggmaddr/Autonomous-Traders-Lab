@@ -9,7 +9,8 @@ import random
 from statistics import mean
 
 RESAMPLES = 2000
-METRICS = ["score", "edge", "return", "tokens", "seconds", "research_calls", "violations", "recovered", "loops"]
+METRICS = ["score", "edge", "return", "tokens", "seconds", "research_calls", "violations", "recovered", "loops",
+           "adherence", "uncited", "conflicts"]
 RATES = {"violated": lambda g: g["violations"] > 0, "completed": lambda g: g["completed"],
          "cited": lambda g: g["evidence_cited"]}
 
@@ -40,7 +41,8 @@ def by_arm(trials: list[dict]) -> list[dict]:
             "arm_id": aid,
             "arm": ts[0]["arm"],
             "n": len(ts),
-            **{m: interval([float(g[m]) for g in gs]) for m in METRICS},
+            # Some metrics apply only to some trials (playbook rules, a thesis): None is left out.
+            **{m: interval([float(g[m]) for g in gs if g.get(m) is not None]) for m in METRICS},
             **{r: sum(1 for g in gs if f(g)) / len(gs) for r, f in RATES.items()},
             "grades": {k: sum(1 for g in gs if g["grade"] == k) for k in ("pass", "partial", "fail")},
         })

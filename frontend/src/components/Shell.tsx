@@ -9,13 +9,14 @@ import { useMarket } from "../lib/desk";
 import { useTheme } from "../lib/theme";
 
 export function Mark() {
-  // Four strokes, one per trader, in each trader's colour.
+  // One stroke per trader, in each trader's colour.
   return (
     <svg className="mark" viewBox="0 0 20 20" width="20" height="20" aria-hidden="true">
-      <rect x="1" y="8" width="3" height="11" fill="var(--t-warren)" />
-      <rect x="6" y="4" width="3" height="15" fill="var(--t-george)" />
-      <rect x="11" y="10" width="3" height="9" fill="var(--t-ray)" />
-      <rect x="16" y="1" width="3" height="18" fill="var(--t-cathie)" />
+      <rect x="0.5" y="8" width="3" height="11" fill="var(--t-warren)" />
+      <rect x="4.5" y="4" width="3" height="15" fill="var(--t-george)" />
+      <rect x="8.5" y="10" width="3" height="9" fill="var(--t-ray)" />
+      <rect x="12.5" y="1" width="3" height="18" fill="var(--t-cathie)" />
+      <rect x="16.5" y="6" width="3" height="13" fill="var(--t-jim)" />
     </svg>
   );
 }
@@ -69,7 +70,7 @@ export function Shell() {
             Traders Lab<span className="dot">.</span>
           </span>
         </div>
-        <p className="scope">Paper desk · 4 traders</p>
+        <p className="scope">Paper desk · 5 traders</p>
         <nav aria-label="Views">
           {NAV.map((group) => (
             <div className="nav-group" key={group.label}>

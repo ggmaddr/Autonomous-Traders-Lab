@@ -140,3 +140,31 @@ def write_contradiction(trader: str, later: str, earlier: list[str], note: str):
         conn.executemany(
             "INSERT INTO observations (entity_name, content) VALUES (?, ?)", [(e, note) for e in earlier]
         )
+
+
+def write_graph(trader: str, entities: list[tuple[str, str]], observations: list[tuple[str, str]],
+                relations: list[tuple[str, str, str]]):
+    """Add entities, observations and relations, skipping any already stored, so a writer
+    that runs every day does not pile up copies (plan §4.4.4 Memory bloat)."""
+    path = path_of(trader)
+    path.parent.mkdir(exist_ok=True)
+    with sqlite3.connect(path) as conn:
+        conn.executescript(SCHEMA)
+        conn.executemany("INSERT OR IGNORE INTO entities (name, entity_type) VALUES (?, ?)", entities)
+        for entity, content in observations:
+            if not conn.execute("SELECT 1 FROM observations WHERE entity_name = ? AND content = ?", (entity, content)).fetchone():
+                conn.execute("INSERT INTO observations (entity_name, content) VALUES (?, ?)", (entity, content))
+        for source, target, kind in relations:
+            if not conn.execute("SELECT 1 FROM relations WHERE source = ? AND target = ? AND relation_type = ?",
+                                (source, target, kind)).fetchone():
+                conn.execute("INSERT INTO relations (source, target, relation_type) VALUES (?, ?, ?)", (source, target, kind))
+
+
+def has_observation(trader: str, entity: str, prefix: str) -> bool:
+    path = path_of(trader)
+    if not path.exists():
+        return False
+    with sqlite3.connect(path) as conn:
+        conn.executescript(SCHEMA)
+        return conn.execute("SELECT 1 FROM observations WHERE entity_name = ? AND content LIKE ?",
+                            (entity, prefix.replace("%", "") + "%")).fetchone() is not None

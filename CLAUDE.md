@@ -4,7 +4,7 @@ Guidance for Claude Code when working in this repository.
 
 ## What this project is
 
-Four autonomous AI traders (Warren, George, Ray, Cathie) that research the market, trade stocks and report to a web dashboard. They run on a local Ollama model through the OpenAI Agents SDK, and use MCP servers as their tools.
+Five autonomous AI traders (Warren, George, Ray, Cathie and Jim, the regime quant) that research the market, trade stocks and report to a web dashboard. They run on a local Ollama model through the OpenAI Agents SDK, and use MCP servers as their tools.
 
 It is being upgraded into an **Autonomous Traders Lab**, a lab for building, explaining, stress-testing and comparing AI trading agents, aiming over time at reliable, risk-adjusted profit. The plan is [docs/V2_ARCHITECTURE_PLAN.md](docs/V2_ARCHITECTURE_PLAN.md). Work follows its roadmap (§16), one phase at a time.
 
@@ -20,9 +20,11 @@ uv run uvicorn backend.api:app --port 8000       # API (docs at :8000/docs)
 npm run dev --prefix frontend                    # UI at http://localhost:5173
 uv run -m backend.trading_floor                  # the traders (Ctrl+C to stop)
 uv run -m backend.lab                            # the Experiment Lab worker: runs queued trials
+uv run -m backend.quant                          # Market Year: bars, regimes, scoreboard, news (the floor also runs it daily)
+uv run -m backend.lab.regime_scenarios           # rebuild the Lab's regime scenarios from the bars
 ```
 
-Needs Ollama with `qwen2.5-coder:32b` pulled, and `TAVILY_API_KEY` in `.env`. `MASSIVE_API_KEY` is optional (simulated prices without it).
+Needs Ollama with `qwen2.5-coder:32b` pulled, and `TAVILY_API_KEY` in `.env`. `MASSIVE_API_KEY` is optional (simulated prices without it). The Market Year needs `ALPACA_API_KEY` and `ALPACA_SECRET_KEY` (paper keys; history only) and, for Warren's fundamentals, `SEC_USER_AGENT`.
 
 ## Layout
 
@@ -35,7 +37,11 @@ Needs Ollama with `qwen2.5-coder:32b` pulled, and `TAVILY_API_KEY` in `.env`. `M
 - `backend/tracers.py`: SDK trace processors: `LogTracer` writes the activity log, `SpanStore` saves every SDK trace and span as exported.
 - `backend/runs.py`: reads the saved spans back as research requests, prices looked up, orders tried and run timelines (`/api/research`, `/api/runs`).
 - `backend/review.py`: the post-cycle review. Traced decisions 3 and 10 days old get their return vs SPY and one local-model prompt turns them into lessons, saved to `lessons` and the trader's memory graph. Run by hand with `uv run -m backend.review`.
-- `backend/lab/`: the Experiment Lab (Phase 4). `scenarios/*.yaml` are frozen decision points (synthetic tickers, scripted price path, research documents, pass/partial rules); `scenarios.py` grades orders and computes the baselines; `env.py` is a trial's sandbox account and frozen research as SDK function tools; `prompts.py` holds the original (D11) and fixed prompts; `arms.py` the dimensions an experiment varies; `runner.py` runs one trial as an SDK trace (`trace_lab0…`, grouped by experiment); `grading.py` and `stats.py` grade from the ledger and spans and summarise with bootstrap intervals; `routes.py` is the API (`/api/lab/catalog`, `/api/experiments`, the only writes are queue and cancel); `store.py` the `experiments`, `trials` and `lab_worker` tables.
+- `backend/lab/`: the Experiment Lab (Phase 4). `scenarios/*.yaml` are frozen decision points (synthetic tickers, scripted price path, research documents, pass/partial rules); `scenarios.py` grades orders and computes the baselines; `env.py` is a trial's sandbox account and frozen research as SDK function tools; `prompts.py` holds the original (D11) and fixed prompts; `arms.py` the dimensions an experiment varies; `regime_scenarios.py` builds the real-bar `regime-*.yaml` scenarios for E12–E14 (agent dimension: trader, Jim, Jim without Synthesizer; playbook strategies); `runner.py` runs one trial as an SDK trace (`trace_lab0…`, grouped by experiment); `grading.py` and `stats.py` grade from the ledger and spans and summarise with bootstrap intervals; `routes.py` is the API (`/api/lab/catalog`, `/api/experiments`, the only writes are queue and cancel); `store.py` the `experiments`, `trials` and `lab_worker` tables.
+- `backend/quant/`: the Market Year (Phase 5). `bars.py` loads adjusted daily bars from Alpaca (SIP, 2016 on) into `bars`; `features.py`, `regimes.py` (rules and a forward-filtered HMM), `signals.py` (the eight-signal scoreboard) compute everything as of a day; `events.py` has the Researcher explain each regime turn (`market_events`); `fundamentals.py` reads SEC EDGAR 10-K figures; `tools.py` is the Quant as plain functions of an as-of day; `year_graph.py` writes Jim's memory; `pipeline.py` runs it all; `routes.py` is `/api/market-year`.
+- `backend/quant_server.py`: the Quant MCP server (no LLM), bound to an account and a day by its environment. Warren, George and Jim get it.
+- `backend/playbooks.py`: Warren's, George's and Jim's fixed playbooks (strategy text plus rules) and the per-order playbook check shown on Decisions; `change_strategy` is filtered out for them.
+- `backend/jim.py`: Jim, the fifth trader: the Synthesizer sub-agent and its `TradeThesis`, the cycle gate (thesis on a regime change or weekly, otherwise a brake check), and his thesis memory. Groundedness of the thesis is computed in `runs.py`.
 - `backend/memory.py`: reads and writes `memory/<Name>.db` in the mcp-memory-libsql schema (`/api/memory`).
 - `backend/database.py`: SQLite (`accounts.db`): `accounts` (JSON per account), `logs`, `traces` and `spans` (SDK exports as-is), `runs` (strategy and portfolio before/after per trader run), `lessons` (one row per lesson, with its fills, return, SPY return, recalls and contradiction).
 - `backend/api.py`: read-only FastAPI for the frontend.

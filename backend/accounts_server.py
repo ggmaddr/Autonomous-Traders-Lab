@@ -1,6 +1,7 @@
 import os
 from mcp.server.fastmcp import FastMCP
 from .accounts import Account
+from .playbooks import PLAYBOOKS
 
 mcp = FastMCP("accounts_server")
 
@@ -56,6 +57,8 @@ async def change_strategy(strategy: str) -> str:
     Args:
         strategy: The new strategy for the account
     """
+    if ACCOUNT and ACCOUNT.capitalize() in PLAYBOOKS:
+        return "Your strategy is a fixed playbook and cannot be changed."
     return account().change_strategy(strategy)
 
 @mcp.resource("accounts://accounts_server/{name}")

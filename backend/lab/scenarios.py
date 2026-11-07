@@ -37,6 +37,8 @@ class Scenario:
     evidence_terms: list[str]
     grading: dict[str, list[dict]]
     digest: str = field(default="")
+    # Regime scenarios (regime_scenarios.py): weights each rule baseline holds from cash.
+    baseline_weights: dict[str, dict[str, float]] = field(default_factory=dict)
 
     @property
     def symbols(self) -> list[str]:
@@ -82,7 +84,7 @@ def _load(path: Path) -> Scenario:
         question=raw["question"], task=raw["task"], as_of=raw["as_of"], horizon_days=raw["horizon_days"],
         universe=raw["universe"], cash=float(portfolio.get("cash", 0)), positions=portfolio.get("positions") or {},
         documents=raw.get("documents") or [], evidence_terms=raw.get("evidence_terms") or [],
-        grading=raw["grading"],
+        grading=raw["grading"], baseline_weights=raw.get("baseline_weights") or {},
     )
 
 
@@ -129,6 +131,8 @@ def _matches(rule: dict, orders: list[dict], s: Scenario) -> bool:
         checks.append(not any(o["symbol"] in rule["not_attempted"] for o in orders))
     if rule.get("no_violations"):
         checks.append(not any(o["status"] == "rejected" for o in orders))
+    if "min_return_vs" in rule:
+        checks.append(outcome(s, orders)["return"] >= rule_return(s, rule["min_return_vs"]) + rule.get("margin", 0) - 1e-12)
     return all(checks)
 
 
@@ -208,6 +212,26 @@ def _random_orders(s: Scenario, rng: random.Random) -> list[dict]:
     return []
 
 
+def rule_orders(s: Scenario, rule: str) -> list[dict]:
+    """A weight baseline's orders: sell everything, then buy its weights."""
+    sold = _liquidate(s)
+    cash_after = s.cash + sum(o["quantity"] * o["price"] for o in sold)
+    return sold + _buy_weights(s, cash_after, s.baseline_weights[rule])
+
+
+def rule_return(s: Scenario, rule: str) -> float:
+    cash, positions = apply(s, rule_orders(s, rule))
+    return s.equity_end(cash, positions) / s.equity_start() - 1
+
+
+RULE_TEXT = {
+    "mechanical": ("Mechanical regime rule", "The Quant's regime and scoreboard with no LLM: the two best signals in this regime, sized to 12% volatility"),
+    "trend_200d": ("200-day rule", "SPY above its 200-day average, else short Treasuries (Faber)"),
+    "sixty_forty": ("60/40", "60% SPY, 40% 7-10 year Treasuries"),
+    "vol_target": ("Vol-targeted SPY", "SPY scaled to 12% volatility, the rest in short Treasuries"),
+}
+
+
 def baselines(s: Scenario) -> list[dict]:
     """What simple rules make on the same frozen path, with their grade where the
     rule set applies. The random agent is seeded by the scenario, so it repeats."""
@@ -220,6 +244,9 @@ def baselines(s: Scenario) -> list[dict]:
         "equal": ("Equal weight", "Sell everything, split across the market",
                   sold + _buy_weights(s, cash_after, {sym: 1 / len(s.symbols) for sym in s.symbols})),
     }
+    for key, weights in s.baseline_weights.items():
+        label, detail = RULE_TEXT.get(key, (key, ""))
+        rules[key] = (label, f"{detail}: " + ", ".join(f"{sym} {w:.0%}" for sym, w in weights.items()), rule_orders(s, key))
     out = []
     for key, (label, detail, orders) in rules.items():
         cash, positions = apply(s, orders)

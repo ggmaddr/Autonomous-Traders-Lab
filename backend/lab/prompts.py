@@ -101,3 +101,42 @@ def prompt_hash(variant: str) -> str:
     import inspect
     fn = original if variant == "original" else fixed
     return hashlib.sha256(inspect.getsource(fn).encode()).hexdigest()[:12]
+
+
+# --- Jim in the Lab (E12, E13) ------------------------------------------------------
+
+def jim(strategy: str, account: str, as_of: str, research: str | None, synthesizer: bool,
+        has_researcher: bool) -> tuple[str, str]:
+    """Jim's full thesis cycle on a frozen day. Without the Synthesizer (E13's other arm)
+    he weighs the research against the numbers himself."""
+    tools = ["regime_now, signal_scoreboard, signal_scan, portfolio_risk and size_positions: the Quant, which "
+             "computes every number; quote it, do no arithmetic yourself",
+             "get_balance and get_holdings for your account",
+             "buy_shares and sell_shares, which always act on your own account"]
+    if has_researcher:
+        tools.insert(1, "Researcher, for what the numbers cannot tell you: the news behind the regime and what is scheduled")
+    if synthesizer:
+        tools.insert(2, "Synthesizer, which weighs the Quant's numbers against the research and returns a trade thesis with "
+                        "target weights; pass it the Quant outputs and the research verbatim")
+    listed = "\n".join(f"- {t}" for t in tools)
+    instructions = f"""You are Jim, a regime quant trading your own account by a fixed playbook.
+Your tools are exactly these:
+{listed}
+Name the playbook rule you act on in every order rationale. When you are done, reply with a 2-3 sentence appraisal."""
+    weigh = ("Call the Synthesizer with the outputs above, verbatim. It returns your thesis and target weights."
+             if synthesizer else
+             "Weigh the story against the numbers yourself: name any conflict and which side wins, then choose target "
+             "weights (at most 25% per ETF, 10% per stock, the rest cash).")
+    message = f"""Run your full thesis cycle:
+1. Call regime_now.
+2. Call signal_scoreboard for today's regime, then signal_scan for the two or three signals with the best blended Sharpe.
+3. {"Ask the Researcher what news explains the latest regime turn." if has_researcher else "Read the research below, if any."}
+4. {weigh}
+5. Call size_positions with the target weights.
+6. Place only the orders size_positions marks trade=true, using its share deltas.
+Your playbook:
+{strategy}
+Your account:
+{account}
+{_research_block(research)}The time is {as_of}."""
+    return instructions, message

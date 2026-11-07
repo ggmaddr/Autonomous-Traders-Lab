@@ -6,6 +6,7 @@ k times each.
 import requests
 
 from local_llm import MODEL_NAME, OLLAMA_BASE_URL
+from ..playbooks import GEORGE, JIM, WARREN
 from ..reset import cathie_strategy, george_strategy, ray_strategy, warren_strategy
 
 STRATEGIES = {
@@ -13,9 +14,26 @@ STRATEGIES = {
     "macro": ("George", "Macro, contrarian", george_strategy),
     "risk_parity": ("Ray", "Risk parity, systematic", ray_strategy),
     "thematic": ("Cathie", "Disruptive growth", cathie_strategy),
+    "value_playbook": ("Warren", "Value playbook", WARREN["text"]),
+    "macro_playbook": ("George", "Macro playbook", GEORGE["text"]),
 }
+# Which playbook's rules an arm's orders are checked against (E14): a persona and its
+# playbook are held to the same rules, so the difference is the text alone.
+RULES_OF = {"value": WARREN, "value_playbook": WARREN, "macro": GEORGE, "macro_playbook": GEORGE}
+JIM_STRATEGY = JIM["text"]
 
 STATIC = [
+    {
+        "id": "agent",
+        "label": "Agent",
+        "question": "Does an LLM add anything to a regime strategy, and does a Synthesizer help? (E12, E13)",
+        "values": [
+            {"id": "trader", "label": "Trader", "detail": "One trader agent on the chosen strategy, as on the live floor"},
+            {"id": "jim", "label": "Jim", "detail": "The regime quant: Quant tools, the Researcher and a Synthesizer that writes a TradeThesis. Regime scenarios only"},
+            {"id": "jim_raw", "label": "Jim, no Synthesizer", "detail": "Jim reading the research and the Quant's numbers himself. Regime scenarios only"},
+        ],
+        "default": ["trader"],
+    },
     {
         "id": "researcher",
         "label": "Researcher",
@@ -41,7 +59,7 @@ STATIC = [
     {
         "id": "strategy",
         "label": "Strategy",
-        "question": "Do the personas decide differently on the same evidence? (E3)",
+        "question": "Do the personas decide differently on the same evidence, and do playbooks beat persona text? (E3, E14)",
         "values": [{"id": k, "label": v[1], "detail": f"{v[0]}'s strategy text"} for k, v in STRATEGIES.items()],
         "default": ["value"],
     },
@@ -74,28 +92,38 @@ def dimensions() -> list[dict]:
         "values": [{"id": m, "label": m, "detail": "Live traders' model" if m == MODEL_NAME else "Pulled in Ollama"} for m in models()],
         "default": [MODEL_NAME],
     }
-    return [STATIC[0], model_dim, *STATIC[1:]]
+    return [STATIC[0], STATIC[1], model_dim, *STATIC[2:]]
 
 
-DIMENSION_IDS = ["researcher", "model", "prompt", "strategy"]
+DIMENSION_IDS = ["agent", "researcher", "model", "prompt", "strategy"]
+JIM_AGENTS = {"jim", "jim_raw"}
 
 
 def arm_id(arm: dict) -> str:
-    return "|".join(f"{d}={arm[d]}" for d in DIMENSION_IDS)
+    return "|".join(f"{d}={arm.get(d, 'trader' if d == 'agent' else '')}" for d in DIMENSION_IDS)
 
 
 def combinations(chosen: dict[str, list[str]]) -> list[dict]:
+    """Every combination of the chosen values. Jim trades his own playbook, so his arms
+    take no strategy value and are not repeated per strategy."""
     arms = [{}]
     for d in DIMENSION_IDS:
-        arms = [{**a, d: v} for a in arms for v in chosen[d]]
-    return arms
+        arms = [{**a, d: v} for a in arms for v in (chosen.get(d) or (["trader"] if d == "agent" else []))]
+    out, seen = [], set()
+    for a in arms:
+        if a["agent"] in JIM_AGENTS:
+            a = {**a, "strategy": "jim", "prompt": "fixed"}
+        if arm_id(a) not in seen:
+            seen.add(arm_id(a))
+            out.append(a)
+    return out
 
 
 def validate(chosen: dict[str, list[str]]) -> str | None:
     """None if every dimension has at least one known value."""
     known = {d["id"]: {v["id"] for v in d["values"]} for d in dimensions()}
     for d in DIMENSION_IDS:
-        values = chosen.get(d) or []
+        values = chosen.get(d) or (["trader"] if d == "agent" else [])
         if not values:
             return f"Choose at least one {d}"
         unknown = set(values) - known[d]

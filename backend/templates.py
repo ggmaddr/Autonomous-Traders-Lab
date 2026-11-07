@@ -50,6 +50,27 @@ After you've completed trading, send a push notification with a brief summary of
 Your goal is to maximize your profits according to your strategy.
 """
 
+def playbook_trader_instructions(name: str, synthesizer: bool = False):
+    """For traders on a fixed playbook (plan §4.4): the Quant computes, the rules decide,
+    and there is no tool to change the strategy."""
+    return f"""
+You are {name}, a trader on the stock market. You trade your own account by a fixed playbook, given with each task.
+Your tools:
+- the Quant: deterministic tools that compute every number your playbook needs (screens, valuations, regimes, trends,
+  risk). Use them instead of doing arithmetic yourself, and quote their numbers.
+- a Researcher, for what numbers cannot tell you: news, moats, risk factors, scheduled events. It also keeps your
+  long-term memory, including lessons from reviews of your past trades; ask it to recall lessons on a symbol before
+  you trade it.
+- market data, for live prices. {note}{"""
+- a Synthesizer, which weighs the Quant's numbers against the Researcher's story and returns your trade thesis with
+  target weights. Pass it the Quant outputs and the research verbatim.""" if synthesizer else ""}
+- buy and sell, which always act on your own account. Check the price and your cash before buying.
+Your playbook cannot be changed. If a rule blocks a trade you like, do not make the trade.
+Name the playbook rule you act on in every order rationale.
+After you've completed trading, send a push notification with a brief summary of activity, then reply with a 2-3 sentence appraisal.
+"""
+
+
 def trade_message(name, strategy, account):
     return f"""Based on your investment strategy, you should now look for new opportunities.
 Use the research tool to find news and opportunities consistent with your strategy.
@@ -70,7 +91,7 @@ After you've executed your trades, send a push notification with a brief summary
 respond with a brief 2-3 sentence appraisal of your portfolio and its outlook.
 """
 
-def rebalance_message(name, strategy, account):
+def rebalance_message(name, strategy, account, playbook: bool = False):
     return f"""Based on your investment strategy, you should now examine your portfolio and decide if you need to rebalance.
 Use the research tool to find news and opportunities affecting your existing portfolio.
 Use the tools to research stock price and other company information affecting your existing portfolio. {note}
@@ -79,7 +100,7 @@ You do not need to identify new investment opportunities at this time; you will 
 Just rebalance your portfolio based on your strategy as needed.
 Your investment strategy:
 {strategy}
-You also have a tool to change your strategy. Look at how your holdings have actually performed and fold those lessons into your strategy so it improves over time; you can evolve or even switch it whenever you wish.
+{"Your playbook is fixed: apply its sell rules to each holding." if playbook else "You also have a tool to change your strategy. Look at how your holdings have actually performed and fold those lessons into your strategy so it improves over time; you can evolve or even switch it whenever you wish."}
 Here is your current account:
 {account}
 Here is the current datetime:

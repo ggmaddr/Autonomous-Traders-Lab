@@ -17,6 +17,7 @@ from backend.accounts import Account
 from backend.database import read_lessons, read_log
 from backend.trading_floor import names, lastnames, short_model_names
 from backend.lab.routes import router as lab_router
+from backend.quant.routes import router as market_year_router
 
 # Colour for each log line type, so the frontend can draw the activity panel.
 LOG_COLORS = {
@@ -37,6 +38,7 @@ roster_by_name = {trader["name"].lower(): trader for trader in roster}
 
 app = FastAPI(title="Trading Floor")
 app.include_router(lab_router)
+app.include_router(market_year_router)
 
 
 def average_cost(account: Account, symbol: str) -> float:
@@ -50,7 +52,7 @@ def holdings_detail(account: Account) -> list[dict]:
     """Current holdings enriched with price, market value and unrealised profit."""
     details = []
     for symbol, quantity in account.holdings.items():
-        price = market.get_share_price(symbol)
+        price = account.mark_price(symbol)
         cost = average_cost(account, symbol)
         details.append(
             {
