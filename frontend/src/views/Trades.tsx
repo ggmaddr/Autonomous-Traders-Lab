@@ -455,7 +455,7 @@ function payoff(r: Record_): number | null {
 
 /** Unrealized return as a tile shade: red below, stone flat, green to the signal colour above. */
 function shade(ret: number): { fill: string; text: string } {
-  if (ret > 0.2) return { fill: "var(--accent-data)", text: "var(--ground)" };
+  if (ret > 0.2) return { fill: "var(--positive)", text: "var(--ground)" };
   if (ret > 0.005) return { fill: "color-mix(in srgb, var(--positive) 45%, var(--surface))", text: "var(--text)" };
   if (ret >= -0.005) return { fill: "var(--raised)", text: "var(--text)" };
   if (ret >= -0.03) return { fill: "color-mix(in srgb, var(--negative) 30%, var(--surface))", text: "var(--text)" };

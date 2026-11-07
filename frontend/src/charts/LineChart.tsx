@@ -237,6 +237,9 @@ export function LineChart(props: LineChartProps) {
                       style={{ fill: s.color }}
                     />
                   )}
+                  {bold && (props.focus || props.lead) && (
+                    <path d={d} className="kit-casing" style={{ strokeWidth: (s.width ?? 2.6) + 5 }} />
+                  )}
                   <path
                     d={d}
                     className="kit-line"
@@ -268,7 +271,13 @@ export function LineChart(props: LineChartProps) {
                   onClick={props.onPick ? () => props.onPick!(props.focus === e.s.id ? null : e.s.id) : undefined}
                 >
                   <circle cx={x(props.x[e.i])} cy={e.y} r={3.5} style={{ fill: e.s.color }} />
-                  <text className="kit-end-label" x={m.l + iw + 8} y={spread[k] + 4} style={{ fill: e.s.color }}>
+                  <text
+                    className="kit-end-label"
+                    data-focus={e.s.id === (props.focus ?? props.lead) || undefined}
+                    x={m.l + iw + 8}
+                    y={spread[k] + 4}
+                    style={{ fill: e.s.color }}
+                  >
                     {e.s.label}
                     {e.s.endText && !narrow && <tspan className="kit-end-value"> {e.s.endText}</tspan>}
                   </text>

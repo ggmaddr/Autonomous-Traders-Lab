@@ -6,6 +6,7 @@
 
 import { useSearchParams } from "react-router-dom";
 import { TraderName } from "../components/bits";
+import { archetype } from "./traders";
 
 export const ROSTER = ["warren", "george", "ray", "cathie", "jim"];
 
@@ -38,7 +39,7 @@ export function TraderPills(props: {
         {props.total !== undefined && <span className="num seg-count">{props.total}</span>}
       </button>
       {traders.map((n) => (
-        <button key={n} aria-pressed={props.value === n} onClick={() => props.onChange(n)}>
+        <button key={n} aria-pressed={props.value === n} onClick={() => props.onChange(n)} title={archetype(n)}>
           <TraderName name={n} />
           {props.counts && <span className="num seg-count">{props.counts[n] ?? 0}</span>}
         </button>

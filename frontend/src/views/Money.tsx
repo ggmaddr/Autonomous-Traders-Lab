@@ -513,7 +513,8 @@ function SmallMultiples({ desk, focus }: { desk: Desk; focus: string | null }) {
                 {signedPct(b.change / INITIAL_BALANCE, 1)}
               </span>
             </span>
-            <span className="multiple-arch">{top.length ? top.join(" · ") : archetype(name)}</span>
+            <span className="multiple-arch">{archetype(name)}</span>
+            <span className="multiple-holds num">{top.length ? top.join(" · ") : "all cash"}</span>
             <svg viewBox={`0 0 ${w} ${h + 24}`} width="100%" aria-hidden="true">
               <line x1={0} x2={w} y1={y(0)} y2={y(0)} className="kit-zero" />
               <path d={line} className="kit-line" style={{ stroke: hueVar(name), strokeWidth: 1.6 }} />

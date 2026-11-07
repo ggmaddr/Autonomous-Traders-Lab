@@ -8,8 +8,8 @@
 
 /* Palette "Phosphor". Light: mineral paper (a cool grey-green, never cream) with
    a cobalt signal. Dark: green-black glass-free ground with an acid-lime signal.
-   Each trader keeps one colour per theme; green and red stay for money only,
-   and on dark the lime signal is also the positive colour, so there is one green. */
+   Each trader keeps one colour per theme; green and red stay for money only.
+   On dark, money's green is a neon spring green, distinct from the lime chrome. */
 :root {
   --ground: #e5eae7;
   --surface: #f7f9f8;
@@ -23,16 +23,19 @@
   --faint: #53615a;
   --primary: #07110d;
   --accent-data: #0a46e8;
-  --positive: #0d7a3e;
-  --negative: #b30f3b;
+  --positive: #0b7a3b;
+  --negative: #c81e1e;
   --grid: #dfe5e1;
   --cash: #b7c0bb;
 
-  --t-warren: #e85d04;
-  --t-george: #b88a00;
-  --t-ray: #0a46e8;
-  --t-cathie: #e0137d;
-  --t-jim: #00798c;
+  /* Five hues kept far apart on the wheel and in lightness, and away from the
+     money pair (green 145°, red 0°): orange, dark ochre, sky blue, violet,
+     magenta. Cobalt stays the chrome signal, so no trader wears it. */
+  --t-warren: #d96400;
+  --t-george: #806600;
+  --t-ray: #0081b8;
+  --t-cathie: #c4129a;
+  --t-jim: #8b2fd6;
 
   /* Regimes are data: pale bands under the SPY line and full strips under it. The
      bulls take the positive hue (volatile also hatched, so it never rests on colour
@@ -70,18 +73,20 @@
   --faint: #8a9891;
   --primary: #e8f0ec;
   --accent-data: #c6f135;
-  --positive: #c6f135;
-  --negative: #ff5a6e;
+  /* Money gets its own neon green, apart from the lime chrome signal, so a gain
+     reads at a glance; losses a clean red. */
+  --positive: #2bff88;
+  --negative: #ff4d57;
   --grid: #1c2420;
   --cash: #3a4540;
-  --t-warren: #ff7a1a;
-  --t-george: #ffd23f;
-  --t-ray: #5b8cff;
-  --t-cathie: #ff5fa2;
-  --t-jim: #22d3c5;
-  --rg-calm-bull: #34461a;
-  --rg-volatile-bull: #232d14;
-  --rg-volatile-line: #4c6420;
+  --t-warren: #ff8a1f;
+  --t-george: #f2d04a;
+  --t-ray: #3d9bff;
+  --t-cathie: #ff6ec7;
+  --t-jim: #b48cff;
+  --rg-calm-bull: #123d27;
+  --rg-volatile-bull: #0d2a1b;
+  --rg-volatile-line: #1d6a41;
   --rg-calm-chop: #2c3531;
   --rg-stress: #5a1f2a;
   color-scheme: dark;
@@ -3991,4 +3996,74 @@ button.rg-cell:not(:disabled) {
   min-width: 170px;
   white-space: normal;
   color: var(--text);
+}
+
+/* --- Highlighting -------------------------------------------------------------
+   Emphasis without glows: a highlighter tint behind the money in each finding,
+   a casing in the ground colour under the line in focus so it lifts off the
+   others, and an inset signal bar on whatever row or step is selected. */
+
+.finding .change,
+.finding .money-tone {
+  padding: 0 5px;
+  margin: 0 1px;
+  border-radius: 3px;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+
+.finding [data-tone="good"].change,
+.finding [data-tone="good"].money-tone {
+  background: color-mix(in srgb, var(--positive) 16%, transparent);
+}
+
+.finding [data-tone="bad"].change,
+.finding [data-tone="bad"].money-tone {
+  background: color-mix(in srgb, var(--negative) 16%, transparent);
+}
+
+.finding .strong {
+  font-weight: 700;
+  text-decoration: underline;
+  text-decoration-color: var(--accent-data);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 4px;
+}
+
+.blotter tbody tr[aria-selected="true"] td:first-child,
+.my-episodes tbody tr[aria-selected="true"] td:first-child {
+  box-shadow: inset 3px 0 0 var(--accent-data);
+}
+
+.scrolly-step[aria-current="step"] {
+  box-shadow: inset 3px 0 0 var(--accent-data);
+}
+
+.kit-casing {
+  fill: none;
+  stroke: var(--surface);
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.kit-end-label {
+  paint-order: stroke;
+  stroke: var(--surface);
+  stroke-width: 4px;
+  stroke-linejoin: round;
+}
+
+.kit-end-label[data-focus] {
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.multiple-arch {
+  color: var(--text) !important;
+  font-size: 12px !important;
+}
+
+.multiple-holds {
+  color: var(--muted);
+  font-size: 11px;
 }
