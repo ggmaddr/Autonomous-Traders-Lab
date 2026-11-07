@@ -11,3 +11,4 @@ export * from "./Treemap";
 export * from "./Waterfall";
 export * from "./Heatmap";
 export * from "./Story";
+export * from "./Scatter";

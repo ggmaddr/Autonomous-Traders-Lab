@@ -5,13 +5,16 @@
 
 import { useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { TraderPills, useTraderFilter } from "../lib/filter";
 import { useQuery } from "@tanstack/react-query";
 import { getResearch, type ResearchItem } from "../api";
 import { Change, Failed, Loading, PageHeader, Panel, TraderName } from "../components/bits";
-import { useDesk } from "../lib/desk";
-import { outcomes, type FillOutcome } from "../lib/research";
-import { count, elapsed, host, longDate, parseIso, pct, price, stamp, time, tokens } from "../lib/format";
+import { Heatmap, Scatter, type Point } from "../charts";
+import { useDesk, type Desk } from "../lib/desk";
+import { TraderPills, useTraderFilter } from "../lib/filter";
+import { count, elapsed, host, longDate, parseIso, pct, price, signedMoney, stamp, time, tokens, tone } from "../lib/format";
+import { Markdown } from "../lib/markdown";
+import { mentions, outcomes, type FillOutcome } from "../lib/research";
+import { hueVar } from "../lib/traders";
 
 const RESEARCH_POLL_MS = 15_000;
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
@@ -54,13 +57,30 @@ export function Researcher() {
         finding={<Finding rows={rows} trader={trader} />}
         aside={research.dataUpdatedAt > 0 && <p className="fresh num">Updated {time(research.dataUpdatedAt)} · every 15 s</p>}
       />
-      {desk && (
-        <TraderPills value={trader} onChange={setTrader} traders={desk.books.map((b) => b.trader.name.toLowerCase())} />
-      )}
+      {desk && <TraderPills value={trader} onChange={setTrader} traders={desk.books.map((b) => b.trader.name.toLowerCase())} />}
       {research.error && <Failed what="the research" error={research.error as Error} />}
       {!rows && !research.error && <Loading rows={6} />}
       {rows && desk && (
         <>
+          {rows.length > 0 && (
+            <Panel title="From question to money" id="funnel">
+              <Funnel rows={rows} />
+            </Panel>
+          )}
+          {rows.length > 0 && (
+            <div className="grid-lead">
+              <Panel
+                title="Does longer research pay?"
+                id="scatter"
+                meta={<span>● led to a trade · ○ no trade · ◇ traded other names · size = sources</span>}
+              >
+                <CostScatter rows={rows} focus={trader} onPick={select} />
+              </Panel>
+              <Panel title="Researched vs traded" id="mentions" meta={<span>requests naming it / fills</span>}>
+                <Mentions rows={rows} desk={desk} />
+              </Panel>
+            </div>
+          )}
           <div className="grid-lead list-detail">
             <Panel title="Requests" id="requests" meta={<span className="num">{count(rows.length)}, newest first</span>}>
               {rows.length ? (
@@ -71,9 +91,15 @@ export function Researcher() {
                         <th scope="col">Time</th>
                         <th scope="col">Trader</th>
                         <th scope="col">Asked for</th>
-                        <th scope="col" className="num">Sources</th>
-                        <th scope="col" className="num">Took</th>
-                        <th scope="col" className="num">Tokens</th>
+                        <th scope="col" className="num">
+                          Sources
+                        </th>
+                        <th scope="col" className="num">
+                          Took
+                        </th>
+                        <th scope="col" className="num">
+                          Tokens
+                        </th>
                         <th scope="col">Led to</th>
                       </tr>
                     </thead>
@@ -102,8 +128,8 @@ export function Researcher() {
                 </div>
               ) : (
                 <p className="empty">
-                  No research saved yet{trader ? ` for ${cap(trader)}` : ""}. Requests show here from the first cycle the
-                  traders run with span saving on: uv run -m backend.trading_floor.
+                  No research saved yet{trader ? ` for ${cap(trader)}` : ""}. Requests show here from the first cycle the traders run with
+                  span saving on: uv run -m backend.trading_floor.
                 </p>
               )}
             </Panel>
@@ -113,7 +139,11 @@ export function Researcher() {
               className="sticky"
               meta={selected && <span className="num">{stamp(selected.at)}</span>}
             >
-              {selected ? <Answer row={selected} /> : <p className="empty">Pick a request.</p>}
+              {selected ? (
+                <Answer row={selected} tickers={new Set(desk.fills.map((f) => f.symbol))} />
+              ) : (
+                <p className="empty">Pick a request.</p>
+              )}
             </Panel>
           </div>
           {rows.length > 0 && (
@@ -140,10 +170,10 @@ function Finding({ rows, trader }: { rows: Row[] | null; trader: string | null }
   const pnl = fed.flatMap((r) => r.cited).reduce((s, o) => s + (o.pnl ?? 0), 0);
   return (
     <>
-      {scope} answered {count(rows.length)} requests. {fed.length ? (
+      {scope} answered {count(rows.length)} requests.{" "}
+      {fed.length ? (
         <>
-          {count(fed.length)} of them named a stock that was then traded in the same run, and those trades stand at{" "}
-          <Change value={pnl} />.
+          {count(fed.length)} of them named a stock that was then traded in the same run, and those trades stand at <Change value={pnl} />.
         </>
       ) : (
         "None of them named a stock the trader went on to trade."
@@ -153,7 +183,12 @@ function Finding({ rows, trader }: { rows: Row[] | null; trader: string | null }
 }
 
 function LedTo({ row }: { row: Row }) {
-  if (row.item.error) return <span className="tag" data-tone="bad">Failed</span>;
+  if (row.item.error)
+    return (
+      <span className="tag" data-tone="bad">
+        Failed
+      </span>
+    );
   if (row.cited.length)
     return (
       <span className="tag" data-tone="good">
@@ -164,21 +199,22 @@ function LedTo({ row }: { row: Row }) {
   return <span className="muted">No trade</span>;
 }
 
-function Answer({ row }: { row: Row }) {
+function Answer({ row, tickers }: { row: Row; tickers: Set<string> }) {
   const [open, setOpen] = useState(false);
   const { item } = row;
   return (
     <div className="selected">
       <p className="decision-head">
-        {item.trader && <TraderName name={item.trader} />} asked{item.mode ? ` while ${item.mode === "trade" ? "trading" : "rebalancing"}` : ""}:
+        {item.trader && <TraderName name={item.trader} />} asked
+        {item.mode ? ` while ${item.mode === "trade" ? "trading" : "rebalancing"}` : ""}:
       </p>
       <blockquote className="decision-quote small">{item.request}</blockquote>
       {item.error ? (
         <p className="failed">The researcher failed: {String((item.error as { message?: string }).message ?? "no message")}</p>
       ) : (
         <>
-          <div className="answer-text" data-open={open}>
-            {item.answer || "No answer recorded."}
+          <div className="answer-md" data-open={open}>
+            {item.answer ? <Markdown text={item.answer} tickers={tickers} /> : <p className="muted">No answer recorded.</p>}
           </div>
           {item.answer.length > 600 && (
             <button className="btn-ghost" onClick={() => setOpen((o) => !o)}>
@@ -196,7 +232,11 @@ function Answer({ row }: { row: Row }) {
               <a className="text-link" href={s.url} target="_blank" rel="noreferrer">
                 {s.title ?? host(s.url)}
               </a>
-              <span className="muted"> · {host(s.url)}{s.via === "fetch" ? " · read in full" : ""}</span>
+              <span className="muted">
+                {" "}
+                · {host(s.url)}
+                {s.via === "fetch" ? " · read in full" : ""}
+              </span>
             </li>
           ))}
           {item.sources.length > 8 && <li className="muted">and {item.sources.length - 8} more</li>}
@@ -205,7 +245,13 @@ function Answer({ row }: { row: Row }) {
         <p className="muted">No sources: answered from memory or the model alone.</p>
       )}
       {item.searches.length > 0 && (
-        <p className="note">Searched for {item.searches.filter(Boolean).map((q) => `“${q}”`).join(", ")}</p>
+        <p className="note">
+          Searched for{" "}
+          {item.searches
+            .filter(Boolean)
+            .map((q) => `“${q}”`)
+            .join(", ")}
+        </p>
       )}
 
       <h3 className="sub-head">Trades in the same run</h3>
@@ -281,7 +327,14 @@ function Cost({ rows }: { rows: Row[] }) {
 
 function Sites({ rows }: { rows: Row[] }) {
   const byHost = new Map<string, number>();
-  for (const r of rows) for (const h of new Set(r.item.sources.map((s) => host(s.url)))) byHost.set(h, (byHost.get(h) ?? 0) + 1);
+  const won = new Map<string, number>();
+  for (const r of rows) {
+    const made = r.cited.reduce((s, o) => s + (o.pnl ?? 0), 0) > 0;
+    for (const h of new Set(r.item.sources.map((s) => host(s.url)))) {
+      byHost.set(h, (byHost.get(h) ?? 0) + 1);
+      if (made) won.set(h, (won.get(h) ?? 0) + 1);
+    }
+  }
   const top = [...byHost].sort((a, b) => b[1] - a[1]).slice(0, 8);
   if (!top.length) return <p className="empty">No sources recorded yet.</p>;
   const max = top[0][1];
@@ -293,11 +346,158 @@ function Sites({ rows }: { rows: Row[] }) {
             <span className="alloc-label">{h}</span>
             <span className="alloc-share num">{count(n)}</span>
           </div>
-          <span className="alloc-track">
-            <span className="alloc-bar" style={{ width: `${(n / max) * 100}%`, background: "var(--accent-data)" }} />
+          <span className="alloc-track site-track">
+            <span className="alloc-bar" style={{ width: `${((won.get(h) ?? 0) / max) * 100}%`, background: "var(--positive)" }} />
+            <span className="alloc-bar site-rest" style={{ width: `${((n - (won.get(h) ?? 0)) / max) * 100}%` }} />
           </span>
         </div>
       ))}
+      <p className="note">Green: requests whose traded names made money. Grey: the rest.</p>
     </div>
+  );
+}
+
+function Funnel({ rows }: { rows: Row[] }) {
+  const fed = rows.filter((r) => r.cited.length);
+  const other = rows.filter((r) => !r.cited.length && r.fills.length).length;
+  const none = rows.length - fed.length - other;
+  const pnl = fed.flatMap((r) => r.cited).reduce((s, o) => s + (o.pnl ?? 0), 0);
+  return (
+    <>
+      <div className="funnel">
+        <div className="funnel-step" style={{ flexGrow: rows.length }}>
+          <span className="funnel-figure">{count(rows.length)}</span>
+          <span className="funnel-label">research requests answered</span>
+        </div>
+        <span className="funnel-arrow" aria-hidden="true">
+          →
+        </span>
+        <div className="funnel-step" data-stage="fed" style={{ flexGrow: Math.max(1, fed.length) }}>
+          <span className="funnel-figure">{count(fed.length)}</span>
+          <span className="funnel-label">named a stock traded in the same run · {pct(fed.length / rows.length)}</span>
+        </div>
+        <span className="funnel-arrow" aria-hidden="true">
+          →
+        </span>
+        <div className="funnel-step" data-stage="money" data-tone={tone(pnl)} style={{ flexGrow: Math.max(1, fed.length) }}>
+          <span className="funnel-figure num">{signedMoney(pnl)}</span>
+          <span className="funnel-label">where those trades stand</span>
+        </div>
+      </div>
+      <p className="note">
+        The other {count(rows.length - fed.length)}: {count(none)} led to no trade, {count(other)} to trades in names the answer did not
+        mention.
+      </p>
+    </>
+  );
+}
+
+function CostScatter({ rows, focus, onPick }: { rows: Row[]; focus: string | null; onPick: (id: string) => void }) {
+  const timed = rows.filter((r) => r.item.duration_ms !== null);
+  const maxSources = Math.max(1, ...timed.map((r) => r.item.sources.length));
+  const points: Point[] = timed.map((r) => ({
+    id: r.item.id,
+    x: r.item.duration_ms! / 60000,
+    y: r.item.input_tokens + r.item.output_tokens,
+    r: 4 + Math.sqrt(r.item.sources.length / maxSources) * 7,
+    color: r.item.trader ? hueVar(r.item.trader) : "var(--muted)",
+    group: r.item.trader ?? undefined,
+    shape: r.cited.length ? "disc" : r.fills.length ? "diamond" : "ring",
+    tip: (
+      <>
+        <p className="kit-tip-head">
+          {r.item.trader ? cap(r.item.trader) : "—"} · {stamp(r.at)}
+        </p>
+        <p className="clip-2">{r.item.request}</p>
+        <p className="num">
+          {elapsed(r.item.duration_ms)} · {tokens(r.item.input_tokens + r.item.output_tokens)} tokens · {r.item.sources.length} sources
+        </p>
+        <p>
+          {r.cited.length
+            ? `${r.cited.length} trade${r.cited.length === 1 ? "" : "s"}`
+            : r.fills.length
+              ? "traded other names"
+              : "no trade"}
+        </p>
+      </>
+    ),
+  }));
+  // The median time of runs that led to a trade, as the band to read against.
+  const trading = timed
+    .filter((r) => r.cited.length)
+    .map((r) => r.item.duration_ms! / 60000)
+    .sort((a, b) => a - b);
+  const median = trading.length ? trading[Math.floor(trading.length / 2)] : null;
+  const longest = [...timed].sort((a, b) => b.item.duration_ms! - a.item.duration_ms!)[0];
+  const heaviest = [...timed].sort((a, b) => b.item.input_tokens + b.item.output_tokens - (a.item.input_tokens + a.item.output_tokens))[0];
+  const label = (r: Row) =>
+    `${r.item.trader ? cap(r.item.trader) : "?"} · ${r.cited.length ? `${r.cited.length} trade${r.cited.length === 1 ? "" : "s"}` : "no trade"}`;
+  return (
+    <Scatter
+      points={points}
+      label={`Research time against tokens for ${points.length} requests`}
+      xFormat={(v) => `${v} min`}
+      yFormat={(v) => tokens(v)}
+      xLabel="time taken"
+      yLabel="tokens"
+      focus={focus}
+      onPick={(p) => onPick(p.id)}
+      xBand={median !== null ? { to: median, text: `half of the trading runs: under ${median.toFixed(1)} min` } : undefined}
+      notes={[
+        ...(longest ? [{ id: longest.item.id, text: `${label(longest)}, ${elapsed(longest.item.duration_ms)}`, dir: "nw" as const }] : []),
+        ...(heaviest && heaviest !== longest
+          ? [
+              {
+                id: heaviest.item.id,
+                text: `${label(heaviest)}, ${tokens(heaviest.item.input_tokens + heaviest.item.output_tokens)}`,
+                dir: "ne" as const,
+              },
+            ]
+          : []),
+      ]}
+    />
+  );
+}
+
+/** Trader × ticker: how many requests named it against how many fills it got. */
+function Mentions({ rows, desk }: { rows: Row[]; desk: Desk }) {
+  const traders = [...new Set(rows.map((r) => r.item.trader).filter(Boolean) as string[])];
+  const symbols = [...new Set(desk.fills.map((f) => f.symbol))];
+  const named = new Map<string, number>();
+  for (const r of rows)
+    for (const s of symbols)
+      if (r.item.trader && mentions(r.item.answer, s)) named.set(`${r.item.trader}|${s}`, (named.get(`${r.item.trader}|${s}`) ?? 0) + 1);
+  const traded = new Map<string, number>();
+  for (const f of desk.fills) traded.set(`${f.trader}|${f.symbol}`, (traded.get(`${f.trader}|${f.symbol}`) ?? 0) + 1);
+  const total = (s: string) => traders.reduce((n, t) => n + (named.get(`${t}|${s}`) ?? 0), 0);
+  const top = symbols
+    .filter((s) => total(s) > 0)
+    .sort((a, b) => total(b) - total(a))
+    .slice(0, 6);
+  if (!top.length) return <p className="empty">No answer named a traded symbol yet.</p>;
+  const max = Math.max(1, ...[...named.values()]);
+  return (
+    <>
+      <Heatmap
+        label="Requests naming each ticker against fills in it, per trader"
+        rowHead="Trader"
+        rows={traders.map((t) => ({ id: t, label: <span style={{ color: hueVar(t) }}>{cap(t)}</span> }))}
+        cols={top.map((s) => ({ id: s, label: <span className="num">{s}</span> }))}
+        cell={(t, s) => {
+          const n = named.get(`${t}|${s}`) ?? 0;
+          const f = traded.get(`${t}|${s}`) ?? 0;
+          if (!n && !f) return null;
+          const a = Math.round((n / max) * 70 + 10);
+          return {
+            text: `${n}/${f}`,
+            fill: n ? `color-mix(in srgb, var(--accent-data) ${a}%, var(--surface))` : "var(--raised)",
+            ink: a > 55 ? "var(--ground)" : "var(--text)",
+            outline: n >= 3 && !f ? "bad" : null,
+            tip: `${cap(t)}: ${n} requests named ${s}, ${f} fills`,
+          };
+        }}
+      />
+      <p className="note">Outlined red: researched three times or more and never traded.</p>
+    </>
   );
 }

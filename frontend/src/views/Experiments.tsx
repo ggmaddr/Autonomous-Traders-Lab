@@ -27,8 +27,23 @@ import {
 import { Failed, Loading, PageHeader, Panel } from "../components/bits";
 import { EffectTable, Frontier, RunGrid, type CostAxis } from "../components/labCharts";
 import { Timeline } from "./Decisions";
+import { Heatmap, divergingFill } from "../charts";
 import { count, longDate, parseIso, price, signedPct, stamp, time, tokens } from "../lib/format";
-import { DIMS, JIM_AGENTS, armCount, armLabel, dimLabel, fixedLabel, markOf, points, runLength, scorePct, shapePath, valueLabel, varying } from "../lib/lab";
+import {
+  DIMS,
+  JIM_AGENTS,
+  armCount,
+  armLabel,
+  dimLabel,
+  fixedLabel,
+  markOf,
+  points,
+  runLength,
+  scorePct,
+  shapePath,
+  valueLabel,
+  varying,
+} from "../lib/lab";
 
 const MAX_TRIALS = 400;
 const GRADE_WORD: Record<Grade, string> = { pass: "Pass", partial: "Partial", fail: "Fail" };
@@ -46,7 +61,7 @@ export function Experiments() {
   });
   const set = (patch: Record<string, string | null>) => {
     const next = new URLSearchParams(params);
-    for (const [k, v] of Object.entries(patch)) (v === null ? next.delete(k) : next.set(k, v));
+    for (const [k, v] of Object.entries(patch)) v === null ? next.delete(k) : next.set(k, v);
     setParams(next, { replace: true });
   };
 
@@ -64,7 +79,11 @@ export function Experiments() {
         <div className="lab">
           <Rig catalog={catalog.data} onQueued={(id) => set({ exp: id, trial: null })} />
           <div className="stack lab-results">
-            <ExperimentTabs list={list.data ?? []} selected={selectedId} onSelect={(id) => set({ exp: id, trial: null, a: null, b: null })} />
+            <ExperimentTabs
+              list={list.data ?? []}
+              selected={selectedId}
+              onSelect={(id) => set({ exp: id, trial: null, a: null, b: null })}
+            />
             {!selectedId ? (
               <Baselines scenarios={catalog.data.scenarios} />
             ) : exp.error ? (
@@ -99,7 +118,8 @@ function Finding({ catalog, exp, hasAny }: { catalog?: LabCatalog; exp?: Experim
     return (
       <>
         {exp.name}: {count(done)} of {count(exp.cells.length)} trials done
-        {live ? `, about ${runLength((exp.cells.length - done) * exp.estimate.seconds)} to go` : ""}. Results appear with the first finished trial.
+        {live ? `, about ${runLength((exp.cells.length - done) * exp.estimate.seconds)} to go` : ""}. Results appear with the first finished
+        trial.
       </>
     );
   }
@@ -110,8 +130,13 @@ function Finding({ catalog, exp, hasAny }: { catalog?: LabCatalog; exp?: Experim
       {live ? `${count(done)} of ${count(exp.cells.length)} trials in. ` : ""}
       {tied.length > 1 ? `${tied.length} arms tie for best` : `Best so far: ${armLabel(best.arm, exp.spec, catalog)}`} at{" "}
       <span className="num">{scorePct(best.score.mean)}</span>
-      {best.score.lo !== null && <span className="num"> ({scorePct(best.score.lo)}–{scorePct(best.score.hi)})</span>}, for{" "}
-      <span className="num">{tokens(best.tokens.mean ?? 0)}</span> tokens a run.
+      {best.score.lo !== null && (
+        <span className="num">
+          {" "}
+          ({scorePct(best.score.lo)}–{scorePct(best.score.hi)})
+        </span>
+      )}
+      , for <span className="num">{tokens(best.tokens.mean ?? 0)}</span> tokens a run.
       {effect && (
         <>
           {" "}
@@ -129,7 +154,13 @@ function WorkerLine({ catalog }: { catalog?: LabCatalog }) {
   return (
     <p className="fresh worker-line" data-alive={w.alive}>
       <span className="market-dot" data-open={w.alive} aria-hidden="true" />
-      {w.alive ? (w.busy ? "Worker running a trial" : "Worker idle") : (
+      {w.alive ? (
+        w.busy ? (
+          "Worker running a trial"
+        ) : (
+          "Worker idle"
+        )
+      ) : (
         <>
           Worker off · start it with <code>uv run -m backend.lab</code>
         </>
@@ -159,10 +190,10 @@ function Rig({ catalog, onQueued }: { catalog: LabCatalog; onQueued: (id: string
     : jimChosen && synthetic.length
       ? `Jim trades on real bars: pick only regime scenarios (not ${synthetic.map((s) => s.title).join(", ")})`
       : missing
-      ? `Pick at least one ${dimLabel(catalog, missing).toLowerCase()}`
-      : runs > MAX_TRIALS
-        ? `${count(runs)} runs is over the ${MAX_TRIALS} limit`
-        : null;
+        ? `Pick at least one ${dimLabel(catalog, missing).toLowerCase()}`
+        : runs > MAX_TRIALS
+          ? `${count(runs)} runs is over the ${MAX_TRIALS} limit`
+          : null;
   const queue = useMutation({
     mutationFn: () => createExperiment({ name, scenarios, arms: chosen, trials }),
     onSuccess: (r) => {
@@ -183,7 +214,10 @@ function Rig({ catalog, onQueued }: { catalog: LabCatalog; onQueued: (id: string
 
       <fieldset className="rig-group">
         <legend>
-          Scenarios <span className="muted num">{scenarios.length} of {catalog.scenarios.length}</span>
+          Scenarios{" "}
+          <span className="muted num">
+            {scenarios.length} of {catalog.scenarios.length}
+          </span>
           <button
             type="button"
             className="btn-link text-link rig-all"
@@ -246,7 +280,9 @@ function Rig({ catalog, onQueued }: { catalog: LabCatalog; onQueued: (id: string
           <button type="button" aria-label="Fewer trials" onClick={() => setTrials((t) => Math.max(1, t - 1))} disabled={trials <= 1}>
             −
           </button>
-          <span className="num" aria-live="polite">{trials}</span>
+          <span className="num" aria-live="polite">
+            {trials}
+          </span>
           <button type="button" aria-label="More trials" onClick={() => setTrials((t) => Math.min(10, t + 1))} disabled={trials >= 10}>
             +
           </button>
@@ -261,7 +297,10 @@ function Rig({ catalog, onQueued }: { catalog: LabCatalog; onQueued: (id: string
         </p>
         <p className="muted">
           About {runLength(eta)} on the local model, at {runLength(catalog.estimate.seconds)} a run
-          {catalog.estimate.measured ? ` (median of ${count(catalog.estimate.measured)} finished)` : " (a guess until the first runs finish)"}.
+          {catalog.estimate.measured
+            ? ` (median of ${count(catalog.estimate.measured)} finished)`
+            : " (a guess until the first runs finish)"}
+          .
         </p>
       </div>
       <label className="rig-name">
@@ -283,7 +322,15 @@ function Rig({ catalog, onQueued }: { catalog: LabCatalog; onQueued: (id: string
   );
 }
 
-function ExperimentTabs({ list, selected, onSelect }: { list: ExperimentListItem[]; selected: string | null; onSelect: (id: string) => void }) {
+function ExperimentTabs({
+  list,
+  selected,
+  onSelect,
+}: {
+  list: ExperimentListItem[];
+  selected: string | null;
+  onSelect: (id: string) => void;
+}) {
   if (!list.length) return null;
   return (
     <div className="exp-tabs" role="tablist" aria-label="Experiments">
@@ -294,7 +341,8 @@ function ExperimentTabs({ list, selected, onSelect }: { list: ExperimentListItem
           <button key={e.id} role="tab" aria-selected={e.id === selected} className="exp-tab" onClick={() => onSelect(e.id)}>
             <span className="exp-tab-name">{e.name}</span>
             <span className="exp-tab-meta num">
-              {e.status === "done" ? "done" : e.status === "cancelled" ? "cancelled" : `${done}/${total}`} · {stamp(parseIso(e.created_at)!)}
+              {e.status === "done" ? "done" : e.status === "cancelled" ? "cancelled" : `${done}/${total}`} ·{" "}
+              {stamp(parseIso(e.created_at)!)}
             </span>
             <span className="exp-tab-bar" aria-hidden="true">
               <span style={{ width: `${total ? (done / total) * 100 : 0}%` }} />
@@ -308,7 +356,17 @@ function ExperimentTabs({ list, selected, onSelect }: { list: ExperimentListItem
 
 // --- Results ---------------------------------------------------------------------
 
-function Results({ exp, catalog, params, set }: { exp: Experiment; catalog: LabCatalog; params: URLSearchParams; set: (p: Record<string, string | null>) => void }) {
+function Results({
+  exp,
+  catalog,
+  params,
+  set,
+}: {
+  exp: Experiment;
+  catalog: LabCatalog;
+  params: URLSearchParams;
+  set: (p: Record<string, string | null>) => void;
+}) {
   const queries = useQueryClient();
   const dims = varying(exp.spec);
   const lens = dims.includes(params.get("lens") as never) ? params.get("lens") : (dims[0] ?? null);
@@ -362,7 +420,15 @@ function Results({ exp, catalog, params, set }: { exp: Experiment; catalog: LabC
         {exp.summary.length ? (
           <>
             {lens && <LensKey exp={exp} catalog={catalog} lens={lens} />}
-            <Frontier exp={exp} catalog={catalog} lens={lens} cost={cost} refs={refs} picked={[a, b].filter(Boolean) as string[]} onPick={pick} />
+            <Frontier
+              exp={exp}
+              catalog={catalog}
+              lens={lens}
+              cost={cost}
+              refs={refs}
+              picked={[a, b].filter(Boolean) as string[]}
+              onPick={pick}
+            />
             <p className="note">
               Quality: 100% is a pass on every trial, 50% a partial. Whiskers are 95% bootstrap intervals over trials. Up and to the left is
               better. Press any two marks to compare them below. Held fixed: {fixedLabel(exp.spec, catalog) || "nothing"}.
@@ -378,12 +444,18 @@ function Results({ exp, catalog, params, set }: { exp: Experiment; catalog: LabC
       </Panel>
 
       {lens && exp.effects.some((e) => e.dimension === lens) && (
-        <Panel title={`What ${dimLabel(catalog, lens).toLowerCase()} changes`} id="effects" meta={<span>paired on the same scenario and options</span>}>
+        <Panel
+          title={`What ${dimLabel(catalog, lens).toLowerCase()} changes`}
+          id="effects"
+          meta={<span>paired on the same scenario and options</span>}
+        >
           <EffectTable effects={exp.effects} catalog={catalog} exp={exp} lens={lens} />
         </Panel>
       )}
 
-      {a && b && <Duel exp={exp} catalog={catalog} scenarios={scenarios} a={a} b={b} set={set} onOpen={(id) => set({ trial: String(id) })} />}
+      {a && b && (
+        <Duel exp={exp} catalog={catalog} scenarios={scenarios} a={a} b={b} set={set} onOpen={(id) => set({ trial: String(id) })} />
+      )}
 
       <Panel
         title="Run grid"
@@ -403,7 +475,8 @@ function Results({ exp, catalog, params, set }: { exp: Experiment; catalog: LabC
       >
         <RunGrid exp={exp} catalog={catalog} lens={lens} open={trialId} onOpen={(c: TrialCell) => set({ trial: String(c.id) })} />
         <p className="note grid-key">
-          <span className="rg-cell" data-status="done" data-grade="pass" /> pass <span className="rg-cell" data-status="done" data-grade="partial" /> partial{" "}
+          <span className="rg-cell" data-status="done" data-grade="pass" /> pass{" "}
+          <span className="rg-cell" data-status="done" data-grade="partial" /> partial{" "}
           <span className="rg-cell" data-status="done" data-grade="fail" /> fail <span className="rg-cell" data-status="running" /> running{" "}
           <span className="rg-cell" data-status="queued" /> waiting. Press a cell to open the trial.
         </p>
@@ -490,7 +563,11 @@ function Duel(props: {
                 ))}
               </select>
               <span className="duel-figures num">
-                {s ? `${scorePct(s.score.mean)} · ${tokens(s.tokens.mean ?? 0)} tok · ${runLength(s.seconds.mean ?? 0)}` : arm ? "no trials yet" : ""}
+                {s
+                  ? `${scorePct(s.score.mean)} · ${tokens(s.tokens.mean ?? 0)} tok · ${runLength(s.seconds.mean ?? 0)}`
+                  : arm
+                    ? "no trials yet"
+                    : ""}
               </span>
             </label>
           );
@@ -503,8 +580,12 @@ function Duel(props: {
               <th scope="col">Scenario</th>
               <th scope="col">A did</th>
               <th scope="col">B did</th>
-              <th scope="col" className="num">B − A</th>
-              <th scope="col" className="num">Doing nothing</th>
+              <th scope="col" className="num">
+                B − A
+              </th>
+              <th scope="col" className="num">
+                Doing nothing
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -526,8 +607,12 @@ function Duel(props: {
                     <Trials cell={B} onOpen={props.onOpen} />
                   </td>
                   <td className="num">
-                    {d === null ? <span className="dash">—</span> : (
-                      <span className="change" data-tone={d > 0 ? "good" : d < 0 ? "bad" : "flat"}>{points(d)}</span>
+                    {d === null ? (
+                      <span className="dash">—</span>
+                    ) : (
+                      <span className="change" data-tone={d > 0 ? "good" : d < 0 ? "bad" : "flat"}>
+                        {points(d)}
+                      </span>
                     )}
                   </td>
                   <td className="num muted">
@@ -562,7 +647,10 @@ function Trials({ cell, onOpen }: { cell?: Experiment["scenarios"][string][strin
           </button>
         ))}
       </span>
-      <span className="duel-action">{actions.slice(0, 2).join("; ")}{actions.length > 2 ? ` and ${actions.length - 2} more` : ""}</span>
+      <span className="duel-action">
+        {actions.slice(0, 2).join("; ")}
+        {actions.length > 2 ? ` and ${actions.length - 2} more` : ""}
+      </span>
     </span>
   );
 }
@@ -572,24 +660,47 @@ function ArmsTable({ exp, catalog, lens }: { exp: Experiment; catalog: LabCatalo
   // Columns for metrics only some experiments have: playbook rules and a written thesis.
   const playbooks = rows.some((r) => r.adherence?.n);
   const theses = rows.some((r) => r.uncited?.n);
-  const iv = (s: ArmSummary["score"], f: (v: number) => string) =>
-    s.lo === null ? "" : `${f(s.lo)}–${f(s.hi!)}`;
+  const iv = (s: ArmSummary["score"], f: (v: number) => string) => (s.lo === null ? "" : `${f(s.lo)}–${f(s.hi!)}`);
   return (
     <div className="table-wrap">
       <table className="table">
         <thead>
           <tr>
             <th scope="col">Arm</th>
-            <th scope="col" className="num">Trials</th>
-            <th scope="col" className="num">Quality</th>
-            <th scope="col" className="num">Edge</th>
-            <th scope="col" className="num">Tokens</th>
-            <th scope="col" className="num">Time</th>
-            <th scope="col" className="num">Research</th>
-            <th scope="col" className="num">Broke a rule</th>
-            {playbooks && <th scope="col" className="num">Playbook kept</th>}
-            {theses && <th scope="col" className="num">Uncited claims</th>}
-            <th scope="col" className="num">Finished</th>
+            <th scope="col" className="num">
+              Trials
+            </th>
+            <th scope="col" className="num">
+              Quality
+            </th>
+            <th scope="col" className="num">
+              Edge
+            </th>
+            <th scope="col" className="num">
+              Tokens
+            </th>
+            <th scope="col" className="num">
+              Time
+            </th>
+            <th scope="col" className="num">
+              Research
+            </th>
+            <th scope="col" className="num">
+              Broke a rule
+            </th>
+            {playbooks && (
+              <th scope="col" className="num">
+                Playbook kept
+              </th>
+            )}
+            {theses && (
+              <th scope="col" className="num">
+                Uncited claims
+              </th>
+            )}
+            <th scope="col" className="num">
+              Finished
+            </th>
           </tr>
         </thead>
         <tbody>
@@ -645,10 +756,12 @@ function ArmsTable({ exp, catalog, lens }: { exp: Experiment; catalog: LabCatalo
         </tbody>
       </table>
       <p className="note">
-        Edge: the return the decision added over keeping the starting portfolio on the scenario's frozen path, in percentage
-        points. Broke a rule: trials with at least one refused order (unknown symbol, more than the cash, more shares than held).
-        {playbooks && " Playbook kept: the share of playbook rule checks the filled orders passed; a persona is held to its playbook's rules (E14)."}
-        {theses && " Uncited claims: the share of the Synthesizer thesis's claims citing nothing the trial had, and the conflicts it named (E13)."}
+        Edge: the return the decision added over keeping the starting portfolio on the scenario's frozen path, in percentage points. Broke a
+        rule: trials with at least one refused order (unknown symbol, more than the cash, more shares than held).
+        {playbooks &&
+          " Playbook kept: the share of playbook rule checks the filled orders passed; a persona is held to its playbook's rules (E14)."}
+        {theses &&
+          " Uncited claims: the share of the Synthesizer thesis's claims citing nothing the trial had, and the conflicts it named (E13)."}
       </p>
     </div>
   );
@@ -656,7 +769,12 @@ function ArmsTable({ exp, catalog, lens }: { exp: Experiment; catalog: LabCatalo
 
 function Manifest({ exp }: { exp: Experiment }) {
   const m = exp.manifest as Record<string, unknown>;
-  const show = (v: unknown) => (typeof v === "object" && v !== null ? Object.entries(v).map(([k, x]) => `${k} ${x}`).join(" · ") : String(v));
+  const show = (v: unknown) =>
+    typeof v === "object" && v !== null
+      ? Object.entries(v)
+          .map(([k, x]) => `${k} ${x}`)
+          .join(" · ")
+      : String(v);
   return (
     <dl className="manifest">
       {Object.entries(m).map(([k, v]) => (
@@ -674,67 +792,69 @@ function Manifest({ exp }: { exp: Experiment }) {
 function Baselines({ scenarios }: { scenarios: ScenarioInfo[] }) {
   // One column per baseline any scenario has, in a fixed order; the regime scenarios add
   // the rules E12 compares against, the others show a dash there.
-  const order = ["hold", "spy", "equal", "mechanical", "trend_200d", "sixty_forty", "vol_target", "random"];
+  // The random agent comes first: it is the bar every arm has to clear.
+  const order = ["random", "hold", "spy", "equal", "mechanical", "trend_200d", "sixty_forty", "vol_target"];
   const cols = order
     .map((id) => scenarios.flatMap((s) => s.baselines).find((b) => b.id === id))
     .filter((b): b is ScenarioInfo["baselines"][number] => !!b);
+  const scale = Math.max(0.01, ...scenarios.flatMap((s) => s.baselines.map((b) => Math.abs(b.return))));
   const moves = (s: ScenarioInfo) =>
     s.universe.length > 6
       ? `${s.universe.length} symbols · SPY ${signedPct(s.universe.find((u) => u.symbol === "SPY")?.move ?? 0, 1)}`
       : s.universe.map((u) => `${u.symbol} ${signedPct(u.move, 1)}`).join(", ");
   return (
     <Panel title="The scenarios and their baselines" id="baselines" meta={<span>what simple rules make on each frozen path</span>}>
-      <div className="table-wrap">
-        <table className="table">
-          <thead>
-            <tr>
-              <th scope="col">Scenario</th>
-              {cols.map((b) => (
-                <th key={b.id} scope="col" className="num" title={b.detail}>
-                  {b.label}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {scenarios.map((s) => (
-              <tr key={s.id}>
-                <th scope="row">
-                  <span className="duel-scenario">
-                    <span className="strong">{s.title}</span>
-                    <span className="muted">
-                      {s.family} · {s.horizon_days} days · {moves(s)}
-                    </span>
-                  </span>
-                </th>
-                {cols.map(({ id }) => {
-                  const b = s.baselines.find((x) => x.id === id);
-                  return (
-                    <td key={id} className="num" title={b?.detail}>
-                      {b ? (
-                        <>
-                          <span className="change" data-tone={b.return > 0.0005 ? "good" : b.return < -0.0005 ? "bad" : "flat"}>
-                            {signedPct(b.return, 2)}
-                          </span>
-                          <span className="ci-note">{b.grade ? GRADE_WORD[b.grade] : `quality ${scorePct(b.score)}`}</span>
-                        </>
-                      ) : (
-                        <span className="dash">—</span>
-                      )}
-                    </td>
-                  );
-                })}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <Heatmap
+        label="Scenario by baseline: return over the horizon, outline is the grade"
+        rowHead="Scenario"
+        rows={scenarios.map((s) => ({
+          id: s.id,
+          label: (
+            <span className="duel-scenario">
+              <span className="strong">{s.title}</span>
+              <span className="muted">
+                {s.family} · {s.horizon_days} days · {moves(s)}
+              </span>
+            </span>
+          ),
+        }))}
+        cols={cols.map((b) => ({
+          id: b.id,
+          label: <span title={b.detail}>{b.id === "random" ? "Random · the bar" : b.label}</span>,
+          now: b.id === "random",
+        }))}
+        cell={(sid, id) => {
+          const s = scenarios.find((x) => x.id === sid)!;
+          const b = s.baselines.find((x) => x.id === id);
+          if (!b) return null;
+          const { fill, ink } = divergingFill(b.return, scale);
+          return {
+            text: signedPct(b.return, 1),
+            fill,
+            ink,
+            outline: b.grade === "pass" ? "good" : b.grade === "fail" ? "bad" : b.grade === "partial" ? "partial" : null,
+            tip: `${b.label}: ${signedPct(b.return, 2)} · ${b.grade ? GRADE_WORD[b.grade] : `quality ${scorePct(b.score)}`}. ${b.detail}`,
+          };
+        }}
+      />
+      <ul className="kit-legend">
+        <li>Cell colour: return</li>
+        <li>
+          <span className="kit-legend-mark grade-key" data-outline="good" /> pass
+        </li>
+        <li>
+          <span className="kit-legend-mark grade-key" data-outline="partial" /> partial
+        </li>
+        <li>
+          <span className="kit-legend-mark grade-key" data-outline="bad" /> fail
+        </li>
+        <li>First column: the random agent, the bar an arm has to clear</li>
+      </ul>
       <p className="note">
-        Returns over each scenario's horizon. Hand-written scenarios use synthetic tickers, so a model cannot know the path.
-        Regime scenarios replay real bars from each of this year's regime turns; the local model's training ends before 2026.
-        They pass a trial that beats the mechanical regime rule (E12) and call it partial when it beats only the 200-day rule.
-        The random agent takes 400 seeded valid actions; it never breaks a rule, so on the constraint scenarios it sets a high
-        bar for rule-keeping.
+        Returns over each scenario's horizon. Hand-written scenarios use synthetic tickers, so a model cannot know the path. Regime
+        scenarios replay real bars from each of this year's regime turns; the local model's training ends before 2026. They pass a trial
+        that beats the mechanical regime rule (E12) and call it partial when it beats only the 200-day rule. The random agent takes 400
+        seeded valid actions; it never breaks a rule, so on the constraint scenarios it sets a high bar for rule-keeping.
       </p>
     </Panel>
   );
@@ -794,7 +914,10 @@ function TrialSheet({ id, catalog, exp, onClose }: { id: number; catalog: LabCat
                   ? [["Playbook rules kept", `${scorePct(g.adherence)} of ${g.rule_checks}`]]
                   : []),
                 ...(g.uncited !== undefined && g.uncited !== null
-                  ? [["Thesis claims uncited", scorePct(g.uncited)], ["Conflicts named", count(g.conflicts ?? 0)]]
+                  ? [
+                      ["Thesis claims uncited", scorePct(g.uncited)],
+                      ["Conflicts named", count(g.conflicts ?? 0)],
+                    ]
                   : []),
               ].map(([k, v]) => (
                 <div key={k}>
@@ -813,9 +936,7 @@ function TrialSheet({ id, catalog, exp, onClose }: { id: number; catalog: LabCat
                         <span className="strong">
                           {o.side} {o.quantity} {o.symbol}
                         </span>{" "}
-                        <span className="muted">
-                          {o.status === "filled" ? `filled at ${price(o.price!)}` : `refused: ${o.reason}`}
-                        </span>
+                        <span className="muted">{o.status === "filled" ? `filled at ${price(o.price!)}` : `refused: ${o.reason}`}</span>
                       </p>
                       {o.rationale && <p className="call-result">{o.rationale}</p>}
                     </li>

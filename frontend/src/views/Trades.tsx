@@ -49,7 +49,13 @@ function TradesBody({ desk, now }: { desk: Desk | null; now: number }) {
   const setTrader = (t: string | null) => setFocus(t);
   const select = (id: string) => setParams(trader ? { trader, fill: id } : { fill: id });
 
-  const selected = view?.fills.find((f) => f.id === fillParam) ?? view?.fills[0] ?? null;
+  // ?symbol= (from a ticker chip on Researcher) picks that symbol's newest fill.
+  const symbolParam = params.get("symbol");
+  const selected =
+    view?.fills.find((f) => f.id === fillParam) ??
+    (symbolParam ? view?.fills.find((f) => f.symbol === symbolParam) : undefined) ??
+    view?.fills[0] ??
+    null;
 
   let findingText: React.ReactNode = "Reading the fills…";
   if (view) {
