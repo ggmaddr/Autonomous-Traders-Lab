@@ -1,7 +1,7 @@
 """The daily Market Year run, after the close:
 
-    uv run -m backend.quant            # bars, regimes, scoreboard, and news for new transitions
-    uv run -m backend.quant --no-news  # skip the Researcher runs (no model, no web search)
+    uv run -m server.quant            # bars, regimes, scoreboard, and news for new transitions
+    uv run -m server.quant --no-news  # skip the Researcher runs (no model, no web search)
 """
 
 import asyncio

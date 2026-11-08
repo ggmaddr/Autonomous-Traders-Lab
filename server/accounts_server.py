@@ -6,7 +6,7 @@ from .playbooks import PLAYBOOKS
 mcp = FastMCP("accounts_server")
 
 # The trader this server instance acts for, and the trace of the run that spawned it.
-# Both come from the environment (backend/mcp_servers.py), never from the model.
+# Both come from the environment (server/mcp_servers.py), never from the model.
 ACCOUNT = os.getenv("LAB_ACCOUNT")
 TRACE_ID = os.getenv("LAB_TRACE_ID") or None
 

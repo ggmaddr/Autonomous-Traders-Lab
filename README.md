@@ -17,16 +17,18 @@ Five autonomous AI traders (Warren, George, Ray, Cathie and Jim, the regime quan
    Synthesizer (Jim only)
 ```
 
-- **Engine** (`backend/trading_floor.py`): loops forever. Each cycle runs every trader, then the post-cycle review, then sleeps. Once a day after the close it also runs the Market Year pipeline.
-- **Traders** (`backend/traders.py`): agents with their own strategy. Warren (quality at a reasonable price) and George (global macro with trend confirmation) trade fixed playbooks (`backend/playbooks.py`) and cannot rewrite them. Ray and Cathie keep persona strategies.
-- **Jim** (`backend/jim.py`): the regime quant. He reads the market regime and the signal scoreboard from the Quant, asks the Researcher only for catalysts, and a Synthesizer sub-agent turns both into a structured trade thesis. He runs a full thesis on a regime change or once a week; other cycles only check the drawdown brake.
-- **Quant** (`backend/quant_server.py`, `backend/quant/`): a deterministic MCP server with no LLM: regimes, signal scoreboard and scans, portfolio risk, position sizing, Warren's quality screen and DCF, George's macro dashboard.
-- **Market Year pipeline** (`backend/quant/pipeline.py`): adjusted daily bars from Alpaca (2016 on), features, two regime models (rules and a forward-filtered HMM), the eight-signal scoreboard, the news behind each regime turn, SEC EDGAR fundamentals, and Jim's memory graph.
-- **Experiment Lab** (`backend/lab/`): runs queued experiments on frozen scenarios, including real-bar regime scenarios for E12–E14.
-- **Accounts** (`backend/accounts*.py`): balance, holdings, transactions and the portfolio value history, stored in `accounts.db`.
-- **Market data** (`backend/market*.py`): live prices through Massive if `MASSIVE_API_KEY` is set, otherwise simulated prices.
+- **Engine** (`server/trading_floor.py`): loops forever. Each cycle runs every trader, then the post-cycle review, then sleeps. Once a day after the close it also runs the Market Year pipeline.
+- **Traders** (`server/traders.py`): agents with their own strategy. Warren (quality at a reasonable price) and George (global macro with trend confirmation) trade fixed playbooks (`server/playbooks.py`) and cannot rewrite them. Ray and Cathie keep persona strategies.
+- **Jim** (`server/jim.py`): the regime quant. He reads the market regime and the signal scoreboard from the Quant, asks the Researcher only for catalysts, and a Synthesizer sub-agent turns both into a structured trade thesis. He runs a full thesis on a regime change or once a week; other cycles only check the drawdown brake.
+- **Quant** (`server/quant_server.py`, `server/quant/`): a deterministic MCP server with no LLM: regimes, signal scoreboard and scans, portfolio risk, position sizing, Warren's quality screen and DCF, George's macro dashboard.
+- **Market Year pipeline** (`server/quant/pipeline.py`): adjusted daily bars from Alpaca (2016 on), features, two regime models (rules and a forward-filtered HMM), the eight-signal scoreboard, the news behind each regime turn, SEC EDGAR fundamentals, and Jim's memory graph.
+- **Experiment Lab** (`server/lab/`): runs queued experiments on frozen scenarios, including real-bar regime scenarios for E12–E14.
+- **Accounts** (`server/accounts*.py`): balance, holdings, transactions and the portfolio value history, stored in `accounts.db`.
+- **Market data** (`server/market*.py`): live prices through Massive if `MASSIVE_API_KEY` is set, otherwise simulated prices.
 - **API + frontend**: the API only reads `accounts.db` (except queueing and cancelling experiments). Views: Money, Trades, Researcher, Decisions (with the playbook check and Jim's thesis), Lessons, Memory, Market Year, Experiments, Health.
 - **Model** (`local_llm.py`): one place to set the Ollama model for every agent.
+
+A guided tour of the dashboard (the Money tab's Dashboard and Story modes, the chart system and the architecture in depth) is in [docs/first look.md](docs/first%20look.md).
 
 ## Requirements
 
@@ -39,12 +41,12 @@ Run once, from the project root:
 ```bash
 git clone https://github.com/ggmaddr/Autonomous-Traders-Lab.git && cd Autonomous-Traders-Lab
 uv sync
-npm install --prefix frontend
+npm install --prefix client
 cp .env.example .env
 ollama pull qwen2.5-coder:32b
-uv run -m backend.reset
-uv run -m backend.quant
-uv run -m backend.lab.regime_scenarios
+uv run -m server.reset
+uv run -m server.quant
+uv run -m server.lab.regime_scenarios
 ```
 
 In order: install Python and frontend dependencies, create `.env` (then fill in the keys below), pull the local model (about 19 GB), set the strategies and $10,000 for each trader, load the Market Year (bars, regimes, scoreboard, fundamentals, news), and build the Lab's regime scenarios from those bars.
@@ -56,25 +58,25 @@ Use a terminal for each, all from the project root.
 The API (docs at http://localhost:8000/docs):
 
 ```bash
-uv run uvicorn backend.api:app --port 8000
+uv run uvicorn server.api:app --port 8000
 ```
 
 The frontend (open http://localhost:5173):
 
 ```bash
-npm run dev --prefix frontend
+npm run dev --prefix client
 ```
 
 The traders (Ctrl+C to stop):
 
 ```bash
-uv run -m backend.trading_floor
+uv run -m server.trading_floor
 ```
 
 The Experiment Lab worker, which runs experiments queued from the Experiments view:
 
 ```bash
-uv run -m backend.lab
+uv run -m server.lab
 ```
 
 ### By hand
@@ -84,31 +86,31 @@ The engine runs these on its own; run them yourself to refresh now.
 Market Year pipeline (bars, regimes, scoreboard, fundamentals, news, Jim's memory):
 
 ```bash
-uv run -m backend.quant
+uv run -m server.quant
 ```
 
 The same without the Researcher runs that explain regime turns (no model, no web search):
 
 ```bash
-uv run -m backend.quant --no-news
+uv run -m server.quant --no-news
 ```
 
 Rebuild the Lab's regime scenarios after the bars change:
 
 ```bash
-uv run -m backend.lab.regime_scenarios
+uv run -m server.lab.regime_scenarios
 ```
 
 Review past trades into lessons:
 
 ```bash
-uv run -m backend.review
+uv run -m server.review
 ```
 
 Reset every account and strategy to the start:
 
 ```bash
-uv run -m backend.reset
+uv run -m server.reset
 ```
 
 State lives in `accounts.db` and `memory/`, so stopping and restarting continues where it left off.
@@ -128,7 +130,7 @@ Set in `.env` (see `.env.example`):
 | `PUSHOVER_USER`, `PUSHOVER_TOKEN` | Optional. Phone notifications from the traders |
 | `OPENAI_API_KEY` | Optional. Only used to upload traces to platform.openai.com/traces |
 
-Other settings: the model in `local_llm.py`, starting cash in `backend/accounts.py`, trader names in `backend/trading_floor.py`, persona strategies in `backend/reset.py`, playbooks in `backend/playbooks.py`, the Market Year symbols in `backend/quant/universe.py`.
+Other settings: the model in `local_llm.py`, starting cash in `server/accounts.py`, trader names in `server/trading_floor.py`, persona strategies in `server/reset.py`, playbooks in `server/playbooks.py`, the Market Year symbols in `server/quant/universe.py`.
 
 ## Notes
 

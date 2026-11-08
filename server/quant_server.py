@@ -1,7 +1,7 @@
 """The Quant: a deterministic MCP server, no LLM (plan §4.4.3). It reads the Market Year
 tables the daily pipeline writes and answers from the last close.
 
-The day and the account come from the environment (backend/mcp_servers.py), never from
+The day and the account come from the environment (server/mcp_servers.py), never from
 the model: QUANT_AS_OF fixes the close it answers from (the latest when unset), and
 QUANT_ACCOUNT is the account size_positions sizes for.
 """

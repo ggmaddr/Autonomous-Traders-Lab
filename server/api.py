@@ -2,22 +2,22 @@
 
 This serves the data in accounts.db as JSON so a decoupled web frontend can
 render it. Everything here is read-only except queueing and cancelling lab
-experiments (backend/lab/routes.py); the trading floor and the lab worker write
+experiments (server/lab/routes.py); the trading floor and the lab worker write
 the database out of band.
 
 Run it from the project root so it shares the engine's accounts.db:
 
-    uv run uvicorn backend.api:app --port 8000
+    uv run uvicorn server.api:app --port 8000
 """
 
 from fastapi import FastAPI, HTTPException
 
-from backend import market, memory, review, runs
-from backend.accounts import Account
-from backend.database import read_lessons, read_log
-from backend.trading_floor import names, lastnames, short_model_names
-from backend.lab.routes import router as lab_router
-from backend.quant.routes import router as market_year_router
+from server import market, memory, review, runs
+from server.accounts import Account
+from server.database import read_lessons, read_log
+from server.trading_floor import names, lastnames, short_model_names
+from server.lab.routes import router as lab_router
+from server.quant.routes import router as market_year_router
 
 # Colour for each log line type, so the frontend can draw the activity panel.
 LOG_COLORS = {

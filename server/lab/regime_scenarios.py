@@ -12,7 +12,7 @@ the Quant's regime and scoreboard run with no LLM), Faber's 200-day rule, 60/40 
 volatility-targeted SPY. A trial passes when it beats the mechanical rule over the
 horizon, and is partial when it beats the 200-day rule.
 
-    uv run -m backend.lab.regime_scenarios     # (re)write scenarios/regime-*.yaml
+    uv run -m server.lab.regime_scenarios     # (re)write scenarios/regime-*.yaml
 """
 
 import math

@@ -6,9 +6,9 @@
 import type { TraderDetail } from "../api";
 import { parseStamp } from "./format";
 
-/** Starting cash per trader (backend/accounts.py INITIAL_BALANCE). */
+/** Starting cash per trader (server/accounts.py INITIAL_BALANCE). */
 export const INITIAL_BALANCE = 10_000;
-/** Half-spread charged on every fill (backend/accounts.py SPREAD). */
+/** Half-spread charged on every fill (server/accounts.py SPREAD). */
 export const SPREAD = 0.002;
 
 export interface Fill {

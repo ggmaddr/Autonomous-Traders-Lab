@@ -36,7 +36,7 @@ class Quant:
     def __init__(self, as_of: str | None = None):
         rules = store.read_regimes("rules", until=as_of)
         if not rules:
-            raise RuntimeError("No regimes computed. Run uv run -m backend.quant first.")
+            raise RuntimeError("No regimes computed. Run uv run -m server.quant first.")
         self.as_of = rules[-1]["day"]
         self.rows = {"rules": rules, "hmm": store.read_regimes("hmm", until=self.as_of)}
         self._panel: bars.Panel | None = None

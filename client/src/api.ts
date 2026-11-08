@@ -75,7 +75,7 @@ export function getMarket(): Promise<MarketInfo> {
   return get("/api/market");
 }
 
-// --- Runs and research, read from the saved SDK spans (backend/runs.py) -------
+// --- Runs and research, read from the saved SDK spans (server/runs.py) -------
 
 export interface Source {
   url: string;
@@ -215,7 +215,7 @@ export function getRun(traceId: string): Promise<RunDetail> {
   return get(`/api/runs/${encodeURIComponent(traceId)}`);
 }
 
-// --- Lessons and memory (backend/review.py, backend/memory.py) ---------------
+// --- Lessons and memory (server/review.py, server/memory.py) ---------------
 
 export interface LessonRecall {
   trace_id: string;
@@ -328,7 +328,7 @@ export function getMemoryNode(trader: string, node: string): Promise<MemoryNodeD
   return get(`/api/memory/${encodeURIComponent(trader)}/node/${encodeURIComponent(node)}`);
 }
 
-// --- Experiment Lab (backend/lab) --------------------------------------------
+// --- Experiment Lab (server/lab) --------------------------------------------
 
 export interface Baseline {
   id: "hold" | "spy" | "equal" | "random";
@@ -583,7 +583,7 @@ export function cancelExperiment(id: string): Promise<{ id: string }> {
   return send(`/api/experiments/${encodeURIComponent(id)}/cancel`);
 }
 
-// --- Market Year, from the daily pipeline (backend/quant) -----------------------
+// --- Market Year, from the daily pipeline (server/quant) -----------------------
 
 export type RegimeLabel = "Calm bull" | "Volatile bull" | "Calm chop" | "Stress";
 export type RegimeModel = "rules" | "hmm";
@@ -685,7 +685,7 @@ export function getMarketYear(range: YearRange): Promise<MarketYearResponse> {
   return get(`/api/market-year?range=${range}`);
 }
 
-// --- Health: recent agent activity from the saved spans (backend/runs.py) -------
+// --- Health: recent agent activity from the saved spans (server/runs.py) -------
 
 export interface ActivitySpan {
   trader: string;

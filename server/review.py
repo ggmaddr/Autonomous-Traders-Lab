@@ -7,7 +7,7 @@ A decision is the fills of one run in one symbol on one side. Its return is the
 symbol's move since the fill, signed so that positive means the decision was right
 (a buy that rose, a sell that fell); the benchmark is SPY's move over the same days.
 
-Run it by hand with `uv run -m backend.review`.
+Run it by hand with `uv run -m server.review`.
 """
 
 import asyncio

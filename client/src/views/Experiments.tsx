@@ -162,7 +162,7 @@ function WorkerLine({ catalog }: { catalog?: LabCatalog }) {
         )
       ) : (
         <>
-          Worker off · start it with <code>uv run -m backend.lab</code>
+          Worker off · start it with <code>uv run -m server.lab</code>
         </>
       )}
     </p>
@@ -316,7 +316,7 @@ function Rig({ catalog, onQueued }: { catalog: LabCatalog; onQueued: (id: string
         </p>
       )}
       {!catalog.worker.alive && !problem && (
-        <p className="note">The worker is off, so queued runs wait until you start it: uv run -m backend.lab</p>
+        <p className="note">The worker is off, so queued runs wait until you start it: uv run -m server.lab</p>
       )}
     </section>
   );

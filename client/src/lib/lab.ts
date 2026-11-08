@@ -10,7 +10,7 @@ export const DIMS: Dimension["id"][] = ["agent", "researcher", "model", "prompt"
 export const JIM_AGENTS = ["jim", "jim_raw"];
 
 /** Arms an experiment will run. Jim trades his own playbook with the fixed prompt, so his
- *  arms do not multiply by strategy or prompt (backend/lab/arms.py combinations). */
+ *  arms do not multiply by strategy or prompt (server/lab/arms.py combinations). */
 export function armCount(chosen: Record<string, string[]>): number {
   const n = (d: string) => chosen[d]?.length ?? 0;
   const agents = chosen.agent ?? ["trader"];

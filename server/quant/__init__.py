@@ -4,5 +4,5 @@ Deterministic Python, no LLM except the Researcher run that explains each regime
 transition. Everything is computed as of a date: a value for day t uses bars up to
 and including t only, so nothing here can leak the future into a decision.
 
-    uv run -m backend.quant          # backfill bars, then features, regimes, scoreboard, news
+    uv run -m server.quant          # backfill bars, then features, regimes, scoreboard, news
 """

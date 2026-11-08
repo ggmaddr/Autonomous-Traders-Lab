@@ -2,7 +2,7 @@
 // year leads, its background shaded by the chosen regime model, with both models as
 // strips underneath so they can be compared day by day; then today's read, which
 // signals have paid in each regime, each trader's exposure, and the episodes with the
-// news that turned them. Everything comes from the daily pipeline (backend/quant).
+// news that turned them. Everything comes from the daily pipeline (server/quant).
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -48,7 +48,7 @@ export function MarketYear() {
           ) : q.isLoading ? (
             "Reading the regimes…"
           ) : q.data && !q.data.ready ? (
-            "No regimes yet. Run uv run -m backend.quant to load the bars and compute them."
+            "No regimes yet. Run uv run -m server.quant to load the bars and compute them."
           ) : (
             "The regimes could not be read."
           )

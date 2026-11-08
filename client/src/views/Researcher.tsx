@@ -129,7 +129,7 @@ export function Researcher() {
               ) : (
                 <p className="empty">
                   No research saved yet{trader ? ` for ${cap(trader)}` : ""}. Requests show here from the first cycle the traders run with
-                  span saving on: uv run -m backend.trading_floor.
+                  span saving on: uv run -m server.trading_floor.
                 </p>
               )}
             </Panel>

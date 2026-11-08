@@ -1,6 +1,6 @@
 """The lab worker: runs queued experiment trials one at a time on the local model.
 
-    uv run -m backend.lab
+    uv run -m server.lab
 
 Experiments are queued from the Experiments view (or POST /api/experiments); this
 process picks them up. It shares Ollama with the live trading floor, so trials run

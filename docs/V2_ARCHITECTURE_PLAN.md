@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | Status | Draft. Planning only, nothing here is implemented yet |
-| Scope | Whole repository: `backend/`, `frontend/`, `local_llm.py`, configuration |
+| Scope | Whole repository: `server/`, `client/`, `local_llm.py`, configuration |
 | Baseline commit | `fb7badc` (openai-agents 0.15.3, openai 2.34, Ollama `qwen2.5-coder:32b`) |
 | Last updated | 2026-11-04 |
 
@@ -40,7 +40,7 @@
 ### 1.1 Runtime topology as it actually runs
 
 ```text
-                         ┌──────────────────────────── one process: backend.trading_floor ────────────────────────────┐
+                         ┌──────────────────────────── one process: server.trading_floor ────────────────────────────┐
                          │ run_every_n_minutes(): every RUN_EVERY_N_MINUTES                                          │
                          │   is_market_open()  (Massive; returns True on any error or with no key)                   │
                          │   asyncio.gather(Warren.run(), George.run(), Ray.run(), Cathie.run())                    │
@@ -75,20 +75,20 @@
 
 | Component | File(s) | What it really does |
 |---|---|---|
-| Scheduler / engine | [trading_floor.py](../backend/trading_floor.py) | Infinite loop. Runs all four traders at once, then sleeps. No cycle ID, no run ID, no persisted state for trade vs rebalance. |
-| Trader | [traders.py](../backend/traders.py) | Rebuilds the agent and spawns 6 or more MCP subprocesses on every run. The Researcher is attached with `Agent.as_tool` (a nested `Runner.run`), not a handoff. Every exception is caught and printed. |
-| Researcher | [traders.py:27-39](../backend/traders.py#L27-L39), [templates.py](../backend/templates.py) | One Researcher instance per trader. All four share the same prompt, but each has its own memory database (`memory/<name>.db`). There is no shared researcher. |
-| Prompts | [templates.py](../backend/templates.py) | `trade_message` and `rebalance_message` are about 80% identical. `datetime.now()` is baked into the prompts. `note` is computed once at import time. |
-| Strategies | [reset.py](../backend/reset.py) | Four prompts that pay homage to famous investors. They are stored in the DB, and the agent can rewrite its own strategy (`change_strategy`). |
-| Accounts domain | [accounts.py](../backend/accounts.py) | A Pydantic model saved as one JSON blob per account. Fills at `price × (1 ± 0.2%)`. Money is stored as floats. |
-| Accounts MCP | [accounts_server.py](../backend/accounts_server.py) | Tools: `get_balance`, `get_holdings`, `buy_shares`, `sell_shares`, `change_strategy`. Each tool takes the account `name` as an argument. Resources: account report and strategy. |
-| Market data | [market.py](../backend/market.py), [market_simulator.py](../backend/market_simulator.py) | Massive REST with a tiered fallback (last trade → snapshot → previous close). Falls back to a deterministic value-noise simulator when the key is missing or the API fails. |
-| Market MCP | [mcp_servers.py](../backend/mcp_servers.py) | With a key, the agent gets Massive's own MCP server (`search_endpoints` / `call_api` meta-tools). Without one it gets `lookup_share_price`. |
-| Push | [push_server.py](../backend/push_server.py) | A Pushover POST. It is sent even when no credentials are set, and it is never stubbed. |
-| Tracing | [tracers.py](../backend/tracers.py) | Encodes the trader name into the trace ID and parses it back out. Writes a one-line string per span start/end. Drops inputs, outputs, usage, timing and parent IDs. |
-| Storage | [database.py](../backend/database.py) | Two tables: `accounts(name, account JSON)` and `logs(name, datetime, type, message)`. The schema is created at import time. |
-| API | [api.py](../backend/api.py) | Read-only FastAPI. Imports `backend.trading_floor` just to get the names, which pulls in the whole agent stack. |
-| Frontend | [frontend/src](../frontend/src) | Four trader panels: chart, heatmap, log and transactions. Polls the API. The chart adds a point on every poll on the client side only. |
+| Scheduler / engine | [trading_floor.py](../server/trading_floor.py) | Infinite loop. Runs all four traders at once, then sleeps. No cycle ID, no run ID, no persisted state for trade vs rebalance. |
+| Trader | [traders.py](../server/traders.py) | Rebuilds the agent and spawns 6 or more MCP subprocesses on every run. The Researcher is attached with `Agent.as_tool` (a nested `Runner.run`), not a handoff. Every exception is caught and printed. |
+| Researcher | [traders.py:27-39](../server/traders.py#L27-L39), [templates.py](../server/templates.py) | One Researcher instance per trader. All four share the same prompt, but each has its own memory database (`memory/<name>.db`). There is no shared researcher. |
+| Prompts | [templates.py](../server/templates.py) | `trade_message` and `rebalance_message` are about 80% identical. `datetime.now()` is baked into the prompts. `note` is computed once at import time. |
+| Strategies | [reset.py](../server/reset.py) | Four prompts that pay homage to famous investors. They are stored in the DB, and the agent can rewrite its own strategy (`change_strategy`). |
+| Accounts domain | [accounts.py](../server/accounts.py) | A Pydantic model saved as one JSON blob per account. Fills at `price × (1 ± 0.2%)`. Money is stored as floats. |
+| Accounts MCP | [accounts_server.py](../server/accounts_server.py) | Tools: `get_balance`, `get_holdings`, `buy_shares`, `sell_shares`, `change_strategy`. Each tool takes the account `name` as an argument. Resources: account report and strategy. |
+| Market data | [market.py](../server/market.py), [market_simulator.py](../server/market_simulator.py) | Massive REST with a tiered fallback (last trade → snapshot → previous close). Falls back to a deterministic value-noise simulator when the key is missing or the API fails. |
+| Market MCP | [mcp_servers.py](../server/mcp_servers.py) | With a key, the agent gets Massive's own MCP server (`search_endpoints` / `call_api` meta-tools). Without one it gets `lookup_share_price`. |
+| Push | [push_server.py](../server/push_server.py) | A Pushover POST. It is sent even when no credentials are set, and it is never stubbed. |
+| Tracing | [tracers.py](../server/tracers.py) | Encodes the trader name into the trace ID and parses it back out. Writes a one-line string per span start/end. Drops inputs, outputs, usage, timing and parent IDs. |
+| Storage | [database.py](../server/database.py) | Two tables: `accounts(name, account JSON)` and `logs(name, datetime, type, message)`. The schema is created at import time. |
+| API | [api.py](../server/api.py) | Read-only FastAPI. Imports `server.trading_floor` just to get the names, which pulls in the whole agent stack. |
+| Frontend | [client/src](../client/src) | Four trader panels: chart, heatmap, log and transactions. Polls the API. The chart adds a point on every poll on the client side only. |
 | Model | [local_llm.py](../local_llm.py) | Every agent uses the same Ollama model. `get_model()` ignores its argument. |
 | Tests / CI | — | **None.** No tests, linting, type checks or CI. |
 
@@ -102,7 +102,7 @@ The numbers below come from the existing `logs` table. They are the "before" bas
 | `function` spans vs `mcp_tools` (list-tools) spans | 212 vs 834 | About 4 tool-list calls per real tool call. Tool lists are not cached (`cache_tools_list` is unset). This is a cheap latency win that needs measuring first. |
 | Researcher calls started vs ended | 14 vs 10 | 4 researcher runs have no recorded end. **The current logs cannot say whether they timed out, crashed, or the engine was stopped.** This is the observability gap in one number. |
 | Transactions per trader | Warren 14, George 4, Ray 1, Cathie 0 | Cathie (crypto ETFs) never traded. Nothing records why. |
-| An `ed` account exists | 1 txn | `Account.get()` creates a funded $10k account for **any** name ([accounts.py:37-48](../backend/accounts.py#L37-L48)), and every tool takes `name` as an argument. Whatever created this row, the code cannot prevent it. |
+| An `ed` account exists | 1 txn | `Account.get()` creates a funded $10k account for **any** name ([accounts.py:37-48](../server/accounts.py#L37-L48)), and every tool takes `name` as an argument. Whatever created this row, the code cannot prevent it. |
 | Strategy rewrites | 2 | The experimental conditions drift without any record of the change: the original strategy text is overwritten. |
 
 ### 1.4 Defects and design issues found during inspection
@@ -111,21 +111,21 @@ These matter for V2 because several of them would quietly corrupt evaluation dat
 
 | # | Issue | Location | Effect on V2 |
 |---|---|---|---|
-| D1 | Invalid or unknown tickers get a **made-up price**. Massive errors fall back to `simulated_price`, and the simulator returns a price for any string. | [market.py:37-43](../backend/market.py#L37-L43) | Agents can "buy" `FOOBAR`. Real and synthetic prices get mixed in one portfolio with no flag. This is silent corruption. |
-| D2 | `is_market_open()` fails **open** | [market.py:61-68](../backend/market.py#L61-L68) | An outage looks like an open market. |
-| D3 | `price == 0` check is unreachable and ordered after the cash check | [accounts.py:85-88](../backend/accounts.py#L85-L88) | No real symbol validation. |
-| D4 | Tools take the account `name` as a model-supplied argument, and `Account.get` creates accounts on demand | [accounts_server.py](../backend/accounts_server.py), [accounts.py:37](../backend/accounts.py#L37) | Agents can act on other accounts or create new ones. This is a capability-scoping bug. |
-| D5 | `report()` **writes**: it appends a time-series point on every read | [accounts.py:153-160](../backend/accounts.py#L153-L160) | Portfolio history is sampled whenever an agent happens to read the account. You cannot compute returns at regular intervals from it. |
-| D6 | `get_profit_loss()` calls `calculate_profit_loss()` without its required argument | [accounts.py:145-147](../backend/accounts.py#L145-L147) | Latent crash. |
-| D7 | MCP tool annotations say `-> float` but return `str` | [accounts_server.py:25,38](../backend/accounts_server.py#L25) | The tool schema advertised to the model is wrong. |
-| D8 | The price the agent sees comes from the market MCP server. The fill price comes from a separate `get_share_price` call, possibly through a different Massive tier. | [accounts.py:82](../backend/accounts.py#L82), [mcp_servers.py](../backend/mcp_servers.py) | The decision price and the fill price can differ, and nothing records the gap. |
-| D9 | Mixed clocks: transactions use naive local time, logs use SQLite `datetime('now')` (UTC), the frontend parses timestamps as local | [database.py:58](../backend/database.py#L58), [accounts.py](../backend/accounts.py) | Timelines cannot be joined reliably. |
-| D10 | `datetime.now()` is called in prompts, accounts and the simulator. There is no clock abstraction. | [templates.py](../backend/templates.py) | Nothing can be replayed or backtested. |
-| D11 | The prompts mention tools the trader does not have ("entity tools" for memory; "get company news") | [templates.py:42,53](../backend/templates.py#L42) | Invites calls to tools that do not exist. This is measurable. |
-| D12 | Unpinned `npx -y tavily-mcp@latest` and `mcp-memory-libsql` | [mcp_servers.py:54,61](../backend/mcp_servers.py#L54) | Not reproducible, and a supply-chain risk. |
-| D13 | Errors are swallowed and printed. `do_trade` still toggles. `MaxTurnsExceeded` cannot be told apart from other errors. | [traders.py:95-100](../backend/traders.py#L95-L100) | Failures are invisible and cannot be classified. |
-| D14 | Researcher memory persists across runs (`memory/<name>.db`) | [mcp_servers.py:62](../backend/mcp_servers.py#L62) | State leaks between experiments. |
-| D15 | The API calls live `get_share_price` for every holding on every 6 s poll | [api.py:50](../backend/api.py#L50) | Massive rate-limit pressure. The UI shows a different price than the agents saw. |
+| D1 | Invalid or unknown tickers get a **made-up price**. Massive errors fall back to `simulated_price`, and the simulator returns a price for any string. | [market.py:37-43](../server/market.py#L37-L43) | Agents can "buy" `FOOBAR`. Real and synthetic prices get mixed in one portfolio with no flag. This is silent corruption. |
+| D2 | `is_market_open()` fails **open** | [market.py:61-68](../server/market.py#L61-L68) | An outage looks like an open market. |
+| D3 | `price == 0` check is unreachable and ordered after the cash check | [accounts.py:85-88](../server/accounts.py#L85-L88) | No real symbol validation. |
+| D4 | Tools take the account `name` as a model-supplied argument, and `Account.get` creates accounts on demand | [accounts_server.py](../server/accounts_server.py), [accounts.py:37](../server/accounts.py#L37) | Agents can act on other accounts or create new ones. This is a capability-scoping bug. |
+| D5 | `report()` **writes**: it appends a time-series point on every read | [accounts.py:153-160](../server/accounts.py#L153-L160) | Portfolio history is sampled whenever an agent happens to read the account. You cannot compute returns at regular intervals from it. |
+| D6 | `get_profit_loss()` calls `calculate_profit_loss()` without its required argument | [accounts.py:145-147](../server/accounts.py#L145-L147) | Latent crash. |
+| D7 | MCP tool annotations say `-> float` but return `str` | [accounts_server.py:25,38](../server/accounts_server.py#L25) | The tool schema advertised to the model is wrong. |
+| D8 | The price the agent sees comes from the market MCP server. The fill price comes from a separate `get_share_price` call, possibly through a different Massive tier. | [accounts.py:82](../server/accounts.py#L82), [mcp_servers.py](../server/mcp_servers.py) | The decision price and the fill price can differ, and nothing records the gap. |
+| D9 | Mixed clocks: transactions use naive local time, logs use SQLite `datetime('now')` (UTC), the frontend parses timestamps as local | [database.py:58](../server/database.py#L58), [accounts.py](../server/accounts.py) | Timelines cannot be joined reliably. |
+| D10 | `datetime.now()` is called in prompts, accounts and the simulator. There is no clock abstraction. | [templates.py](../server/templates.py) | Nothing can be replayed or backtested. |
+| D11 | The prompts mention tools the trader does not have ("entity tools" for memory; "get company news") | [templates.py:42,53](../server/templates.py#L42) | Invites calls to tools that do not exist. This is measurable. |
+| D12 | Unpinned `npx -y tavily-mcp@latest` and `mcp-memory-libsql` | [mcp_servers.py:54,61](../server/mcp_servers.py#L54) | Not reproducible, and a supply-chain risk. |
+| D13 | Errors are swallowed and printed. `do_trade` still toggles. `MaxTurnsExceeded` cannot be told apart from other errors. | [traders.py:95-100](../server/traders.py#L95-L100) | Failures are invisible and cannot be classified. |
+| D14 | Researcher memory persists across runs (`memory/<name>.db`) | [mcp_servers.py:62](../server/mcp_servers.py#L62) | State leaks between experiments. |
+| D15 | The API calls live `get_share_price` for every holding on every 6 s poll | [api.py:50](../server/api.py#L50) | Massive rate-limit pressure. The UI shows a different price than the agents saw. |
 | D16 | The tool-call recovery hack in `local_llm.py` runs silently | [local_llm.py:36-68](../local_llm.py#L36-L68) | A real reliability mechanism that is never measured. How often does it fire, and does it ever misfire? |
 
 ### 1.5 What is genuinely good and worth keeping
@@ -580,7 +580,7 @@ run_id ─► cycle_id ─► SDK trace_id (one per trader per cycle) ─► SDK
                           └─► decision_id ─► order_id (= broker client_order_id) ─► fill ─► portfolio snapshot
 ```
 
-- Use what the SDK already offers: `trace(..., group_id=cycle_id, metadata={run_id, trader, mode, config_hash})`. This replaces the "name encoded in the trace ID" hack in [tracers.py](../backend/tracers.py), and `group_id` makes the OpenAI trace UI show the four traders of one cycle together.
+- Use what the SDK already offers: `trace(..., group_id=cycle_id, metadata={run_id, trader, mode, config_hash})`. This replaces the "name encoded in the trace ID" hack in [tracers.py](../server/tracers.py), and `group_id` makes the OpenAI trace UI show the four traders of one cycle together.
 - MCP subprocesses receive `LAB_RUN_ID` / `LAB_CYCLE_ID` / `LAB_TRACE_ID` in their spawn env, so every order and fill they record carries the trace it came from.
 
 ### 6.2 What we store
@@ -1046,7 +1046,7 @@ Each phase lists: **what you will see**, **what gets built**, **the one-line pit
 I've gone through CLAUDE.md, §1.4, §4.3–4.4, §11.2 and Phase 5. I also checked two things in the code and against the Massive API before proposing anything, and both change the plan.
 
 
-#### Quant MCP server (`backend/quant_server.py`, deterministic, no LLM)
+#### Quant MCP server (`server/quant_server.py`, deterministic, no LLM)
 
 `as_of` and the trader's account are fixed when the server starts (env `QUANT_AS_OF`, `QUANT_TRADER`), never passed by the model. That is the same capability-scoping lesson as D4, and it is what stops look-ahead in the Lab. Every output states "as of close YYYY-MM-DD" and stays at 30 rows or fewer.
 
@@ -1163,7 +1163,7 @@ Calm bull for 18 days since 9 Oct; rules and HMM agree (0.81). Trend has paid in
 
 #### Build order (each step ends visible)
 
-1. **Bars backfill + Market Year view.** Fix D1 in fills. Load the ~40 symbols into `bars` (Massive for recent bars, rate-limited and resumable). Then run features, rules and HMM regimes, and the scoreboard. Add `uv run -m backend.market_year` and the view. New deps: `numpy` and `hmmlearn` (fit only).
+1. **Bars backfill + Market Year view.** Fix D1 in fills. Load the ~40 symbols into `bars` (Massive for recent bars, rate-limited and resumable). Then run features, rules and HMM regimes, and the scoreboard. Add `uv run -m server.market_year` and the view. New deps: `numpy` and `hmmlearn` (fit only).
 2. **Quant server.** Wire it into `mcp_servers.py`; Quant calls appear as market calls in Decisions.
 3. **Warren and George playbooks.** Add rule lists, turn off `change_strategy`, and add the Playbook check in Decisions.
 4. **Jim + Synthesizer.** Wire the fifth trader through everything that assumes four, add `--t-jim`, the thesis panel and the groundedness flags.

@@ -617,7 +617,7 @@ function DeskExposure() {
   if (!year) {
     return (
       <Panel title="Desk exposure" id="exposure">
-        <p className="muted">{q.isLoading ? "Reading…" : "No Market Year yet: run uv run -m backend.quant."}</p>
+        <p className="muted">{q.isLoading ? "Reading…" : "No Market Year yet: run uv run -m server.quant."}</p>
       </Panel>
     );
   }

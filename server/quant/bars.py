@@ -104,7 +104,7 @@ def panel(until: str | None = None, symbols: list[str] = SYMBOLS) -> Panel:
     rows = store.read_bars(symbols, until)
     days = sorted({r["day"] for r in rows if r["symbol"] == BENCHMARK})
     if not days:
-        raise RuntimeError("No bars loaded. Run uv run -m backend.quant first.")
+        raise RuntimeError("No bars loaded. Run uv run -m server.quant first.")
     at = {d: i for i, d in enumerate(days)}
     arrays = {k: np.full((len(days), len(symbols)), np.nan) for k in ("close", "open", "high", "low", "volume")}
     pos = {s: j for j, s in enumerate(symbols)}

@@ -26,7 +26,7 @@ if massive_api_key:
 else:
     market_params = {
         "command": "uv",
-        "args": ["run", "-m", "backend.market_server"],
+        "args": ["run", "-m", "server.market_server"],
         "cwd": PROJECT_DIR
     }
 
@@ -45,12 +45,12 @@ def trader_mcp_servers(name: str, trace_id: str | None = None) -> list[MCPServer
     """
     accounts_env = {"LAB_ACCOUNT": name, "LAB_TRACE_ID": trace_id or ""}
     params = [
-        {"command": "uv", "args": ["run", "-m", "backend.accounts_server"], "cwd": PROJECT_DIR, "env": accounts_env},
-        {"command": "uv", "args": ["run", "-m", "backend.push_server"], "cwd": PROJECT_DIR},
+        {"command": "uv", "args": ["run", "-m", "server.accounts_server"], "cwd": PROJECT_DIR, "env": accounts_env},
+        {"command": "uv", "args": ["run", "-m", "server.push_server"], "cwd": PROJECT_DIR},
         market_params,
     ]
     if name in QUANT_TRADERS:
-        params.append({"command": "uv", "args": ["run", "-m", "backend.quant_server"], "cwd": PROJECT_DIR,
+        params.append({"command": "uv", "args": ["run", "-m", "server.quant_server"], "cwd": PROJECT_DIR,
                        "env": {"QUANT_ACCOUNT": name}})
     servers = [MCPServerStdio(p, client_session_timeout_seconds=TIMEOUT) for p in params]
     if name in PLAYBOOK_TRADERS:

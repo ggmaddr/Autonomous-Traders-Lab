@@ -1,6 +1,6 @@
 """The Experiment Lab's endpoints. Everything is a read except two small writes that
 only touch the lab's own tables: queueing an experiment and cancelling one. The
-worker (uv run -m backend.lab) does the running; nothing here calls a model.
+worker (uv run -m server.lab) does the running; nothing here calls a model.
 """
 
 import secrets

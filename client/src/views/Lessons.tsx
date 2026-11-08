@@ -1,5 +1,5 @@
 // Lessons: what have the agents learned, and is it still true? Every lesson the
-// post-cycle review wrote (backend/review.py), newest first, with its verdict, the
+// post-cycle review wrote (server/review.py), newest first, with its verdict, the
 // return it was judged on against SPY, how often the same lesson recurs, whether a
 // later one contradicted it, and whether the trader recalled it before trading. Each
 // links to its fills on Decisions, with their P&L from the same ledger as Money.

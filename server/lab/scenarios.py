@@ -15,7 +15,7 @@ from pathlib import Path
 import yaml
 
 SCENARIO_DIR = Path(__file__).parent / "scenarios"
-SPREAD = 0.002  # half-spread on every fill, as in backend/accounts.py
+SPREAD = 0.002  # half-spread on every fill, as in server/accounts.py
 BENCHMARK = "SPY"
 RANDOM_DRAWS = 400
 
