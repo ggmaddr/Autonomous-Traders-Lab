@@ -1,4 +1,4 @@
-"""Annual fundamentals from SEC EDGAR's XBRL company facts, for Warren's screen and his
+"""Annual fundamentals from SEC EDGAR's XBRL company facts, for Jinbe's screen and the
 owner-earnings DCF (plan §4.4.1). Free and official; the Massive plan does not include
 fundamentals. SEC asks every client to name itself with a contact in the User-Agent:
 set SEC_USER_AGENT in .env ("Your Name you@example.com").

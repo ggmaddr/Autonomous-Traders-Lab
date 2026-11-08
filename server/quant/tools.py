@@ -1,4 +1,4 @@
-"""The Quant's numbers as plain functions of an as-of day (plan §4.4.3, Jim's agent
+"""The Quant's numbers as plain functions of an as-of day (plan §4.4.3, Robin's agent
 team). quant_server.py serves them over MCP to the live traders, bound to today and
 to one account; the Experiment Lab will hand the same functions to a trial as SDK
 function tools, bound to the scenario's day. The model never chooses the day, so it
@@ -26,7 +26,7 @@ TO_SHY_AT = -0.12
 MAX_SWITCHES = 3
 RISK_WINDOW = YEAR
 
-# Warren's screen (§4.4.1)
+# Jinbe's screen (§4.4.1)
 MIN_ROIC = 0.15
 MAX_NET_DEBT_EBITDA = 2.0
 MIN_PIOTROSKI = 7
@@ -211,7 +211,7 @@ class Quant:
                 "portfolio_vol_before_scaling": vol, "scale": round(scale, 4),
                 "drawdown_from_peak": round(drawdown, 4), "brake": brake, "rows": rows[:MAX_ROWS], "no_data": unpriced}
 
-    # --- playbook tools: Warren's screen and valuation, George's dashboard ----------
+    # --- playbook tools: Jinbe's screen and valuation, Law's dashboard ----------
 
     def close_of(self, symbol: str) -> float | None:
         p = self.panel
@@ -222,7 +222,7 @@ class Quant:
         return float(ok[-1]) if len(ok) else None
 
     def quality_screen(self, symbols: list[str] | None = None) -> dict:
-        """Warren's five tests on each candidate. A test whose inputs a company does not
+        """Jinbe's five tests on each candidate. A test whose inputs a company does not
         report is "unknown", and a candidate passes only on five known passes."""
         names = [s.upper() for s in symbols] if symbols else QUALITY
         rows = []
@@ -268,8 +268,8 @@ class Quant:
                 **({} if price is not None else {"note": "no stored close for this symbol; price and margin of safety unknown"})}
 
     def macro_dashboard(self) -> dict:
-        """George's growth × inflation quadrant from market proxies, and trend and stretch
-        for each ETF in his universe."""
+        """Law's growth × inflation quadrant from market proxies, and trend and stretch
+        for each ETF in the macro universe."""
         f = self.rows["rules"][-1]["features"]
         growth = (f.get("copper_gold") or 0) + (f.get("credit") or 0)
         inflation = f.get("breakevens") or 0

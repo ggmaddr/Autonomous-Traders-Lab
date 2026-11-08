@@ -7,12 +7,15 @@ from agents import Agent, Tool, Runner, trace
 from dotenv import load_dotenv
 import json
 from local_llm import local_model, MODEL_NAME
-from . import jim
+from . import luffy, robin
 from .accounts import Account
 from .database import read_spans
 from .playbooks import playbook_of
 from .runs import _data, tool_text
 from .templates import (
+    day_trade_message,
+    day_trade_research_tool,
+    day_trade_researcher_instructions,
     playbook_trader_instructions,
     researcher_instructions,
     trader_instructions,
@@ -32,19 +35,22 @@ def get_model(model_name: str):
     return local_model
 
 
-async def get_researcher(mcp_servers, model_name) -> Agent:
+async def get_researcher(mcp_servers, model_name, day_trade: bool = False) -> Agent:
     researcher = Agent(
         name="Researcher",
-        instructions=researcher_instructions(),
+        instructions=day_trade_researcher_instructions() if day_trade else researcher_instructions(),
         model=get_model(model_name),
         mcp_servers=mcp_servers,
     )
     return researcher
 
 
-async def get_researcher_tool(mcp_servers, model_name) -> Tool:
-    researcher = await get_researcher(mcp_servers, model_name)
-    return researcher.as_tool(tool_name="Researcher", tool_description=research_tool())
+async def get_researcher_tool(mcp_servers, model_name, day_trade: bool = False) -> Tool:
+    # The day trader's researcher keeps the tool name "Researcher", so its requests show on
+    # the Researcher view like every other trader's.
+    researcher = await get_researcher(mcp_servers, model_name, day_trade)
+    return researcher.as_tool(tool_name="Researcher",
+                              tool_description=day_trade_research_tool() if day_trade else research_tool())
 
 
 class Trader:
@@ -57,14 +63,15 @@ class Trader:
         self.trace_id = None
         self.cycle_id = None
         self.playbook = playbook_of(name)
-        self.jim_mode: str | None = None  # Jim's cycle: thesis-first, thesis-regime, thesis-weekly or check
+        self.robin_mode: str | None = None  # Robin's cycle: thesis-first, thesis-regime, thesis-weekly or check
 
     async def create_agent(self, trader_mcp_servers, researcher_mcp_servers) -> Agent:
-        tools = [await get_researcher_tool(researcher_mcp_servers, self.model_name)]
-        if self.name == jim.NAME:
-            tools.append(jim.synthesizer_tool(get_model(self.model_name)))
+        day_trader = self.name == luffy.NAME
+        tools = [await get_researcher_tool(researcher_mcp_servers, self.model_name, day_trade=day_trader)]
+        if self.name == robin.NAME:
+            tools.append(robin.synthesizer_tool(get_model(self.model_name)))
         instructions = (
-            playbook_trader_instructions(self.name, synthesizer=self.name == jim.NAME)
+            playbook_trader_instructions(self.name, synthesizer=self.name == robin.NAME, day_trader=day_trader)
             if self.playbook
             else trader_instructions(self.name)
         )
@@ -90,11 +97,13 @@ class Trader:
         account = await self.get_account_report()
         strategy = await read_strategy_resource(self.name)
         start_run(self.trace_id, self.cycle_id, self.name, self.mode, strategy, account, _now())
-        if self.jim_mode:
+        if self.name == luffy.NAME:
+            message = day_trade_message(strategy, account)
+        elif self.robin_mode:
             message = (
-                jim.check_message(strategy, account)
-                if self.jim_mode == "check"
-                else jim.thesis_message(strategy, account, self.jim_mode)
+                robin.check_message(strategy, account)
+                if self.robin_mode == "check"
+                else robin.thesis_message(strategy, account, self.robin_mode)
             )
         else:
             message = (
@@ -119,11 +128,13 @@ class Trader:
 
     @property
     def mode(self) -> str:
-        return self.jim_mode or ("trade" if self.do_trade else "rebalance")
+        if self.name == luffy.NAME:
+            return luffy.MODE
+        return self.robin_mode or ("trade" if self.do_trade else "rebalance")
 
     async def run_with_trace(self):
-        if self.jim_mode:
-            trace_name = f"{self.name}-{self.jim_mode}"
+        if self.name == luffy.NAME or self.robin_mode:
+            trace_name = f"{self.name}-{self.mode}"
         else:
             trace_name = f"{self.name}-trading" if self.do_trade else f"{self.name}-rebalancing"
         metadata = {"trader": self.name, "mode": self.mode, "cycle_id": self.cycle_id, "model": self.model_name}
@@ -134,8 +145,8 @@ class Trader:
     async def run(self, cycle_id: str | None = None):
         self.cycle_id = cycle_id
         self.trace_id = make_trace_id(f"{self.name.lower()}")
-        if self.name == jim.NAME:
-            self.jim_mode = jim.cycle_mode()
+        if self.name == robin.NAME:
+            self.robin_mode = robin.cycle_mode()
         output, error = None, None
         try:
             output = await self.run_with_trace()
@@ -147,19 +158,19 @@ class Trader:
         except Exception:
             after = None
         end_run(self.trace_id, after, output, error, _now())
-        if self.jim_mode and self.jim_mode != "check":
+        if self.robin_mode and self.robin_mode != "check":
             self.remember_thesis()
         self.do_trade = not self.do_trade
 
     def remember_thesis(self):
-        """Jim's thesis from this run's Synthesizer span, into his memory graph."""
+        """Robin's thesis from this run's Synthesizer span, into Robin's memory graph."""
         for span in reversed(read_spans([self.trace_id])):
             d = _data(span)
             if d.get("type") == "function" and d.get("name") == "Synthesizer":
                 try:
-                    jim.remember_thesis(json.loads(tool_text(d.get("output"))), self.trace_id)
+                    robin.remember_thesis(json.loads(tool_text(d.get("output"))), self.trace_id)
                 except (ValueError, KeyError, TypeError) as e:
-                    print(f"Jim's thesis not stored: {type(e).__name__}: {e}")
+                    print(f"Robin's thesis not stored: {type(e).__name__}: {e}")
                 return
 
 

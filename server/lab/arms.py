@@ -6,21 +6,20 @@ k times each.
 import requests
 
 from local_llm import MODEL_NAME, OLLAMA_BASE_URL
-from ..playbooks import GEORGE, JIM, WARREN
-from ..reset import cathie_strategy, george_strategy, ray_strategy, warren_strategy
+from ..playbooks import LAW, ROBIN, JINBE
+from ..reset import jinbe_strategy, law_strategy, nami_strategy
 
 STRATEGIES = {
-    "value": ("Warren", "Value, patient", warren_strategy),
-    "macro": ("George", "Macro, contrarian", george_strategy),
-    "risk_parity": ("Ray", "Risk parity, systematic", ray_strategy),
-    "thematic": ("Cathie", "Disruptive growth", cathie_strategy),
-    "value_playbook": ("Warren", "Value playbook", WARREN["text"]),
-    "macro_playbook": ("George", "Macro playbook", GEORGE["text"]),
+    "value": ("Jinbe", "Value, patient", jinbe_strategy),
+    "macro": ("Law", "Macro, contrarian", law_strategy),
+    "risk_parity": ("Nami", "Risk parity, systematic", nami_strategy),
+    "value_playbook": ("Jinbe", "Value playbook", JINBE["text"]),
+    "macro_playbook": ("Law", "Macro playbook", LAW["text"]),
 }
 # Which playbook's rules an arm's orders are checked against (E14): a persona and its
 # playbook are held to the same rules, so the difference is the text alone.
-RULES_OF = {"value": WARREN, "value_playbook": WARREN, "macro": GEORGE, "macro_playbook": GEORGE}
-JIM_STRATEGY = JIM["text"]
+RULES_OF = {"value": JINBE, "value_playbook": JINBE, "macro": LAW, "macro_playbook": LAW}
+ROBIN_STRATEGY = ROBIN["text"]
 
 STATIC = [
     {
@@ -29,8 +28,8 @@ STATIC = [
         "question": "Does an LLM add anything to a regime strategy, and does a Synthesizer help? (E12, E13)",
         "values": [
             {"id": "trader", "label": "Trader", "detail": "One trader agent on the chosen strategy, as on the live floor"},
-            {"id": "jim", "label": "Jim", "detail": "The regime quant: Quant tools, the Researcher and a Synthesizer that writes a TradeThesis. Regime scenarios only"},
-            {"id": "jim_raw", "label": "Jim, no Synthesizer", "detail": "Jim reading the research and the Quant's numbers himself. Regime scenarios only"},
+            {"id": "robin", "label": "Robin", "detail": "The regime quant: Quant tools, the Researcher and a Synthesizer that writes a TradeThesis. Regime scenarios only"},
+            {"id": "robin_raw", "label": "Robin, no Synthesizer", "detail": "Robin reading the research and the Quant's numbers himself. Regime scenarios only"},
         ],
         "default": ["trader"],
     },
@@ -96,7 +95,7 @@ def dimensions() -> list[dict]:
 
 
 DIMENSION_IDS = ["agent", "researcher", "model", "prompt", "strategy"]
-JIM_AGENTS = {"jim", "jim_raw"}
+ROBIN_AGENTS = {"robin", "robin_raw"}
 
 
 def arm_id(arm: dict) -> str:
@@ -104,15 +103,15 @@ def arm_id(arm: dict) -> str:
 
 
 def combinations(chosen: dict[str, list[str]]) -> list[dict]:
-    """Every combination of the chosen values. Jim trades his own playbook, so his arms
+    """Every combination of the chosen values. Robin trades a fixed playbook, so those arms
     take no strategy value and are not repeated per strategy."""
     arms = [{}]
     for d in DIMENSION_IDS:
         arms = [{**a, d: v} for a in arms for v in (chosen.get(d) or (["trader"] if d == "agent" else []))]
     out, seen = [], set()
     for a in arms:
-        if a["agent"] in JIM_AGENTS:
-            a = {**a, "strategy": "jim", "prompt": "fixed"}
+        if a["agent"] in ROBIN_AGENTS:
+            a = {**a, "strategy": "robin", "prompt": "fixed"}
         if arm_id(a) not in seen:
             seen.add(arm_id(a))
             out.append(a)

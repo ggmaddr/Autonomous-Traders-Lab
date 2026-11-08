@@ -1,10 +1,10 @@
-"""Jim, the regime quant (plan §4.4.3): a trader built differently from the other four.
-He does not predict prices. The Quant measures the regime and which signals have paid in
+"""Robin, the regime quant (plan §4.4.3): a trader built differently from the other four.
+Robin does not predict prices. The Quant measures the regime and which signals have paid in
 it; the Researcher is asked only what the numbers cannot say; the Synthesizer weighs the
 two and returns a structured TradeThesis; size_positions turns it into quantities under
-limits Jim cannot override.
+limits Robin cannot override.
 
-Each cycle is gated deterministically: a full thesis run on his first run, on a regime
+Each cycle is gated deterministically: a full thesis run on the first run, on a regime
 change (at most three a month), or once a week; every other cycle only checks the
 drawdown brake and stops.
 """
@@ -19,7 +19,7 @@ from . import memory
 from .database import read_runs
 from .quant import store
 
-NAME = "Jim"
+NAME = "Robin"
 MAX_REGIME_SWITCHES = 3
 REBALANCE_DAYS = 7
 
@@ -61,8 +61,8 @@ class TradeThesis(BaseModel):
     lessons_used: list[int]
 
 
-SYNTHESIZER_INSTRUCTIONS = """You are the Synthesizer on Jim's desk. You receive the Quant's outputs (the regime, the
-signal scoreboard, signal scans, risk), the Researcher's report and any lessons Jim recalled. Weigh them and return a
+SYNTHESIZER_INSTRUCTIONS = """You are the Synthesizer on Robin's desk. You receive the Quant's outputs (the regime, the
+signal scoreboard, signal scans, risk), the Researcher's report and any lessons Robin recalled. Weigh them and return a
 trade thesis.
 
 Rules:
@@ -152,7 +152,7 @@ Your account:
 # --- Memory -----------------------------------------------------------------------
 
 def remember_thesis(thesis: dict, trace_id: str):
-    """The thesis as an entity in Jim's graph, linked to the regime episode it was made in."""
+    """The thesis as an entity in Robin's graph, linked to the regime episode it was made in."""
     day = datetime.now(timezone.utc).date().isoformat()
     name = f"Thesis {day}"
     rows = store.read_regimes("rules", until=day)

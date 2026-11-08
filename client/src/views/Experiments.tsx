@@ -31,7 +31,7 @@ import { Heatmap, divergingFill } from "../charts";
 import { count, longDate, parseIso, price, signedPct, stamp, time, tokens } from "../lib/format";
 import {
   DIMS,
-  JIM_AGENTS,
+  ROBIN_AGENTS,
   armCount,
   armLabel,
   dimLabel,
@@ -181,14 +181,14 @@ function Rig({ catalog, onQueued }: { catalog: LabCatalog; onQueued: (id: string
   const [name, setName] = useState("");
   const arms = armCount(chosen);
   const synthetic = catalog.scenarios.filter((s) => scenarios.includes(s.id) && s.family !== "regime");
-  const jimChosen = (chosen.agent ?? []).some((a) => JIM_AGENTS.includes(a));
+  const robinChosen = (chosen.agent ?? []).some((a) => ROBIN_AGENTS.includes(a));
   const runs = arms * scenarios.length * trials;
   const eta = runs * catalog.estimate.seconds;
   const missing = DIMS.find((d) => !chosen[d]?.length);
   const problem = !scenarios.length
     ? "Pick at least one scenario"
-    : jimChosen && synthetic.length
-      ? `Jim trades on real bars: pick only regime scenarios (not ${synthetic.map((s) => s.title).join(", ")})`
+    : robinChosen && synthetic.length
+      ? `Robin trades on real bars: pick only regime scenarios (not ${synthetic.map((s) => s.title).join(", ")})`
       : missing
         ? `Pick at least one ${dimLabel(catalog, missing).toLowerCase()}`
         : runs > MAX_TRIALS

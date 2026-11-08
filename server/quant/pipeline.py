@@ -48,7 +48,7 @@ async def run(news: bool = True) -> dict:
         explained = await events.explain_all(out["rows"], f"{out['as_of'][:4]}-01-01", spy_detail(out["panel"]))
         print(f"Explained {explained} transitions")
     episodes = year_graph.write(out["panel"], out["rows"]["rules"], out["as_of"])
-    print(f"Jim's memory: {episodes} regime episodes this year")
+    print(f"Robin's memory: {episodes} regime episodes this year")
     return {"as_of": out["as_of"], "bars": loaded, "explained": explained}
 
 

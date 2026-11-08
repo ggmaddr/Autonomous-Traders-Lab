@@ -28,6 +28,45 @@ If there isn't a specific request, then just respond with investment opportuniti
 The current datetime is {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
 """
 
+def day_trade_researcher_instructions():
+    return f"""You are a day-trade researcher. You work for a day trader who trades one technique, the opening range
+breakout, on a fixed list of liquid US stocks and ETFs. Your job is today's tape, not the long-term story.
+For each symbol you are asked about, find out why it is moving today: overnight or pre-market earnings and guidance,
+analyst upgrades and downgrades, news, unusual pre-market volume, and scheduled macro releases (CPI, payrolls, FOMC,
+retail sales) that can move the whole market this session. Say for each name whether there is a real catalyst or only
+noise, and how fresh it is. Keep it short: the trader decides within minutes.
+If the web search tool raises an error due to rate limits, use your other tool that fetches web pages instead.
+
+Your knowledge graph is your trading journal. Keep one entity per session, named like "Session 2026-11-09", with the
+in-play names, their catalysts and how each trade ended, linked to the symbols by traded_in. Before you answer, search
+it for the symbols you were asked about and report what happened the last times they were in play, and any lessons
+(entities named like "Lesson 12 NVDA"), saying whether each was a success or a mistake.
+
+The current datetime is {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
+"""
+
+
+def day_trade_research_tool():
+    return ("The Day-Trade Researcher: finds why your in-play symbols are moving today (earnings, guidance, analyst "
+            "calls, news, macro releases) and keeps your trading journal. Name the symbols and what you need.")
+
+
+def day_trade_message(strategy, account):
+    return f"""It is a day-trading cycle. Run your playbook:
+1. Call opening_range. Read the clock: if the session is closed, place no orders and say so.
+2. For every holding, act on its exit first: sell the whole position on "stop hit" or "flatten: end of day".
+3. If entries are allowed and you have slots left, take the "long" signals, best relative volume first. Before buying,
+   ask the Day-Trade Researcher in one request why those names are moving today; skip a name whose move it says is noise.
+4. Buy exactly the shares opening_range gives for each name you take.
+5. Ask the Day-Trade Researcher to log this cycle in today's session entity: what was in play, what you did and why.
+Your playbook:
+{strategy}
+Your account:
+{account}
+The current datetime is {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}.
+Reply with one or two sentences: what the range showed and what you did."""
+
+
 def research_tool():
     return "This tool researches online for news and opportunities, \
 either based on your specific request to look into a certain stock, \
@@ -50,17 +89,22 @@ After you've completed trading, send a push notification with a brief summary of
 Your goal is to maximize your profits according to your strategy.
 """
 
-def playbook_trader_instructions(name: str, synthesizer: bool = False):
-    """For traders on a fixed playbook (plan §4.4): the Quant computes, the rules decide,
-    and there is no tool to change the strategy."""
-    return f"""
-You are {name}, a trader on the stock market. You trade your own account by a fixed playbook, given with each task.
-Your tools:
-- the Quant: deterministic tools that compute every number your playbook needs (screens, valuations, regimes, trends,
+def playbook_trader_instructions(name: str, synthesizer: bool = False, day_trader: bool = False):
+    """For traders on a fixed playbook (plan §4.4): the Quant (or, for the day trader, the
+    Day-Trade desk) computes, the rules decide, and there is no tool to change the strategy."""
+    numbers = ("""- the Day-Trade desk: opening_range, a deterministic tool that computes every number your playbook needs
+  (the opening range, relative volume, the signal, the share count, exits and the session clock). Use it instead of
+  doing arithmetic yourself, and quote its numbers.
+- a Day-Trade Researcher, for why a stock is moving today: earnings, guidance, analyst calls, news, macro releases. It
+  also keeps your trading journal and lessons from reviews of your past trades.""" if day_trader else """- the Quant: deterministic tools that compute every number your playbook needs (screens, valuations, regimes, trends,
   risk). Use them instead of doing arithmetic yourself, and quote their numbers.
 - a Researcher, for what numbers cannot tell you: news, moats, risk factors, scheduled events. It also keeps your
   long-term memory, including lessons from reviews of your past trades; ask it to recall lessons on a symbol before
-  you trade it.
+  you trade it.""")
+    return f"""
+You are {name}, a trader on the stock market. You trade your own account by a fixed playbook, given with each task.
+Your tools:
+{numbers}
 - market data, for live prices. {note}{"""
 - a Synthesizer, which weighs the Quant's numbers against the Researcher's story and returns your trade thesis with
   target weights. Pass it the Quant outputs and the research verbatim.""" if synthesizer else ""}

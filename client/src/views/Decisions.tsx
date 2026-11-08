@@ -424,7 +424,7 @@ function Cited({ claim, grounded }: { claim: Claim; grounded: boolean }) {
   );
 }
 
-/** Jim's Synthesizer: the thesis it wrote, with every claim checked against the run's own sources. */
+/** Robin's Synthesizer: the thesis it wrote, with every claim checked against the run's own sources. */
 function ThesisPanel({ check }: { check: ThesisCheck }) {
   const t = check.thesis;
   const ok = (c: Claim) => check.claims.find((x) => x.text === c.text && x.source === c.source)?.grounded ?? false;

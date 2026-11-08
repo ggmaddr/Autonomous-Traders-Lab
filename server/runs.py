@@ -293,11 +293,11 @@ def thesis(spans: list[dict], kids: dict, researcher_ids: set[str]) -> dict | No
 
 
 QUANT_TOOLS = {"regime_now", "regime_history", "signal_scoreboard", "signal_scan", "portfolio_risk", "size_positions",
-               "quality_screen", "owner_earnings_dcf", "macro_dashboard", "Synthesizer"}
+               "quality_screen", "owner_earnings_dcf", "macro_dashboard", "opening_range", "Synthesizer"}
 
 
 def quant_seen(functions: list[dict]) -> dict[str, list[dict]]:
-    """The Quant's and the Synthesizer's results in a run, parsed, by tool name."""
+    """The Quant's, the Day-Trade desk's and the Synthesizer's results in a run, parsed, by tool name."""
     seen: dict[str, list[dict]] = {}
     for s in functions:
         d = _data(s)

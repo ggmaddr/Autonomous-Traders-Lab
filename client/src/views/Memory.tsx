@@ -28,7 +28,7 @@ const WINDOWS = [
   { id: "1d", label: "24 hours", ms: DAY },
 ];
 const FIT_ZOOM = 1.25;
-const TRADERS = ["warren", "george", "ray", "cathie", "jim"];
+const TRADERS = ["robin", "nami", "jinbe", "law", "luffy"];
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 const plural = (n: number, one: string, many = `${one}s`) => `${count(n)} ${n === 1 ? one : many}`;
 
@@ -68,7 +68,7 @@ function within(graph: MemoryGraph, windowMs: number, now: number): Shown {
 
 export function Memory() {
   const [params, setParams] = useSearchParams();
-  const trader = params.get("trader") ?? "warren";
+  const trader = params.get("trader") ?? "robin";
   const compare = params.get("compare");
   const windowId = params.get("window") ?? "all";
   const win = WINDOWS.find((w) => w.id === windowId) ?? WINDOWS[0];

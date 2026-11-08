@@ -211,7 +211,7 @@ class Environment:
 
         @function_tool
         def quality_screen(symbols: list[str] | None = None) -> str:
-            """Warren's quality screen on SEC 10-K figures filed by the scenario's day: ROIC, free cash flow,
+            """Jinbe's quality screen on SEC 10-K figures filed by the scenario's day: ROIC, free cash flow,
             net debt / EBITDA, Piotroski F-score and earnings yield.
 
             Args:
@@ -230,7 +230,7 @@ class Environment:
 
         @function_tool
         def macro_dashboard() -> str:
-            """George's macro dashboard: the growth × inflation quadrant and each macro ETF's trend, RSI and ATR."""
+            """Law's macro dashboard: the growth × inflation quadrant and each macro ETF's trend, RSI and ATR."""
             return out(q.macro_dashboard())
 
         return [regime_now, signal_scoreboard, signal_scan, portfolio_risk, size_positions,

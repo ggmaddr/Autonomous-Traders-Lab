@@ -3,11 +3,11 @@
 // defines it per theme as --t-<name>.
 
 export const ARCHETYPES: Record<string, string> = {
-  warren: "Value, patient",
-  george: "Macro, contrarian",
-  ray: "Risk parity, systematic",
-  cathie: "Disruptive growth, crypto ETFs",
-  jim: "Regime quant",
+  robin: "Regime quant",
+  nami: "All weather, risk parity",
+  jinbe: "Value, patient",
+  law: "Macro, contrarian",
+  luffy: "Day trader, opening range breakout",
 };
 
 export function archetype(name: string): string {

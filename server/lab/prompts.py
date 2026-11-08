@@ -103,12 +103,12 @@ def prompt_hash(variant: str) -> str:
     return hashlib.sha256(inspect.getsource(fn).encode()).hexdigest()[:12]
 
 
-# --- Jim in the Lab (E12, E13) ------------------------------------------------------
+# --- Robin in the Lab (E12, E13) ------------------------------------------------------
 
-def jim(strategy: str, account: str, as_of: str, research: str | None, synthesizer: bool,
+def robin(strategy: str, account: str, as_of: str, research: str | None, synthesizer: bool,
         has_researcher: bool) -> tuple[str, str]:
-    """Jim's full thesis cycle on a frozen day. Without the Synthesizer (E13's other arm)
-    he weighs the research against the numbers himself."""
+    """Robin's full thesis cycle on a frozen day. Without the Synthesizer (E13's other arm)
+    Robin weighs the research against the numbers directly."""
     tools = ["regime_now, signal_scoreboard, signal_scan, portfolio_risk and size_positions: the Quant, which "
              "computes every number; quote it, do no arithmetic yourself",
              "get_balance and get_holdings for your account",
@@ -119,7 +119,7 @@ def jim(strategy: str, account: str, as_of: str, research: str | None, synthesiz
         tools.insert(2, "Synthesizer, which weighs the Quant's numbers against the research and returns a trade thesis with "
                         "target weights; pass it the Quant outputs and the research verbatim")
     listed = "\n".join(f"- {t}" for t in tools)
-    instructions = f"""You are Jim, a regime quant trading your own account by a fixed playbook.
+    instructions = f"""You are Robin, a regime quant trading your own account by a fixed playbook.
 Your tools are exactly these:
 {listed}
 Name the playbook rule you act on in every order rationale. When you are done, reply with a 2-3 sentence appraisal."""

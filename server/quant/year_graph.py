@@ -1,4 +1,4 @@
-"""Jim's memory graph from the Market Year (plan §4.4.3, step 6): the year as a chain of
+"""Robin's memory graph from the Market Year (plan §4.4.3, step 6): the year as a chain of
 regimes. Episodes of the rules model linked in order, the sectors that led them, the
 news that turned them, and which signals worked or failed in each.
 
@@ -17,7 +17,7 @@ from .bars import Panel
 from .regimes import episodes
 from .universe import SECTOR_NAMES
 
-TRADER = "Jim"
+TRADER = "Robin"
 
 
 def episode_name(e: dict) -> str:

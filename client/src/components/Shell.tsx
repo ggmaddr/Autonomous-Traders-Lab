@@ -13,11 +13,11 @@ export function Mark() {
   // One stroke per trader, in each trader's colour.
   return (
     <svg className="mark" viewBox="0 0 20 20" width="20" height="20" aria-hidden="true">
-      <rect x="0.5" y="8" width="3" height="11" fill="var(--t-warren)" />
-      <rect x="4.5" y="4" width="3" height="15" fill="var(--t-george)" />
-      <rect x="8.5" y="10" width="3" height="9" fill="var(--t-ray)" />
-      <rect x="12.5" y="1" width="3" height="18" fill="var(--t-cathie)" />
-      <rect x="16.5" y="6" width="3" height="13" fill="var(--t-jim)" />
+      <rect x="0.5" y="8" width="3" height="11" fill="var(--t-robin)" />
+      <rect x="4.5" y="4" width="3" height="15" fill="var(--t-nami)" />
+      <rect x="8.5" y="10" width="3" height="9" fill="var(--t-jinbe)" />
+      <rect x="12.5" y="1" width="3" height="18" fill="var(--t-law)" />
+      <rect x="16.5" y="6" width="3" height="13" fill="var(--t-luffy)" />
     </svg>
   );
 }

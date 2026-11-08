@@ -15,8 +15,8 @@ from local_llm import ollama_client
 from ..database import read_spans
 from ..tracers import make_trace_id
 from . import prompts, store
-from ..jim import synthesizer_tool
-from .arms import JIM_AGENTS, JIM_STRATEGY, STRATEGIES, arm_id, combinations, model_digests
+from ..robin import synthesizer_tool
+from .arms import ROBIN_AGENTS, ROBIN_STRATEGY, STRATEGIES, arm_id, combinations, model_digests
 from .env import Environment
 from .grading import grade_trial
 from .scenarios import Scenario, load_all, scenario_hash
@@ -69,7 +69,7 @@ async def run_trial(s: Scenario, arm: dict, experiment_id: str, trial_no: int) -
     model = _model(arm["model"])
     settings = ModelSettings(temperature=TEMPERATURE)
     agent = arm.get("agent", "trader")
-    name, _, strategy = ("Jim", "", JIM_STRATEGY) if agent in JIM_AGENTS else STRATEGIES[arm["strategy"]]
+    name, _, strategy = ("Robin", "", ROBIN_STRATEGY) if agent in ROBIN_AGENTS else STRATEGIES[arm["strategy"]]
     researcher = Agent(name="Researcher", instructions=prompts.RESEARCHER, model=model,
                        model_settings=settings, tools=env.research_tools())
     tools = env.trade_tools()
@@ -77,7 +77,7 @@ async def run_trial(s: Scenario, arm: dict, experiment_id: str, trial_no: int) -
         tools += env.quant_tools()  # real bars: the Quant answers as of the scenario's close
     if arm["researcher"] == "on_demand":
         tools.append(researcher.as_tool(tool_name="Researcher", tool_description=prompts.RESEARCH_TOOL))
-    if agent == "jim":
+    if agent == "robin":
         tools.append(synthesizer_tool(model))
     trace_id = make_trace_id(TRACE_TAG)
     metadata = {"experiment_id": experiment_id, "scenario": s.id, "trial": str(trial_no),
@@ -93,8 +93,8 @@ async def run_trial(s: Scenario, arm: dict, experiment_id: str, trial_no: int) -
             elif arm["researcher"] == "digest":
                 research = env.digest()
             account = json.dumps(env.account())
-            if agent in JIM_AGENTS:
-                instructions, message = prompts.jim(strategy, account, s.as_of, research, synthesizer=agent == "jim",
+            if agent in ROBIN_AGENTS:
+                instructions, message = prompts.robin(strategy, account, s.as_of, research, synthesizer=agent == "robin",
                                                     has_researcher=arm["researcher"] == "on_demand")
             elif arm["prompt"] == "original":
                 instructions, message = prompts.original(name, strategy, account, s.as_of, s.task, research)

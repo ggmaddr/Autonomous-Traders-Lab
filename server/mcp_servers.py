@@ -31,13 +31,15 @@ else:
     }
 
 # Traders whose playbooks are computed by the Quant, and those whose strategy is a fixed playbook (plan §4.4).
-QUANT_TRADERS = {"Warren", "George", "Jim"}
-PLAYBOOK_TRADERS = {"Warren", "George", "Jim"}
+QUANT_TRADERS = {"Robin", "Jinbe", "Law"}
+PLAYBOOK_TRADERS = {"Robin", "Jinbe", "Law", "Luffy"}
+# Luffy, the day trader, gets the Day-Trade desk (the opening range breakout) instead of the Quant.
+DAY_TRADERS = {"Luffy"}
 
 
 def trader_mcp_servers(name: str, trace_id: str | None = None) -> list[MCPServerStdio]:
     """The trader's MCP servers: our Accounts server, Push Notification and Market data,
-    and the Quant for the traders whose playbooks use it.
+    the Quant for the traders whose playbooks use it, and the Day-Trade desk for the day trader.
 
     The Accounts and Quant servers are bound to this trader's account through their
     environment, so the agent cannot name another account (D4); the Accounts server
@@ -52,6 +54,9 @@ def trader_mcp_servers(name: str, trace_id: str | None = None) -> list[MCPServer
     if name in QUANT_TRADERS:
         params.append({"command": "uv", "args": ["run", "-m", "server.quant_server"], "cwd": PROJECT_DIR,
                        "env": {"QUANT_ACCOUNT": name}})
+    if name in DAY_TRADERS:
+        params.append({"command": "uv", "args": ["run", "-m", "server.day_trade_server"], "cwd": PROJECT_DIR,
+                       "env": {"DAYTRADE_ACCOUNT": name}})
     servers = [MCPServerStdio(p, client_session_timeout_seconds=TIMEOUT) for p in params]
     if name in PLAYBOOK_TRADERS:
         # A playbook is fixed (plan §4.4): its trader gets no tool to rewrite it.

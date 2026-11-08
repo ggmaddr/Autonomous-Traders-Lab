@@ -438,7 +438,7 @@ function RegimeNow({ year }: { year: Year }) {
     .map((k) => year.read.features.find((f) => f.key === k)!)
     .filter(Boolean);
   return (
-    <Panel title="Jim's regime read" id="now" meta={<span className="num">close {dayLabel(year.read.day)}</span>}>
+    <Panel title="Robin's regime read" id="now" meta={<span className="num">close {dayLabel(year.read.day)}</span>}>
       <div className="answer my-answer">
         <RegimeSwatch label={rules.label} />
         <span className="answer-figure">{rules.label}</span>

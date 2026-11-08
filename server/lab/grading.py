@@ -5,7 +5,7 @@ order ledger, and the trial's SDK spans as saved by SpanStore. No LLM judge.
 from collections import Counter
 
 from .. import playbooks, runs
-from .arms import JIM_AGENTS, RULES_OF
+from .arms import ROBIN_AGENTS, RULES_OF
 from .scenarios import SCORE, Scenario, describe, grade, outcome
 
 RECOVERED_SPAN = "tool_call_recovered"  # written by local_llm.py when it turns JSON text into a tool call (D16)
@@ -31,7 +31,7 @@ def playbook_grades(s: Scenario, arm: dict, result: dict, spans: list[dict]) -> 
     if s.family != "regime":
         return out
     agent = arm.get("agent", "trader")
-    pb = playbooks.JIM if agent in JIM_AGENTS else RULES_OF.get(arm.get("strategy"))
+    pb = playbooks.ROBIN if agent in ROBIN_AGENTS else RULES_OF.get(arm.get("strategy"))
     functions = [sp for sp in spans if runs._data(sp).get("type") == "function"]
     if pb:
         filled = [o for o in result["orders"] if o["status"] == "filled"]
