@@ -6,6 +6,7 @@
 
 import { useMemo } from "react";
 import type { Episode, MarketYear as Year } from "../api";
+import { Crew, ICONS, RegimeMark } from "../components/Crew";
 import { Scrolly, type StoryStep } from "../charts";
 import { PositionGauge, ProbRibbon, SpyRegimeChart, dayMs } from "../components/RegimeCharts";
 import { host, pct, price, signedPct } from "../lib/format";
@@ -86,6 +87,7 @@ export function MarketStory({ year }: { year: Year }) {
         tag: k === 0 ? `${dayLabel(e.start)} · start of the range` : `${dayLabel(e.start)} · transition ${k}`,
         title: k === 0 ? `The range opens: ${e.label}` : `${prev.label} → ${e.label}`,
         body,
+        mark: <RegimeMark label={e.label} corner play="active" />,
         domain,
         ep: e,
       });
@@ -95,6 +97,7 @@ export function MarketStory({ year }: { year: Year }) {
     const hmm = hmmPhrase(year);
     out.push({
       id: "now",
+      mark: <Crew icon={ICONS.spyglass} motion="rock" corner play="active" />,
       tag: `${dayLabel(year.as_of)} · today`,
       title: "Where the desk stands",
       body: (
