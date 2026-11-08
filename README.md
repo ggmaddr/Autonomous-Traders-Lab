@@ -1,11 +1,19 @@
 # Autonomous Traders Lab 2
 
-Five autonomous AI traders (Warren, George, Ray, Cathie and Jim, the regime quant) that research the market, buy and sell stocks, and report to a live web dashboard. The agents run on a **local Ollama model** (no model API costs) and use [MCP](https://modelcontextprotocol.io) servers as their tools.
+Five autonomous AI traders that research the market, buy and sell stocks, and report to a live web dashboard. The agents run on a **local Ollama model** (no model API costs) and use [MCP](https://modelcontextprotocol.io) servers as their tools.
+
+| Trader | Temperament | Style |
+|---|---|---|
+| **Robin** | steady | The regime quant: reads the market's regime and the signals that have paid in it; a Synthesizer writes the trade thesis |
+| **Nami** | steady | All weather: risk parity across asset classes, a free-text persona she can rewrite |
+| **Jinbe** | steady | Value: quality at a reasonable price, a fixed playbook |
+| **Law** | wild | Macro: global macro with trend confirmation, a fixed playbook |
+| **Luffy** | wild | Day trader: the opening range breakout, flat every night, with his own Day-Trade Researcher |
 
 ## Architecture
 
 ```
- Browser ── Frontend (Vite, :5173) ──/api──► API (FastAPI, :8000)
+ Browser ── Client (Vite, :5173) ──/api──► API (FastAPI, :8000)
                                                 │ read-only
                                                 ▼
  Engine (trading_floor) ──writes──►  accounts.db (SQLite) ◄── Market Year pipeline (daily, after the close)
@@ -13,19 +21,20 @@ Five autonomous AI traders (Warren, George, Ray, Cathie and Jim, the regime quan
         │
         ▼ each trader = one agent on Ollama (OpenAI Agents SDK)
    Researcher (sub-agent as a tool)       MCP servers it can call
-     Fetch · Tavily search · Memory         Accounts · Market prices · Push · Quant (Warren, George, Jim)
-   Synthesizer (Jim only)
+     Fetch · Tavily search · Memory         Accounts · Market prices · Push · Quant (Robin, Jinbe, Law)
+   Synthesizer (Robin only)                 Day-Trade desk (Luffy)
 ```
 
 - **Engine** (`server/trading_floor.py`): loops forever. Each cycle runs every trader, then the post-cycle review, then sleeps. Once a day after the close it also runs the Market Year pipeline.
-- **Traders** (`server/traders.py`): agents with their own strategy. Warren (quality at a reasonable price) and George (global macro with trend confirmation) trade fixed playbooks (`server/playbooks.py`) and cannot rewrite them. Ray and Cathie keep persona strategies.
-- **Jim** (`server/jim.py`): the regime quant. He reads the market regime and the signal scoreboard from the Quant, asks the Researcher only for catalysts, and a Synthesizer sub-agent turns both into a structured trade thesis. He runs a full thesis on a regime change or once a week; other cycles only check the drawdown brake.
-- **Quant** (`server/quant_server.py`, `server/quant/`): a deterministic MCP server with no LLM: regimes, signal scoreboard and scans, portfolio risk, position sizing, Warren's quality screen and DCF, George's macro dashboard.
-- **Market Year pipeline** (`server/quant/pipeline.py`): adjusted daily bars from Alpaca (2016 on), features, two regime models (rules and a forward-filtered HMM), the eight-signal scoreboard, the news behind each regime turn, SEC EDGAR fundamentals, and Jim's memory graph.
+- **Traders** (`server/traders.py`): agents with their own strategy. Jinbe (quality at a reasonable price) and Law (global macro with trend confirmation) trade fixed playbooks (`server/playbooks.py`) and cannot rewrite them. Nami keeps a persona strategy.
+- **Robin** (`server/robin.py`): the regime quant. Robin reads the market regime and the signal scoreboard from the Quant, asks the Researcher only for catalysts, and a Synthesizer sub-agent turns both into a structured trade thesis. A full thesis runs on a regime change or once a week; other cycles only check the drawdown brake.
+- **Luffy** (`server/luffy.py`, `server/orb.py`, `server/day_trade_server.py`): the day trader. One technique, the opening range breakout: the first 5-minute bar from 9:30 New York sets the range, and a stock in play (opening volume 1.5x its 14-day average) that closed that bar up and trades above its high is bought, 1% of equity at risk to the range low. The Day-Trade desk (an MCP server, no LLM) computes it all from Alpaca's real-time IEX minute bars; his Researcher only looks for today's catalysts. The floor sells whatever he still holds at 15:50, so he never holds overnight.
+- **Quant** (`server/quant_server.py`, `server/quant/`): a deterministic MCP server with no LLM: regimes, signal scoreboard and scans, portfolio risk, position sizing, Jinbe's quality screen and DCF, Law's macro dashboard.
+- **Market Year pipeline** (`server/quant/pipeline.py`): adjusted daily bars from Alpaca (2016 on), features, two regime models (rules and a forward-filtered HMM), the eight-signal scoreboard, the news behind each regime turn, SEC EDGAR fundamentals, and Robin's memory graph.
 - **Experiment Lab** (`server/lab/`): runs queued experiments on frozen scenarios, including real-bar regime scenarios for E12–E14.
 - **Accounts** (`server/accounts*.py`): balance, holdings, transactions and the portfolio value history, stored in `accounts.db`.
 - **Market data** (`server/market*.py`): live prices through Massive if `MASSIVE_API_KEY` is set, otherwise simulated prices.
-- **API + frontend**: the API only reads `accounts.db` (except queueing and cancelling experiments). Views: Money, Trades, Researcher, Decisions (with the playbook check and Jim's thesis), Lessons, Memory, Market Year, Experiments, Health.
+- **API + client** (`client/`): the API only reads `accounts.db` (except queueing and cancelling experiments). Views: Money, Trades, Researcher, Decisions (with the playbook check and Robin's thesis), Lessons, Memory, Market Year, Experiments, Health.
 - **Model** (`local_llm.py`): one place to set the Ollama model for every agent.
 
 A guided tour of the dashboard (the Money tab's Dashboard and Story modes, the chart system and the architecture in depth) is in [docs/first look.md](docs/first%20look.md).
@@ -83,7 +92,7 @@ uv run -m server.lab
 
 The engine runs these on its own; run them yourself to refresh now.
 
-Market Year pipeline (bars, regimes, scoreboard, fundamentals, news, Jim's memory):
+Market Year pipeline (bars, regimes, scoreboard, fundamentals, news, Robin's memory):
 
 ```bash
 uv run -m server.quant
@@ -123,7 +132,7 @@ Set in `.env` (see `.env.example`):
 |---|---|
 | `TAVILY_API_KEY` | **Required.** Web search for the researcher |
 | `ALPACA_API_KEY`, `ALPACA_SECRET_KEY` | **Required for the Market Year.** Daily bar history from Alpaca's data API. Use paper keys; nothing trades through them |
-| `SEC_USER_AGENT` | For Warren's fundamentals from SEC EDGAR, which asks clients to name themselves: `Your Name you@example.com` |
+| `SEC_USER_AGENT` | For Jinbe's fundamentals from SEC EDGAR, which asks clients to name themselves: `Your Name you@example.com` |
 | `MASSIVE_API_KEY` | Optional. Live prices and the real market-open check; simulated prices without it. Orders for unknown tickers are rejected, never filled at a made-up price |
 | `RUN_EVERY_N_MINUTES` | Pause between cycles (default 60) |
 | `RUN_EVEN_WHEN_MARKET_IS_CLOSED` | Set `true` to trade outside market hours. With a Massive key and the market closed, the engine skips each cycle |
