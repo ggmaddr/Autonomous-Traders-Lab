@@ -27,6 +27,7 @@ import { useQuery } from "@tanstack/react-query";
 import { getMarketYear } from "../api";
 import { count, longDate, money, pct, price, shortDay, signedMoney, signedPct, stamp, time, tone } from "../lib/format";
 import { archetype, hueVar } from "../lib/traders";
+import { Crew, ICONS, TraderMark, crewRole } from "../components/Crew";
 import { TraderPills, cap, useTraderFilter } from "../lib/filter";
 
 const DAY = 86_400_000;
@@ -178,6 +179,7 @@ function MoneyBody({ desk }: { desk: Desk }) {
     <>
       <section className="kpis" aria-label="Key numbers">
         <div className="kpi">
+          <Crew icon={ICONS.chest} motion="bob" corner />
           <p className="kpi-label">Desk equity</p>
           <p className="kpi-value num money-tone" data-tone={tone(change)}>
             <CountUp value={equity} format={(v) => money(v).replace(/\.\d\d$/, "")} />
@@ -188,6 +190,7 @@ function MoneyBody({ desk }: { desk: Desk }) {
           </p>
         </div>
         <div className="kpi">
+          <Crew icon={ICONS.spyglass} motion="rock" corner delay={400} />
           <p className="kpi-label">Today</p>
           <p className="kpi-value num money-tone" data-tone={tone(today)}>
             <CountUp value={today} format={signedMoney} />
@@ -197,6 +200,7 @@ function MoneyBody({ desk }: { desk: Desk }) {
           </p>
         </div>
         <div className="kpi">
+          <Crew icon={ICONS.map} motion="wave" corner delay={800} />
           <p className="kpi-label">Realized / unrealized</p>
           {banked !== null ? (
             <>
@@ -223,6 +227,7 @@ function MoneyBody({ desk }: { desk: Desk }) {
           )}
         </div>
         <div className="kpi">
+          <Crew icon={ICONS.anchor} motion="swing" corner delay={1200} />
           <p className="kpi-label">Worst desk drawdown</p>
           <p className="kpi-value num money-tone" data-tone={worstDD < -0.0001 ? "bad" : "flat"}>
             {signedPct(worstDD)}
@@ -508,7 +513,10 @@ function SmallMultiples({ desk, focus }: { desk: Desk; focus: string | null }) {
             aria-label={`${cap(name)} ${signedPct(b.change / INITIAL_BALANCE, 1)}, open ${cap(name)}'s trades`}
           >
             <span className="multiple-head">
-              <TraderName name={name} />
+              <span className="multiple-who" title={`${cap(name)}, ${crewRole(name)}`}>
+                <TraderName name={name} />
+                <TraderMark name={name} size={30} />
+              </span>
               <span className="num money-tone" data-tone={tone(b.change)}>
                 {signedPct(b.change / INITIAL_BALANCE, 1)}
               </span>
@@ -699,6 +707,7 @@ function MoneyStory({ desk }: { desk: Desk }) {
   const steps: (StoryStep & { kind: "line" | "waterfall" | "split"; domain?: [number, number]; focus?: string | null; dd?: boolean })[] = [
     {
       id: "start",
+      mark: <Crew icon={ICONS.sail} motion="rock" corner play="active" />,
       tag: shortDay(curves.times[0] * 1000),
       title: `${books.length} traders, ${money(INITIAL_BALANCE).replace(/\.\d\d$/, "")} each`,
       body: (
@@ -709,6 +718,7 @@ function MoneyStory({ desk }: { desk: Desk }) {
     },
     {
       id: "lead",
+      mark: <TraderMark name={lead} corner play="active" size={40} />,
       tag: notes[0]?.text.split(" · ")[0] ?? "",
       title: `${cap(lead)} ${ranked[0].change >= 0 ? "breaks away" : "falls behind"}`,
       body: (
@@ -722,6 +732,7 @@ function MoneyStory({ desk }: { desk: Desk }) {
     },
     {
       id: "sink",
+      mark: <Crew icon={ICONS.sinking} motion="sink" corner play="active" />,
       tag: worstI >= 0 ? stamp(curves.times[worstI] * 1000) : "",
       title: "The others sink",
       body: (
@@ -740,6 +751,7 @@ function MoneyStory({ desk }: { desk: Desk }) {
     },
     {
       id: "waterfall",
+      mark: <Crew icon={ICONS.chest} motion="bob" corner play="active" />,
       tag: "now",
       title: "Where the money came from",
       body: (
@@ -752,6 +764,7 @@ function MoneyStory({ desk }: { desk: Desk }) {
     },
     {
       id: "split",
+      mark: <Crew icon={ICONS.flag} motion="wave" corner play="active" />,
       tag: "today",
       title: `Today's split: ${signedPct(change / funded, 1)} for the desk`,
       body: <p>{ranked.map((b) => `${cap(b.trader.name)} ${pctOf(b)}`).join(" · ")}.</p>,

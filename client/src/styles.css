@@ -36,6 +36,8 @@
   --t-jinbe: #0081b8;
   --t-law: #806600;
   --t-luffy: #c4129a;
+  --crew-gold: #f5b400;
+  --crew-edge: #5c3d00;
 
   /* Regimes are data: pale bands under the SPY line and full strips under it. The
      bulls take the positive hue (volatile also hatched, so it never rests on colour
@@ -84,6 +86,8 @@
   --t-jinbe: #3d9bff;
   --t-law: #f2d04a;
   --t-luffy: #ff6ec7;
+  --crew-gold: #ffd23f;
+  --crew-edge: #2a1d00;
   --rg-calm-bull: #123d27;
   --rg-volatile-bull: #0d2a1b;
   --rg-volatile-line: #1d6a41;
@@ -185,7 +189,7 @@ button {
 .brand {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
 }
 
 .sidebar-brand {
@@ -193,6 +197,7 @@ button {
 }
 
 .wordmark {
+  white-space: nowrap;
   font-size: 20px;
   font-weight: 700;
   letter-spacing: -0.04em;
@@ -4066,4 +4071,157 @@ button.rg-cell:not(:disabled) {
 .multiple-holds {
   color: var(--muted);
   font-size: 11px;
+}
+
+/* --- Crew marks (components/Crew.tsx): small animated pirate icons ------------- */
+
+.crew {
+  display: inline-flex;
+  line-height: 0;
+  color: var(--muted);
+  transform-origin: 50% 50%;
+  animation-duration: 3.2s;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+}
+
+.crew svg {
+  width: 1em;
+  height: 1em;
+}
+
+.crew-corner {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  pointer-events: none;
+}
+
+.kpi,
+.multiple,
+.scrolly-step {
+  position: relative;
+}
+
+.kpi-label,
+.scrolly-step .scrolly-tag {
+  padding-right: 52px;
+}
+
+/* Gold props: a dark edge drawn under the fill keeps the yellow readable on white. */
+.crew[data-tone="gold"] svg path {
+  fill: var(--crew-gold);
+  stroke: var(--crew-edge);
+  stroke-width: 26px;
+  stroke-linejoin: round;
+  paint-order: stroke;
+}
+
+.mark {
+  display: block;
+  flex: none;
+}
+
+.brand:hover .mark {
+  animation: crew-bounce 1.4s ease-in-out;
+  transform-origin: 50% 100%;
+}
+
+.crew[data-motion="bob"] { animation-name: crew-bob; }
+.crew[data-motion="spin"] { animation-name: crew-spin; animation-duration: 9s; animation-timing-function: linear; }
+.crew[data-motion="swing"] { animation-name: crew-swing; transform-origin: 50% 8%; }
+.crew[data-motion="rock"] { animation-name: crew-rock; transform-origin: 50% 90%; }
+.crew[data-motion="bounce"] { animation-name: crew-bounce; animation-duration: 1.4s; transform-origin: 50% 100%; }
+.crew[data-motion="wave"] { animation-name: crew-wave; transform-origin: 10% 90%; }
+.crew[data-motion="flip"] { animation-name: crew-flip; }
+.crew[data-motion="sink"] { animation-name: crew-sink; animation-duration: 4s; }
+.crew[data-motion="slice"] { animation-name: crew-slice; animation-duration: 2.4s; transform-origin: 20% 80%; }
+
+/* Hover marks wait for their card; story marks for their step. */
+.crew[data-play="hover"],
+.crew[data-play="active"] {
+  animation-play-state: paused;
+}
+
+.multiple:hover .crew[data-play="hover"],
+.multiple:focus-visible .crew[data-play="hover"],
+.kpi:hover .crew[data-play="hover"],
+.brand:hover .crew[data-play="hover"],
+.scrolly-step[aria-current="step"] .crew[data-play="active"] {
+  animation-play-state: running;
+}
+
+.scrolly-step .crew[data-play="active"] {
+  opacity: 0.5;
+  transition: opacity 300ms;
+}
+
+.scrolly-step[aria-current="step"] .crew[data-play="active"] {
+  opacity: 1;
+}
+
+
+.multiple-who {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.multiple-head {
+  align-items: center;
+}
+
+@keyframes crew-bob {
+  0%, 100% { transform: translateY(0) rotate(-3deg); }
+  50% { transform: translateY(-4px) rotate(3deg); }
+}
+
+@keyframes crew-spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes crew-swing {
+  0%, 100% { transform: rotate(-14deg); }
+  50% { transform: rotate(14deg); }
+}
+
+@keyframes crew-rock {
+  0%, 100% { transform: rotate(-8deg) translateY(0); }
+  50% { transform: rotate(8deg) translateY(-2px); }
+}
+
+@keyframes crew-bounce {
+  0%, 100% { transform: translateY(0) scale(1.08, 0.92); }
+  30% { transform: translateY(-6px) scale(0.94, 1.06); }
+  55% { transform: translateY(0) scale(1.1, 0.9); }
+  75% { transform: translateY(-2px) scale(1, 1); }
+}
+
+@keyframes crew-wave {
+  0%, 100% { transform: skewX(0) rotate(0); }
+  25% { transform: skewX(-8deg) rotate(-3deg); }
+  75% { transform: skewX(8deg) rotate(3deg); }
+}
+
+@keyframes crew-flip {
+  0%, 100% { transform: rotateY(0) translateY(0); }
+  50% { transform: rotateY(180deg) translateY(-2px); }
+}
+
+@keyframes crew-sink {
+  0%, 100% { transform: translateY(0) rotate(0); }
+  60% { transform: translateY(4px) rotate(10deg); }
+}
+
+@keyframes crew-slice {
+  0%, 60%, 100% { transform: rotate(0) translate(0); }
+  70% { transform: rotate(-24deg) translate(-2px, -2px); }
+  80% { transform: rotate(10deg) translate(3px, 2px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .crew,
+  .brand:hover .mark {
+    animation: none !important;
+  }
 }

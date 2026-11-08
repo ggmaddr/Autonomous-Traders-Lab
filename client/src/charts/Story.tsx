@@ -40,6 +40,8 @@ export interface StoryStep {
   tag?: string;
   title: string;
   body: ReactNode;
+  /** Optional decoration pinned to the step's upper right (a crew mark). */
+  mark?: ReactNode;
 }
 
 /**
@@ -107,6 +109,7 @@ export function Scrolly(props: { steps: StoryStep[]; figure: (active: number) =>
             aria-current={i === active ? "step" : undefined}
             onClick={() => go(i)}
           >
+            {s.mark}
             {s.tag && <p className="scrolly-tag num">{s.tag}</p>}
             <h3>{s.title}</h3>
             <div className="scrolly-body">{s.body}</div>

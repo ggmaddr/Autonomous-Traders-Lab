@@ -150,3 +150,5 @@ Other settings: the model in `local_llm.py`, starting cash in `server/accounts.p
 ## License
 
 MIT. Adapted from the MCP capstone of [Ed Donner's agents course](https://github.com/ed-donner/agents).
+
+The crew icons are from [game-icons.net](https://game-icons.net) (by Lorc, Delapouite and contributors, [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/)), through [react-icons](https://react-icons.github.io/react-icons/).

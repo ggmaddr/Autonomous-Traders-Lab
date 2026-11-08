@@ -19,3 +19,7 @@ memory/*
 .idea/
 .vscode/
 .taste-skill/
+
+# Handoff docs (local only)
+traders-lab-redesign-handoff/
+*-handoff/
