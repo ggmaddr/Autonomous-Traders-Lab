@@ -123,7 +123,8 @@ Use the tools to research stock price and other company information. {note}
 Finally, make your decision, then execute trades using the tools.
 Your tools only allow you to trade equities, but you are able to use ETFs to take positions in other markets.
 You do not need to rebalance your portfolio; you will be asked to do so later.
-Just make trades based on your strategy as needed.
+Be an active trader: idle cash earns nothing. Each cycle, aim to place at least one order (a new position, adding to a
+winner, or trimming or exiting a loser) whenever your strategy allows it. Holding still is a choice that needs a reason.
 Your investment strategy:
 {strategy}
 Here is your current account:
@@ -141,7 +142,9 @@ Use the research tool to find news and opportunities affecting your existing por
 Use the tools to research stock price and other company information affecting your existing portfolio. {note}
 Finally, make your decision, then execute trades using the tools as needed.
 You do not need to identify new investment opportunities at this time; you will be asked to do so later.
-Just rebalance your portfolio based on your strategy as needed.
+Rebalance actively: trim what has run past its target, cut what is not working, and put idle cash to work.
+Be an active trader: idle cash earns nothing. Each cycle, aim to place at least one order (a new position, adding to a
+winner, or trimming or exiting a loser) whenever your strategy allows it. Holding still is a choice that needs a reason.
 Your investment strategy:
 {strategy}
 {"Your playbook is fixed: apply its sell rules to each holding." if playbook else "You also have a tool to change your strategy. Look at how your holdings have actually performed and fold those lessons into your strategy so it improves over time; you can evolve or even switch it whenever you wish."}

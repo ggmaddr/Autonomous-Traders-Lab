@@ -6,7 +6,7 @@ Guidance for Claude Code when working in this repository.
 
 Five autonomous AI traders (in roster order: Robin, the regime quant; Nami, all weather; Jinbe, value; Law, macro; Luffy, the day trader) that research the market, trade stocks and report to a web dashboard. They run on a local Ollama model through the OpenAI Agents SDK, and use MCP servers as their tools.
 
-It is being upgraded into an **Autonomous Traders Lab**, a lab for building, explaining, stress-testing and comparing AI trading agents, aiming over time at reliable, risk-adjusted profit. The plan is [docs/V2_ARCHITECTURE_PLAN.md](docs/V2_ARCHITECTURE_PLAN.md). Work follows its roadmap (§16), one phase at a time.
+It is being upgraded into **Antimat Lab**, a lab for building, explaining, stress-testing and comparing AI trading agents, aiming over time at reliable, risk-adjusted profit. The plan is [docs/V2_ARCHITECTURE_PLAN.md](docs/V2_ARCHITECTURE_PLAN.md). Work follows its roadmap (§16), one phase at a time.
 
 ## Run it
 
@@ -41,7 +41,7 @@ Needs Ollama with `qwen2.5-coder:32b` pulled, and `TAVILY_API_KEY` in `.env`. `M
 - `server/quant/`: the Market Year (Phase 5). `bars.py` loads adjusted daily bars from Alpaca (SIP, 2016 on) into `bars`; `features.py`, `regimes.py` (rules and a forward-filtered HMM), `signals.py` (the eight-signal scoreboard) compute everything as of a day; `events.py` has the Researcher explain each regime turn (`market_events`); `fundamentals.py` reads SEC EDGAR 10-K figures; `tools.py` is the Quant as plain functions of an as-of day; `year_graph.py` writes Robin's memory; `pipeline.py` runs it all; `routes.py` is `/api/market-year`.
 - `server/quant_server.py`: the Quant MCP server (no LLM), bound to an account and a day by its environment. Jinbe, Law and Robin get it.
 - `server/playbooks.py`: Robin's, Jinbe's, Law's and Luffy's fixed playbooks (strategy text plus rules) and the per-order playbook check shown on Decisions; `change_strategy` is filtered out for them.
-- `server/robin.py`: Robin, the fifth trader: the Synthesizer sub-agent and its `TradeThesis`, the cycle gate (thesis on a regime change or weekly, otherwise a brake check), and the thesis memory. Groundedness of the thesis is computed in `runs.py`.
+- `server/robin.py`: Robin, the fifth trader: the Synthesizer sub-agent and its `TradeThesis`, the cycle gate (thesis on a regime change or daily, otherwise a brake check), and the thesis memory. Groundedness of the thesis is computed in `runs.py`.
 - `server/luffy.py`, `server/orb.py`, `server/day_trade_server.py`: Luffy, the day trader: the opening range breakout computed from Alpaca IEX 5-minute bars, the Day-Trade desk MCP server (`opening_range`), and the 15:50 flatten the floor runs so he never holds overnight. His playbook rules are M1–M7 (D is taken by the defects).
 - `server/memory.py`: reads and writes `memory/<Name>.db` in the mcp-memory-libsql schema (`/api/memory`).
 - `server/database.py`: SQLite (`accounts.db`): `accounts` (JSON per account), `logs`, `traces` and `spans` (SDK exports as-is), `runs` (strategy and portfolio before/after per trader run), `lessons` (one row per lesson, with its fills, return, SPY return, recalls and contradiction).
@@ -65,6 +65,7 @@ Two UI skills live next to this repo. Use them for any frontend change:
 
 - **taste-skill** (`../taste-skill/skills/taste-skill/SKILL.md`): primary art direction. This is an app screen, so follow `references/app-screens.md` and deal a style with `node ../taste-skill/skills/taste-skill/scripts/draw.mjs --app --kind markets ...`. Preferred style: `data-terminal`. Check screens with `scripts/inspect.mjs --app`.
 - **ui-ux-pro-max** (`../ui-ux-pro-max-skill/.claude/skills/ui-ux-pro-max/SKILL.md`): accessibility, chart choice and React guidance, via `python3 ../ui-ux-pro-max-skill/.claude/skills/ui-ux-pro-max/scripts/search.py "<query>" --domain <domain>`.
-- When they disagree, taste-skill decides the look and ui-ux-pro-max decides accessibility. No monospace outside code, no glows, gradients or icon-tile KPIs.
+- When they disagree, taste-skill decides the look and ui-ux-pro-max decides accessibility. No glows, gradients or icon-tile KPIs.
+- Type is the owner's choice and overrides taste-skill: typewriter almost everywhere. UnifrakturCook (blackletter, the New York Times masthead look) only for page titles and the wordmark; Courier Prime (clean typewriter) for headings (bold), all other text and every figure, big dashboard numbers included; Fraunces italic for the agents' quoted reasons (Latest decision, Decisions). Tokens `--font-display`, `--font-heading`, `--font`, `--font-figure`, `--font-quote` in `client/src/styles.css`.
 - Put colour on data, especially P&L, not on chrome. Every screen answers one question first.
 - Page titles stay big (the owner wants them even bigger, never smaller). Ignore taste-skill's `app-title-size` warning.

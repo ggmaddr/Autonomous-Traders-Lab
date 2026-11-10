@@ -28,7 +28,7 @@ const WINDOWS = [
   { id: "1d", label: "24 hours", ms: DAY },
 ];
 const FIT_ZOOM = 1.25;
-const TRADERS = ["robin", "nami", "jinbe", "law", "luffy"];
+const TRADERS = ["robin", "nami", "jinbe", "law", "luffy", "zoro", "sanji"];
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 const plural = (n: number, one: string, many = `${one}s`) => `${count(n)} ${n === 1 ? one : many}`;
 
@@ -190,31 +190,29 @@ function Finding(props: { trader: string; graph?: MemoryGraph; left?: Shown; com
   if (!graph || !left) return <>Reading the memory…</>;
   const scope = props.win === "All time" ? "" : ` written in the last ${props.win.toLowerCase()}`;
   const sizeOf = (s: Shown) =>
-    `${plural(s.nodes.length, "entity", "entities")}, ${plural(s.edges.length, "relation")} and ${plural(s.observations, "observation")}`;
+    `${plural(s.nodes.length, "entity", "entities")}, ${plural(s.edges.length, "relation")}, ${plural(s.observations, "observation")}`;
   if (compare && right) {
     const shared = left.nodes.filter((n) => right.nodes.some((m) => m.name === n.name)).length;
     return (
       <>
-        {cap(trader)} holds {sizeOf(left)}; {cap(compare)} holds {sizeOf(right)}
-        {scope}. They share {plural(shared, "entity", "entities")} by name.
+        {cap(trader)} {sizeOf(left)}; {cap(compare)} {sizeOf(right)}
+        {scope}. {plural(shared, "entity", "entities")} shared.
       </>
     );
   }
   if (!graph.nodes.length) {
     return (
       <>
-        {cap(trader)}'s memory is empty: its researcher has not stored anything{graph.exists ? "" : ", and no memory file exists yet"}. The
-        lesson review writes here once a traced trade is 3 days old.
+        {cap(trader)}: memory empty{graph.exists ? "" : ", no file yet"}. Lessons land here 3 days after a traced trade.
       </>
     );
   }
   const lessons = left.nodes.filter((n) => n.type === "Lesson").length;
   return (
     <>
-      {cap(trader)}'s memory holds {sizeOf(left)}
+      {cap(trader)}: {sizeOf(left)}
       {scope}
-      {lessons ? `, ${plural(lessons, "lesson")} among them` : ", and no lessons yet"}. Saved runs read it{" "}
-      {graph.reads ? plural(graph.reads, "time") : "no times at all"}.
+      {lessons ? `, ${plural(lessons, "lesson")}` : ", no lessons"}. {graph.reads ? `Read ${plural(graph.reads, "time")}.` : "Never read."}
     </>
   );
 }

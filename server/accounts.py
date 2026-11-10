@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 import json
 from dotenv import load_dotenv
 from datetime import datetime
@@ -45,6 +45,9 @@ class Account(BaseModel):
     holdings: dict[str, int]
     transactions: list[Transaction]
     portfolio_value_time_series: list[tuple[str, float]]
+    price_source: str | None = None
+    last_quotes: dict[str, float] = Field(default_factory=dict)
+    quotes_as_of: str | None = None
 
     @classmethod
     def get(cls, name: str):
@@ -147,7 +150,7 @@ class Account(BaseModel):
     def mark_price(self, symbol: str) -> float:
         """A holding's value per share: the live quote, or the last price this account
         traded it at when there is none. Never a simulated stand-in (D1)."""
-        price = quote(symbol)
+        price = self.last_quotes.get(symbol) if self.price_source == "alpaca_iex" else quote(symbol)
         if price is None:
             price = next(t.price for t in reversed(self.transactions) if t.symbol == symbol)
         return price

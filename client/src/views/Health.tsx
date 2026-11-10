@@ -92,8 +92,8 @@ export function Health() {
   if (data && view) {
     const active = view.lanes.filter((l) => l.bars.length).length;
     finding = idle
-      ? `No agent has run since ${stamp(idle)}. The lanes show the last ${minutes} minutes before that: ${active} of ${view.lanes.length} traders were active.`
-      : `${active} of ${view.lanes.length} traders ran in the last ${minutes} minutes, with ${data.errors ? `${data.errors} failed spans` : "no failed spans"}.`;
+      ? `No agent run since ${stamp(idle)}. Last ${minutes} min before: ${active} of ${view.lanes.length} traders active.`
+      : `${active} of ${view.lanes.length} traders ran in last ${minutes} min; ${data.errors ? `${data.errors} failed spans` : "no failures"}.`;
   }
 
   return (

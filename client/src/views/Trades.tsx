@@ -60,28 +60,27 @@ function TradesBody({ desk, now }: { desk: Desk | null; now: number }) {
   let findingText: React.ReactNode = "Reading the fills…";
   if (view) {
     const r = view.record;
-    const scope = trader ? cap(trader) : "The desk";
+    const scope = trader ? cap(trader) : "Desk";
     findingText = !view.fills.length ? (
-      `${scope} has not traded yet.`
+      `${scope}: no trades yet.`
     ) : (
       <>
-        {scope} made {count(view.fills.length)} fills since {shortDay(view.fills[view.fills.length - 1].time)}.{" "}
+        {scope}: {count(view.fills.length)} fills since {shortDay(view.fills[view.fills.length - 1].time)}.{" "}
         {r.closes ? (
           <>
-            Only{" "}
             <span className="strong">
               {r.wins} of {r.closes}
             </span>{" "}
-            closing sells made money, yet {trader ? "they" : "the desk"} banked <Change value={r.realized} />.
+            sells won, banked <Change value={r.realized} />
             {payoff(r) !== null && (
               <>
-                {" "}
-                The average win is <span className="num strong">{payoff(r)!.toFixed(1)}×</span> the average loss.
+                ; avg win <span className="num strong">{payoff(r)!.toFixed(1)}×</span> avg loss
               </>
             )}
+            .
           </>
         ) : (
-          "Nothing has been sold yet, so nothing is realized."
+          "Nothing sold yet."
         )}
       </>
     );

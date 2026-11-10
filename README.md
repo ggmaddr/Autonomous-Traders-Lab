@@ -1,6 +1,8 @@
-# Autonomous Traders Lab 2
+# Antimat Lab
 
-Five autonomous AI traders that research the market, buy and sell stocks, and report to a live web dashboard. The agents run on a **local Ollama model** (no model API costs) and use [MCP](https://modelcontextprotocol.io) servers as their tools.
+Seven paper traders report to a live web dashboard: five AI traders on a **local Ollama model**, plus two fast rule-based traders with no model or search calls. The AI traders use [MCP](https://modelcontextprotocol.io) servers as their tools.
+
+![Dashboard mockup](imgs/mockup.png)
 
 | Trader | Temperament | Style |
 |---|---|---|
@@ -9,6 +11,40 @@ Five autonomous AI traders that research the market, buy and sell stocks, and re
 | **Jinbe** | steady | Value: quality at a reasonable price, a fixed playbook |
 | **Law** | wild | Macro: global macro with trend confirmation, a fixed playbook |
 | **Luffy** | wild | Day trader: the opening range breakout, flat every night, with his own Day-Trade Researcher |
+| **Zoro** | impatient | Momentum sprinter: one-minute checks, short holds, exits before the close |
+| **Sanji** | opportunistic | Dip-and-rebound trader: one-minute checks throughout the regular session, may hold overnight |
+
+### Fast desk: Zoro and Sanji
+
+The main trading floor starts an independent fast desk, controlled by
+`ACTIVE_TRADER_INTERVAL_SECONDS` (default 60, minimum 30). It shares one batch of
+Alpaca IEX minute bars and recent trades between the two members. Neither uses
+Ollama, Tavily, or the LLM lesson reviewer. Each starts with $10,000 paper cash;
+initialization preserves all existing accounts and trading history.
+
+- Zoro buys five-minute momentum breakouts (+0.15% and above prior bar highs),
+  exits at +0.8%, -0.5%, 20 elapsed minutes, or 10 minutes before the exchange close.
+- Sanji buys dips 0.3% below rolling volume-weighted price after an uptick,
+  exits at the mean, +0.9%, -0.7%, or 90 elapsed minutes. Overnight exits wait for
+  fresh prices next session.
+- Both use 15% positions, at most four holdings, a five-minute cooldown after a
+  sale, and at most 30 entries per session. Exits remain enabled after the cap.
+- The exchange clock handles holidays and early closes. Fresh quotes are required
+  (at most 90 seconds old); no fabricated prices, previous-close fills, or forced
+  trades. `RUN_EVEN_WHEN_MARKET_IS_CLOSED` does not override this desk.
+- Paper fills keep the existing 0.2% cost per side. High turnover can lose money
+  quickly. These are unvalidated experimental rules, not promised profits or a
+  guaranteed daily trade count. Market-data requests still occur.
+- Every open-session tick saves equity; trades and rule decisions appear in the
+  normal Money, Trades, Decisions, and Health views. The model label explicitly
+  identifies the pair as rules-based. Their memory/research views remain empty.
+
+To add the fast desk alongside an already running older floor without interrupting
+its AI cycle, run `uv run -m server.active_traders`. An OS file lock prevents two
+fast desks from trading simultaneously. On the next full restart, the normal
+`uv run -m server.trading_floor` includes both desks. Restart the API to load the
+expanded roster. Keep the engine and computer awake for scheduled exits; exits
+cannot run when the engine is stopped or fresh data is unavailable.
 
 ## Architecture
 
@@ -27,7 +63,7 @@ Five autonomous AI traders that research the market, buy and sell stocks, and re
 
 - **Engine** (`server/trading_floor.py`): loops forever. Each cycle runs every trader, then the post-cycle review, then sleeps. Once a day after the close it also runs the Market Year pipeline.
 - **Traders** (`server/traders.py`): agents with their own strategy. Jinbe (quality at a reasonable price) and Law (global macro with trend confirmation) trade fixed playbooks (`server/playbooks.py`) and cannot rewrite them. Nami keeps a persona strategy.
-- **Robin** (`server/robin.py`): the regime quant. Robin reads the market regime and the signal scoreboard from the Quant, asks the Researcher only for catalysts, and a Synthesizer sub-agent turns both into a structured trade thesis. A full thesis runs on a regime change or once a week; other cycles only check the drawdown brake.
+- **Robin** (`server/robin.py`): the regime quant. Robin reads the market regime and the signal scoreboard from the Quant, asks the Researcher only for catalysts, and a Synthesizer sub-agent turns both into a structured trade thesis. A full thesis runs on a regime change or once a day; other cycles only check the drawdown brake.
 - **Luffy** (`server/luffy.py`, `server/orb.py`, `server/day_trade_server.py`): the day trader. One technique, the opening range breakout: the first 5-minute bar from 9:30 New York sets the range, and a stock in play (opening volume 1.5x its 14-day average) that closed that bar up and trades above its high is bought, 1% of equity at risk to the range low. The Day-Trade desk (an MCP server, no LLM) computes it all from Alpaca's real-time IEX minute bars; his Researcher only looks for today's catalysts. The floor sells whatever he still holds at 15:50, so he never holds overnight.
 - **Quant** (`server/quant_server.py`, `server/quant/`): a deterministic MCP server with no LLM: regimes, signal scoreboard and scans, portfolio risk, position sizing, Jinbe's quality screen and DCF, Law's macro dashboard.
 - **Market Year pipeline** (`server/quant/pipeline.py`): adjusted daily bars from Alpaca (2016 on), features, two regime models (rules and a forward-filtered HMM), the eight-signal scoreboard, the news behind each regime turn, SEC EDGAR fundamentals, and Robin's memory graph.

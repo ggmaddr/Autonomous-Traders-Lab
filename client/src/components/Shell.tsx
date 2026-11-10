@@ -7,8 +7,9 @@ import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { NAV } from "../nav";
 import { useMarket } from "../lib/desk";
 import { useTheme } from "../lib/theme";
-import { useTraderFilter } from "../lib/filter";
-import { Crew, StrawHat } from "./Crew";
+import { ROSTER, useTraderFilter } from "../lib/filter";
+import { GiMoon, GiSun } from "react-icons/gi";
+import { Crew } from "./Crew";
 
 export function Mark() {
   // Chopper's jolly roger; the browser tab uses the same picture (public/favicon.png).
@@ -24,7 +25,7 @@ function MarketState() {
       <span className="market-dot" data-open={market.data.is_market_open} aria-hidden="true" />
       {market.data.is_market_open ? "Market open" : "Market closed"}
       <span className="market-source">
-        {market.data.source === "massive" ? "Prices from Massive" : "Simulated prices"}
+        {market.data.source === "massive" ? "Massive · fast desk: IEX" : "Simulator · fast desk: IEX"}
       </span>
     </p>
   );
@@ -41,13 +42,18 @@ export function Shell() {
 
   const current = NAV.flatMap((g) => g.items).find((i) => i.path === location.pathname);
 
+  const next = theme === "light" ? "dark" : "light";
+
   return (
     <div className="app">
+      <button className="theme-icon" onClick={toggle} title={`Switch to ${next} theme`} aria-label={`Switch to ${next} theme`}>
+        <Crew icon={theme === "light" ? <GiMoon /> : <GiSun />} motion="bob" size={34} play="hover" />
+      </button>
       <header className="topbar">
         <span className="brand">
           <Mark />
           <span className="wordmark">
-            Traders Lab<span className="dot">.</span>
+            Antimat Lab<span className="dot">.</span>
           </span>
         </span>
         <span className="topbar-title">{current?.label}</span>
@@ -64,11 +70,10 @@ export function Shell() {
         <div className="brand sidebar-brand">
           <Mark />
           <span className="wordmark">
-            Traders Lab<span className="dot">.</span>
+            Antimat Lab<span className="dot">.</span>
           </span>
-          <Crew icon={<StrawHat />} motion="bounce" play="hover" size={26} />
         </div>
-        <p className="scope">Paper desk · a crew of 5</p>
+        <p className="scope">Paper desk · a crew of {ROSTER.length}</p>
         <nav aria-label="Views">
           {NAV.map((group) => (
             <div className="nav-group" key={group.label}>
@@ -88,9 +93,6 @@ export function Shell() {
         </nav>
         <div className="sidebar-foot">
           <MarketState />
-          <button className="btn-ghost theme-toggle" onClick={toggle}>
-            {theme === "light" ? "Dark theme" : "Light theme"}
-          </button>
         </div>
       </aside>
       <main className="canvas">

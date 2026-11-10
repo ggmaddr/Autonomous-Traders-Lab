@@ -1,5 +1,5 @@
 from .traders import Trader
-from . import luffy
+from . import luffy, active_traders
 from typing import List
 import asyncio
 from .tracers import LogTracer, SpanStore
@@ -22,16 +22,18 @@ RUN_EVEN_WHEN_MARKET_IS_CLOSED = (
 )
 
 # The quant first, then the two steady traders, then the two wild ones.
-names = ["Robin", "Nami", "Jinbe", "Law", "Luffy"]
-lastnames = ["Regime quant", "All weather", "Value", "Macro", "Day trader"]
+names = ["Robin", "Nami", "Jinbe", "Law", "Luffy", *active_traders.NAMES]
+lastnames = ["Regime quant", "All weather", "Value", "Macro", "Day trader", "Momentum sprinter", "Dip and rebound"]
 
 model_names = [MODEL_NAME] * len(names)
-short_model_names = ["Qwen2.5 Coder 32B"] * len(names)
+short_model_names = ["Qwen2.5 Coder 32B"] * 5 + ["Rules · no model / search"] * 2
 
 
 def create_traders() -> List[Trader]:
     traders = []
     for name, lastname, model_name in zip(names, lastnames, model_names):
+        if name in active_traders.NAMES:
+            continue
         traders.append(Trader(name, lastname, model_name))
     return traders
 
@@ -47,8 +49,6 @@ def flatten_luffy():
 
 
 async def run_every_n_minutes():
-    add_trace_processor(LogTracer())
-    add_trace_processor(SpanStore())
     traders = create_traders()
     ran_for = None
     while True:
@@ -70,7 +70,7 @@ async def run_every_n_minutes():
             await asyncio.gather(*[trader.run(cycle_id) for trader in traders])
             # Review past decisions that are 3 or 10 days old into lessons (plan §11.4).
             try:
-                print(f"Review wrote {await review(names, cycle_id)} lessons")
+                print(f"Review wrote {await review([t.name for t in traders], cycle_id)} lessons")
             except Exception as e:
                 print(f"Review failed: {type(e).__name__}: {e}")
         else:
@@ -85,6 +85,12 @@ async def run_every_n_minutes():
             pause -= to_flatten + 5
         await asyncio.sleep(max(pause, 0))
 
+async def main():
+    add_trace_processor(LogTracer())
+    add_trace_processor(SpanStore())
+    await asyncio.gather(run_every_n_minutes(), active_traders.run_forever())
+
+
 if __name__ == "__main__":
     print(f"Starting scheduler to run every {RUN_EVERY_N_MINUTES} minutes")
-    asyncio.run(run_every_n_minutes())
+    asyncio.run(main())

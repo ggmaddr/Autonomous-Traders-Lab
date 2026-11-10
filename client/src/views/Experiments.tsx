@@ -106,8 +106,8 @@ function Finding({ catalog, exp, hasAny }: { catalog?: LabCatalog; exp?: Experim
   if (!hasAny || !exp) {
     return (
       <>
-        No experiment has run yet. On these {count(catalog.scenarios.length)} frozen scenarios a random trader scores{" "}
-        <span className="num">{scorePct(randomScore)}</span>: the bar every arm has to clear.
+        No experiments yet. Random trader scores <span className="num">{scorePct(randomScore)}</span> on{" "}
+        {count(catalog.scenarios.length)} scenarios: the bar to clear.
       </>
     );
   }
@@ -118,8 +118,7 @@ function Finding({ catalog, exp, hasAny }: { catalog?: LabCatalog; exp?: Experim
     return (
       <>
         {exp.name}: {count(done)} of {count(exp.cells.length)} trials done
-        {live ? `, about ${runLength((exp.cells.length - done) * exp.estimate.seconds)} to go` : ""}. Results appear with the first finished
-        trial.
+        {live ? `, ~${runLength((exp.cells.length - done) * exp.estimate.seconds)} to go` : ""}.
       </>
     );
   }
@@ -128,7 +127,7 @@ function Finding({ catalog, exp, hasAny }: { catalog?: LabCatalog; exp?: Experim
   return (
     <>
       {live ? `${count(done)} of ${count(exp.cells.length)} trials in. ` : ""}
-      {tied.length > 1 ? `${tied.length} arms tie for best` : `Best so far: ${armLabel(best.arm, exp.spec, catalog)}`} at{" "}
+      {tied.length > 1 ? `${tied.length} arms tie for best` : `Best: ${armLabel(best.arm, exp.spec, catalog)}`},{" "}
       <span className="num">{scorePct(best.score.mean)}</span>
       {best.score.lo !== null && (
         <span className="num">
@@ -136,12 +135,12 @@ function Finding({ catalog, exp, hasAny }: { catalog?: LabCatalog; exp?: Experim
           ({scorePct(best.score.lo)}–{scorePct(best.score.hi)})
         </span>
       )}
-      , for <span className="num">{tokens(best.tokens.mean ?? 0)}</span> tokens a run.
+      , <span className="num">{tokens(best.tokens.mean ?? 0)}</span> tokens/run.
       {effect && (
         <>
           {" "}
           {dimLabel(catalog, effect.dimension)} {valueLabel(catalog, effect.dimension, effect.value)} against{" "}
-          {valueLabel(catalog, effect.dimension, effect.reference)}: <span className="num">{points(effect.score.mean)}</span> points.
+          {valueLabel(catalog, effect.dimension, effect.reference)}: <span className="num">{points(effect.score.mean)}</span> pts.
         </>
       )}
     </>

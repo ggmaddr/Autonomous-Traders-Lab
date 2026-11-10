@@ -42,17 +42,15 @@ function finding(desk: Desk) {
   const rest = change - lead.change;
   return (
     <>
-      The desk is {change >= 0 ? "up" : "down"} <Change value={change} ratio={change / funded} /> on its{" "}
-      <span className="num">{money(funded)}</span> stake.{" "}
+      Desk <Change value={change} ratio={change / funded} /> on <span className="num">{money(funded)}</span>.{" "}
       {change > 0 && rest < 0 ? (
         <>
-          <span className="strong">One trader made all of it</span>: {cap(lead.trader.name)} is{" "}
-          <Ratio value={lead.change / INITIAL_BALANCE} />, and the other {ranked.length - 1} together are down{" "}
-          <span className="num">{money(-rest)}</span>.
+          <span className="strong">{cap(lead.trader.name)}</span> <Ratio value={lead.change / INITIAL_BALANCE} /> carries it; other{" "}
+          {ranked.length - 1} <Change value={rest} />.
         </>
       ) : (
         <>
-          {cap(lead.trader.name)} leads at <Ratio value={lead.change / INITIAL_BALANCE} />; {cap(last.trader.name)} trails at{" "}
+          Best {cap(lead.trader.name)} <Ratio value={lead.change / INITIAL_BALANCE} />; worst {cap(last.trader.name)}{" "}
           <Ratio value={last.change / INITIAL_BALANCE} />.
         </>
       )}

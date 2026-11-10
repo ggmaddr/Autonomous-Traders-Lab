@@ -103,7 +103,7 @@ export function EquityChart({ curves, traders, mode }: Props) {
     const muted = cssColor("--muted");
     const grid = cssColor("--grid");
     const negative = cssColor("--negative");
-    const font = `12px "JetBrains Mono", ui-monospace, monospace`;
+    const font = `12px "Courier Prime", "Courier New", monospace`;
 
     const lines =
       mode === "traders"

@@ -40,6 +40,10 @@ def reset_traders():
     Account.get("Jinbe").reset(JINBE["text"])
     Account.get("Law").reset(LAW["text"])
     Account.get("Luffy").reset(LUFFY["text"])
+    from .active_traders import NAMES, initialize
+    for name in NAMES:
+        Account.get(name).reset()
+    initialize()
 
 
 if __name__ == "__main__":

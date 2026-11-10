@@ -21,7 +21,7 @@ from .quant import store
 
 NAME = "Robin"
 MAX_REGIME_SWITCHES = 3
-REBALANCE_DAYS = 7
+REBALANCE_DAYS = 1  # a fresh thesis every day (was weekly), so Robin trades more often
 
 
 class Claim(BaseModel):
@@ -119,7 +119,7 @@ def cycle_mode(now: datetime | None = None) -> str:
 
 def thesis_message(strategy: str, account: str, trigger: str) -> str:
     why = {"thesis-first": "This is your first thesis run.", "thesis-regime": "The regime has changed since your last thesis.",
-           "thesis-weekly": "It is a week since your last thesis: the weekly rebalance."}[trigger]
+           "thesis-weekly": "It is a day since your last thesis: the daily rebalance."}[trigger]
     return f"""{why} Run your full cycle:
 1. Call regime_now.
 2. Call signal_scoreboard for today's regime, then signal_scan for the two or three signals with the best blended Sharpe.
