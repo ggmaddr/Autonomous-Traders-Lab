@@ -65,12 +65,11 @@ export function TraderName({ name }: { name: string }) {
   );
 }
 
-export function Loading({ rows = 3 }: { rows?: number }) {
+export function Loading(_props: { rows?: number }) {
   return (
     <div className="loading" aria-busy="true" aria-label="Loading">
-      {Array.from({ length: rows }, (_, i) => (
-        <span key={i} className="loading-bar" />
-      ))}
+      <img src="/chopper.png" alt="" className="loading-icon" />
+      <p className="muted">Running…</p>
     </div>
   );
 }

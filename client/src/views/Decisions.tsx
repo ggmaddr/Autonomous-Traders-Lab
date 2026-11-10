@@ -42,10 +42,10 @@ export function Decisions() {
   let finding: React.ReactNode = "Reading the fills…";
   if (desk) {
     finding = !desk.fills.length
-      ? "No trades yet, so there is nothing to explain."
+      ? "No trades yet."
       : traced.length
-        ? `${count(traced.length)} of ${count(desk.fills.length)} fills have their full run saved: the research, the prices, every order tried and the portfolio before and after.`
-        : "None of the fills have a saved run yet; they came before span saving began. The next cycle's trades will.";
+        ? `${count(traced.length)} of ${count(desk.fills.length)} fills with full run saved: research, prices, orders, portfolio before and after.`
+        : "No saved runs yet; next cycle's trades will have them.";
   }
 
   return (

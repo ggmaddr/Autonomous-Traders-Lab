@@ -1,4 +1,4 @@
-# First look: Autonomous Traders Lab
+# First look: Antimat Lab
 
 A self-contained brief for writing about this project: explainer posts (LinkedIn, Instagram, X), voice-over scripts, carousels and GIF shot lists. It assumes the reader has **no access to the code**. Everything needed to explain the project to a general audience, from the one-line idea down to how each chart is computed, is on this page. Figures come from the running app on Friday 6 Nov 2026; the app updates every few seconds, so treat numbers as a dated snapshot.
 
@@ -21,7 +21,7 @@ How the brief is laid out:
 
 ## 1. The idea in one minute
 
-**What it is.** Autonomous Traders Lab is a lab for building, explaining, stress-testing and comparing AI trading agents. Five AI agents, each with its own investing style, research the market on the web, look up prices, and buy and sell stocks in paper accounts (pretend money, $10,000 each), on a schedule, with no human pressing a button. Everything they do is recorded, and a web dashboard turns those records into answers.
+**What it is.** Antimat Lab is a lab for building, explaining, stress-testing and comparing AI trading agents. Five AI agents, each with its own investing style, research the market on the web, look up prices, and buy and sell stocks in paper accounts (pretend money, $10,000 each), on a schedule, with no human pressing a button. Everything they do is recorded, and a web dashboard turns those records into answers.
 
 **The problem it tackles.** AI agents are black boxes. You see the output ("bought 10 NVDA") but not the path: what it read, what it ignored, which tool it called, whether it followed its own rules. Trading is an ideal test bed because every decision ends in a number you can't argue with: money gained or lost.
 
@@ -195,8 +195,8 @@ This single example shows the whole point of the lab: the agent's stated reason,
 
 ### 6.1 Look and feel
 
-- **Dark mode:** a near-black, slightly green ground; an acid-lime accent for interface highlights; neon green for gains and red for losses. **Light mode:** cool mineral-grey paper with a cobalt accent.
-- **Type:** very large page titles ending in a coloured full stop ("Money."); a geometric sans-serif (Space Grotesk) for words; a monospace (JetBrains Mono) for every number so columns line up like a ledger; an italic serif (Fraunces) for the agents' own words, set like quotations.
+- **Light mode:** a lemon-yellow page (#ffea00) with the cards on pale cream so the numbers sit on near-white; ink text, a cobalt accent, deep green for gains and red for losses. **Dark mode:** a royal purple page (#3d0066) with deeper purple cards, bright white text, the lemon yellow as the accent, mint for gains and coral for losses. Law wears black in light mode and white in dark mode, so no trader is yellow on a yellow page.
+- **Type:** very large page titles ending in a coloured full stop ("Money."); typewriter almost everywhere, so the desk reads like a ship's log: a clean typewriter (Courier Prime) for every word and every figure, big dashboard numbers included, so columns line up on their own; bold Courier Prime for section heads; a worn typewriter (Special Elite) for the page titles; and an italic serif (Fraunces) for the agents' own words, set like quotations.
 - **Rule of colour:** colour lives on data (trader lines, gains and losses), not on decoration. No gradients, no glowing effects.
 - **Every screen answers one question first,** in a sentence written from the data under the title.
 

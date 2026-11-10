@@ -8,6 +8,8 @@ export const ARCHETYPES: Record<string, string> = {
   jinbe: "Value, patient",
   law: "Macro, contrarian",
   luffy: "Day trader, opening range breakout",
+  zoro: "Momentum sprinter · 1-min checks · no AI/search cost",
+  sanji: "Dip and rebound · all session · no AI/search cost",
 };
 
 export function archetype(name: string): string {

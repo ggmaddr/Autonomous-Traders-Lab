@@ -5,11 +5,12 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 
 export type Theme = "light" | "dark";
-const KEY = "traders-lab-theme";
+const KEY = "antimat-lab-theme";
+const OLD_KEY = "traders-lab-theme"; // before the rename
 
 function saved(): Theme {
   try {
-    return localStorage.getItem(KEY) === "dark" ? "dark" : "light";
+    return (localStorage.getItem(KEY) ?? localStorage.getItem(OLD_KEY)) === "dark" ? "dark" : "light";
   } catch {
     return "light";
   }

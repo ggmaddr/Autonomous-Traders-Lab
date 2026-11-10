@@ -20,6 +20,8 @@ import {
   GiSpyglass,
   GiTreasureMap,
   GiTwoCoins,
+  GiCrossedSwords,
+  GiChefToque,
 } from "react-icons/gi";
 
 /** How a mark moves. Each is a CSS keyframe set in styles.css (.crew[data-motion]). */
@@ -113,6 +115,8 @@ const TRADER: Record<string, { icon: ReactNode; motion: Motion; title: string }>
   law: { icon: <Scalpel />, motion: "slice", title: "the surgeon" },
   // Luffy bounces in and out the same day.
   luffy: { icon: <StrawHat />, motion: "bounce", title: "the captain" },
+  zoro: { icon: <GiCrossedSwords />, motion: "slice", title: "the momentum swordsman" },
+  sanji: { icon: <GiChefToque />, motion: "bob", title: "the rebound cook" },
 };
 
 export const ICONS = {

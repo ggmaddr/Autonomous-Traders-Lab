@@ -164,19 +164,19 @@ export function Researcher() {
 
 function Finding({ rows, trader }: { rows: Row[] | null; trader: string | null }) {
   if (!rows) return <>Reading the saved runs…</>;
-  const scope = trader ? `${cap(trader)}'s researcher` : "The researcher";
-  if (!rows.length) return <>{scope} has no saved requests yet. Runs from before span saving began were not kept.</>;
+  const scope = trader ? `${cap(trader)}'s researcher` : "Researcher";
+  if (!rows.length) return <>{scope}: no saved requests yet.</>;
   const fed = rows.filter((r) => r.cited.length);
   const pnl = fed.flatMap((r) => r.cited).reduce((s, o) => s + (o.pnl ?? 0), 0);
   return (
     <>
-      {scope} answered {count(rows.length)} requests.{" "}
+      {scope}: {count(rows.length)} requests.{" "}
       {fed.length ? (
         <>
-          {count(fed.length)} of them named a stock that was then traded in the same run, and those trades stand at <Change value={pnl} />.
+          {count(fed.length)} led to a trade in the same run, now <Change value={pnl} />.
         </>
       ) : (
-        "None of them named a stock the trader went on to trade."
+        "None led to a trade."
       )}
     </>
   );

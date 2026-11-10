@@ -82,17 +82,17 @@ export function Lessons() {
 
 function Finding({ data, trader }: { data?: LessonsPayload; trader: string | null }) {
   if (!data) return <>Reading the lessons…</>;
-  const who = trader ? cap(trader) : "The desk";
+  const who = trader ? cap(trader) : "Desk";
   const { lessons, pending } = data;
   if (!lessons.length) {
     const next = pending[0];
     return next ? (
       <>
-        No lessons yet: a trade is reviewed {data.horizons[0]} days after it fills. The first due is {cap(next.trader)}'s{" "}
-        {next.symbol} {next.side}, on <span className="num">{shortDay(parseIso(next.due_at)!)}</span>.
+        No lessons yet. First due: {cap(next.trader)}'s {next.symbol} {next.side},{" "}
+        <span className="num">{shortDay(parseIso(next.due_at)!)}</span>.
       </>
     ) : (
-      <>No lessons yet, and no traced trades waiting for review. Lessons start {data.horizons[0]} days after the first traced fill.</>
+      <>No lessons yet; none waiting. First comes {data.horizons[0]} days after a traced fill.</>
     );
   }
   const mistakes = lessons.filter((l) => l.kind === "mistake").length;
@@ -100,11 +100,9 @@ function Finding({ data, trader }: { data?: LessonsPayload; trader: string | nul
   const recalled = lessons.filter((l) => l.recalled_count > 0).length;
   return (
     <>
-      {who} has {plural(lessons.length, "lesson")}: {count(lessons.length - mistakes)} from successes, {count(mistakes)} from
-      mistakes. {contradicted ? `${plural(contradicted, "no longer holds", "no longer hold")}; a later trade pointed the other way. ` : ""}
-      {recalled
-        ? `${plural(recalled, "lesson was", "lessons were")} recalled before trading.`
-        : "None has been recalled before a trade yet."}
+      {who}: {plural(lessons.length, "lesson")}, {count(lessons.length - mistakes)} wins, {count(mistakes)} mistakes.{" "}
+      {contradicted ? `${count(contradicted)} contradicted. ` : ""}
+      {recalled ? `${count(recalled)} recalled before trading.` : "None recalled yet."}
     </>
   );
 }

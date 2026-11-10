@@ -1,59 +1,85 @@
-/* Traders Lab. Style: achromatic ledger (taste-skill, seed 1409705195) on a stone
-   ground. The chrome is ink and stone; colour lives on data: each trader keeps one
+/* Antimat Lab. Style: ledger (taste-skill, seed 1409705195) on a sunflower ground,
+   or the deep sea in dark mode. The chrome is ink on cream; colour lives on data: each trader keeps one
    faded print colour on every chart, and green and red only say good or bad money.
 
    Grid at 1440: sidebar 232 + canvas padding 40 + 40 → content 1128.
    Lead row 2fr 1fr with a 16 gap: 741.33 + 16 + 370.67 = 1128.
    Halves: 556 + 16 + 556 = 1128. One gap value (16) everywhere. */
 
-/* Palette "Phosphor". Light: mineral paper (a cool grey-green, never cream) with
-   a cobalt signal. Dark: green-black glass-free ground with an acid-lime signal.
-   Each trader keeps one colour per theme; green and red stay for money only.
-   On dark, money's green is a neon spring green, distinct from the lime chrome. */
+/* Palette "Sunny and the deep". Light: a lemon ground (#ffea00) with cards on
+   pale cream so data reads on near-white; ink text and a cobalt signal, blue being
+   yellow's opposite. Dark: deep purple ground (#1c0030) with deeper purple
+   cards, bright white text and the sunflower as the signal, so each theme's signal
+   is the other's ground. Each trader keeps one colour per theme; green and red stay
+   for money only. Law wears his black coat on cream and his white hat at sea, so
+   no trader is yellow on a yellow page. Every text pair is AA (4.5:1) or better on
+   both ground and surface; every data colour is 3:1 or better on the surface. */
 :root {
-  --ground: #e5eae7;
-  --surface: #f7f9f8;
-  --raised: #dce2de;
-  --active: #d0d8d3;
-  --border: #d2d9d5;
-  --rule: #e2e7e4;
-  --control: #b3bdb7;
-  --text: #07110d;
-  --muted: #45524c;
-  --faint: #53615a;
-  --primary: #07110d;
-  --accent-data: #0a46e8;
-  --positive: #0b7a3b;
-  --negative: #c81e1e;
-  --grid: #dfe5e1;
-  --cash: #b7c0bb;
+  --ground: #ffea00;
+  --surface: #fffce3;
+  --raised: #fff59c;
+  --active: #fff066;
+  --border: #e3cc1a;
+  --rule: #f3eba6;
+  --control: #8e99a8;
+  --text: #1a1500;
+  --muted: #4a3f00;
+  --faint: #5a4e0e;
+  --primary: #1a1500;
+  --accent-data: #1d4ed8;
+  --positive: #07642d;
+  --negative: #b01818;
+  --warn: #b45309;
+  --grid: #efe6ae;
+  --cash: #c4bfae;
 
-  /* Five hues kept far apart on the wheel and in lightness, and away from the
-     money pair (green 145°, red 0°): violet (Robin), orange (Nami), sky blue
-     (Jinbe), dark ochre (Law), magenta (Luffy). Cobalt stays the chrome signal, so no trader wears it. */
-  --t-robin: #8b2fd6;
-  --t-nami: #d96400;
-  --t-jinbe: #0081b8;
-  --t-law: #806600;
-  --t-luffy: #c4129a;
-  --crew-gold: #f5b400;
+  /* Five hues kept apart on the wheel and in lightness, and away from the money
+     pair (green 145°, red 0°): violet (Robin), burnt orange (Nami), sea cyan
+     (Jinbe), ink (Law), magenta (Luffy). Cobalt stays the chrome signal, so no
+     trader wears it. */
+  --t-robin: #7e22ce;
+  --t-nami: #c2410c;
+  --t-jinbe: #0e7490;
+  --t-law: #262626;
+  --t-luffy: #be1287;
+  --t-zoro: #596f19;
+  --t-sanji: #9b5800;
+  /* Gold props sit on the cream cards; a deeper gold with a brown edge keeps
+     them from melting into the sunflower. */
+  --crew-gold: #ffc300;
   --crew-edge: #5c3d00;
 
   /* Regimes are data: pale bands under the SPY line and full strips under it. The
      bulls take the positive hue (volatile also hatched, so it never rests on colour
-     alone), chop is stone, stress the negative hue. */
-  --rg-calm-bull: #b9dcc4;
-  --rg-volatile-bull: #d7ebdd;
-  --rg-volatile-line: #8cc6a0;
-  --rg-calm-chop: #c8cfcb;
-  --rg-stress: #efbccb;
+     alone), chop is sand, stress the negative hue. */
+  --rg-calm-bull: #bfe0c0;
+  --rg-volatile-bull: #dcefd6;
+  --rg-volatile-line: #84c193;
+  --rg-calm-chop: #e6dcb4;
+  --rg-stress: #f2bfc0;
 
-  --radius-card: 6px;
-  --radius-control: 4px;
+  --radius-card: 16px;
+  --radius-control: 10px;
+  /* Soft, layered shadows (a tight contact shadow and a long blurred drop) so the
+     cards sit above the page like pressed tiles; no glows, nothing coloured. */
+  --card-edge: rgb(92 61 0 / 0.1);
+  --shadow-card: inset 0 1px 0 rgb(255 255 255 / 0.8), 0 2px 4px rgb(92 61 0 / 0.1), 0 14px 30px -12px rgb(92 61 0 / 0.38);
+  --shadow-lift: inset 0 1px 0 rgb(255 255 255 / 0.8), 0 4px 8px rgb(92 61 0 / 0.12), 0 22px 40px -14px rgb(92 61 0 / 0.45);
+  --shadow-inner: inset 0 1px 0 rgb(255 255 255 / 0.7), 0 6px 14px -8px rgb(92 61 0 / 0.4);
+  --shadow-pill: 0 2px 0 rgb(0 0 0 / 0.25), 0 6px 12px -6px rgb(92 61 0 / 0.55);
+  /* A selected pill flips to the other theme's pair: ink on lemon, lemon on purple. */
+  --pill-on-bg: #1a1500;
+  --pill-on-fg: #ffea00;
   --gap: 16px;
   --pad: 24px;
-  --font: "Space Grotesk", system-ui, sans-serif;
-  --font-figure: "JetBrains Mono", ui-monospace, monospace;
+  /* Typewriter almost everywhere, one ship's log: a worn typewriter for page
+     titles and the wordmark, a clean one for headings, words and every figure,
+     and an italic serif for the agents' own words, set as quotations. */
+  --font: "Courier Prime", "Courier New", monospace;
+  --font-figure: "Courier Prime", "Courier New", monospace;
+  --font-display: "UnifrakturCook", "Old English Text MT", Georgia, serif;
+  --font-heading: "Courier Prime", "Courier New", monospace;
+  --font-quote: "Fraunces", Georgia, serif;
   --fs-title: 48px;
   --fs-answer: 32px;
   --fs-section: 15px;
@@ -63,36 +89,46 @@
 }
 
 :root[data-theme="dark"] {
-  --ground: #0a0d0c;
-  --surface: #111614;
-  --raised: #1a201d;
-  --active: #222a26;
-  --border: #1e2622;
-  --rule: #18201c;
-  --control: #36413b;
-  --text: #e8f0ec;
-  --muted: #9eaca5;
-  --faint: #8a9891;
-  --primary: #e8f0ec;
-  --accent-data: #c6f135;
-  /* Money gets its own neon green, apart from the lime chrome signal, so a gain
-     reads at a glance; losses a clean red. */
-  --positive: #2bff88;
-  --negative: #ff4d57;
-  --grid: #1c2420;
-  --cash: #3a4540;
-  --t-robin: #b48cff;
-  --t-nami: #ff8a1f;
-  --t-jinbe: #3d9bff;
-  --t-law: #f2d04a;
-  --t-luffy: #ff6ec7;
-  --crew-gold: #ffd23f;
-  --crew-edge: #2a1d00;
-  --rg-calm-bull: #123d27;
-  --rg-volatile-bull: #0d2a1b;
-  --rg-volatile-line: #1d6a41;
-  --rg-calm-chop: #2c3531;
-  --rg-stress: #5a1f2a;
+  --ground: #1c0030;
+  --surface: #2b0a4a;
+  --raised: #3b1463;
+  --active: #4b1c7c;
+  --border: #3e1868;
+  --rule: #36125c;
+  --control: #7d55b3;
+  --text: #fbf7ff;
+  --muted: #d6c6ea;
+  --faint: #bca7d8;
+  --primary: #fbf7ff;
+  --accent-data: #ffea00;
+  /* Money gets a bright mint and a coral on the navy, both apart from the
+     sunflower signal, so a gain or a loss reads at a glance. */
+  --positive: #3df29a;
+  --negative: #ff808b;
+  --warn: #ffb547;
+  --grid: #3a145f;
+  --cash: #5e4287;
+  --t-robin: #b98cff;
+  --t-nami: #ff9a3d;
+  --t-jinbe: #3fd0f0;
+  --t-law: #f1f4f8;
+  --t-luffy: #ff7ccf;
+  --t-zoro: #b6d669;
+  --t-sanji: #ffc36b;
+  --crew-gold: #ffea00;
+  --crew-edge: #24003d;
+  --rg-calm-bull: #1b4a50;
+  --rg-volatile-bull: #173f52;
+  --rg-volatile-line: #23917a;
+  --rg-calm-chop: #4d2c78;
+  --rg-stress: #7d1f3c;
+  --card-edge: rgb(255 255 255 / 0.07);
+  --shadow-card: inset 0 1px 0 rgb(255 255 255 / 0.06), 0 2px 6px rgb(0 0 0 / 0.35), 0 18px 40px -14px rgb(0 0 0 / 0.75);
+  --shadow-lift: inset 0 1px 0 rgb(255 255 255 / 0.08), 0 4px 10px rgb(0 0 0 / 0.4), 0 26px 50px -16px rgb(0 0 0 / 0.85);
+  --shadow-inner: inset 0 1px 0 rgb(255 255 255 / 0.05), 0 6px 16px -8px rgb(0 0 0 / 0.7);
+  --shadow-pill: 0 2px 0 rgb(0 0 0 / 0.35), 0 6px 14px -6px rgb(0 0 0 / 0.6);
+  --pill-on-bg: #ffea00;
+  --pill-on-fg: #1c0030;
   color-scheme: dark;
 }
 
@@ -108,7 +144,7 @@ body {
   font-family: var(--font);
   font-size: var(--fs-body);
   line-height: 20px;
-  font-weight: 500;
+  font-weight: 400;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -141,15 +177,13 @@ button {
   outline-offset: 2px;
 }
 
-/* Figures are set in a mono, as the style's decision: money and counts read as a
-   ledger's columns, with a slashed zero. Words stay in the grotesk. */
+/* Figures are typed like a ledger: the typewriter is monospaced, so columns line
+   up on their own; bold sets them apart from the words. */
 .num,
 .tnum {
   font-family: var(--font-figure);
-  font-variant-numeric: tabular-nums slashed-zero;
-  font-size: 0.93em;
-  font-weight: 600;
-  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
 }
 
 .muted {
@@ -198,9 +232,11 @@ button {
 
 .wordmark {
   white-space: nowrap;
-  font-size: 20px;
+  font-family: var(--font-display);
+  font-size: 28px;
   font-weight: 700;
-  letter-spacing: -0.04em;
+  line-height: 1;
+  letter-spacing: 0;
 }
 
 .dot {
@@ -304,8 +340,20 @@ button {
   background: var(--raised);
 }
 
-.theme-toggle {
-  justify-self: start;
+.theme-icon {
+  position: fixed;
+  top: 16px;
+  right: 24px;
+  z-index: 30;
+  display: flex;
+  padding: 4px;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.theme-icon:hover .crew {
+  animation-play-state: running;
 }
 
 .canvas {
@@ -336,10 +384,11 @@ button {
 
 .page-header h1 {
   margin-top: 6px;
+  font-family: var(--font-display);
   font-size: var(--fs-title);
-  line-height: 1;
+  line-height: 1.1;
   font-weight: 700;
-  letter-spacing: -0.05em;
+  letter-spacing: 0;
 }
 
 .finding {
@@ -417,9 +466,10 @@ button {
 }
 
 .panel-head h2 {
-  font-size: var(--fs-section);
-  font-weight: 600;
-  letter-spacing: -0.01em;
+  font-family: var(--font-heading);
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0;
 }
 
 .panel-meta {
@@ -448,19 +498,62 @@ button {
   border: 1px solid var(--border);
 }
 
+@keyframes pulse {
+  0%, 100% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes bob {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-20px);
+  }
+}
+
 .loading {
-  display: grid;
-  gap: 12px;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  background: rgba(0, 0, 0, 0.05);
+  z-index: 9999;
+  pointer-events: none;
+}
+
+:root[data-theme="dark"] .loading {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.loading-icon {
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  flex-shrink: 0;
+  animation: bob 1.5s ease-in-out infinite;
 }
 
 .loading-bar {
   height: 20px;
   border-radius: 4px;
   background: var(--raised);
+  display: none;
 }
 
 .loading-bar:first-child {
   height: 320px;
+  display: none;
 }
 
 .text-link {
@@ -486,10 +579,11 @@ button {
 }
 
 .answer-figure {
+  font-family: var(--font-figure);
   font-size: var(--fs-answer);
   line-height: 40px;
-  font-weight: 800;
-  letter-spacing: -0.04em;
+  font-weight: 700;
+  letter-spacing: 0;
 }
 
 .answer-sub {
@@ -648,7 +742,7 @@ button {
   margin: 12px 0 14px;
   font-size: 19px;
   line-height: 27px;
-  letter-spacing: -0.01em;
+  letter-spacing: 0;
   display: -webkit-box;
   -webkit-line-clamp: 5;
   -webkit-box-orient: vertical;
@@ -768,6 +862,11 @@ button {
   height: 42px;
 }
 
+/* Key-value rows wrap their label: the typewriter is wide, and a side panel is narrow. */
+.kv th[scope="row"] {
+  white-space: normal;
+}
+
 .kv-break th,
 .kv-break td {
   border-top: 1px solid var(--border);
@@ -800,7 +899,7 @@ button {
 .desk-col h3 {
   font-size: 17px;
   font-weight: 700;
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
 }
 
 .desk-col h3 .swatch {
@@ -818,7 +917,7 @@ button {
   font-size: 24px;
   line-height: 30px;
   font-weight: 800;
-  letter-spacing: -0.01em;
+  letter-spacing: 0;
 }
 
 .desk-change {
@@ -1098,6 +1197,11 @@ button {
   .topbar-title {
     margin-right: auto;
     color: var(--muted);
+  }
+
+  .theme-icon {
+    top: 6px;
+    right: 96px;
   }
 
   .sidebar {
@@ -3157,10 +3261,11 @@ button.rg-cell:not(:disabled) {
 }
 
 .scrolly-step h3 {
+  font-family: var(--font-heading);
   font-size: 20px;
-  line-height: 1.2;
+  line-height: 1.25;
   font-weight: 700;
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
 }
 
 .scrolly-tag {
@@ -3273,7 +3378,7 @@ button.rg-cell:not(:disabled) {
 
 .tile[data-tone="warn"] .tile-dot {
   border: 0;
-  background: var(--t-law);
+  background: var(--warn);
 }
 
 .tile-value {
@@ -3354,10 +3459,10 @@ button.rg-cell:not(:disabled) {
   color: var(--ground);
 }
 
-/* The agent's own words, set large in a serif so they read as a quote. */
+/* The agent's own words, set large in an italic serif so they read as a quote. */
 .decision-serif {
   max-width: 760px;
-  font-family: "Fraunces", Georgia, serif;
+  font-family: var(--font-quote);
   font-style: italic;
   font-weight: 400;
   font-size: 26px;
@@ -3457,7 +3562,7 @@ button.rg-cell:not(:disabled) {
   font-size: 22px;
   line-height: 28px;
   font-weight: 700;
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
 }
 
 .payoff-line .muted {
@@ -3525,9 +3630,14 @@ button.rg-cell:not(:disabled) {
   font-size: 12px;
 }
 
-.kpi-value {
-  font-size: 26px;
-  line-height: 32px;
+/* The big numbers: plain bold typewriter, so they read at a glance. */
+.kpi-value,
+.kpi-value .num {
+  font-family: var(--font-figure);
+  font-size: 30px;
+  line-height: 38px;
+  font-weight: 700;
+  letter-spacing: 0;
 }
 
 .kpi-sub {
@@ -3573,7 +3683,7 @@ button.rg-cell:not(:disabled) {
   padding: 14px;
   border: 1px solid var(--rule);
   border-radius: var(--radius-card);
-  background: var(--ground);
+  background: var(--raised);
   color: var(--text);
   text-decoration: none;
   transition: opacity 300ms, border-color 150ms;
@@ -3615,9 +3725,10 @@ button.rg-cell:not(:disabled) {
 }
 
 @media (max-width: 520px) {
-  .kpi-value {
-    font-size: 21px;
-    line-height: 26px;
+  .kpi-value,
+  .kpi-value .num {
+    font-size: 24px;
+    line-height: 30px;
   }
 
   .multiple {
@@ -3750,7 +3861,7 @@ button.rg-cell:not(:disabled) {
   font-size: 32px;
   line-height: 38px;
   font-weight: 700;
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
 }
 
 .funnel-label {
@@ -4223,5 +4334,116 @@ button.rg-cell:not(:disabled) {
   .crew,
   .brand:hover .mark {
     animation: none !important;
+  }
+}
+
+/* --- Slick surfaces -------------------------------------------------------- */
+/* Cards are rounded tiles lifted off the page by soft shadows instead of hard
+   borders; controls are pills, and a selected pill flips to ink on lemon (light)
+   or lemon on purple (dark). */
+
+.panel,
+.kpi,
+.tile,
+.scrolly-step,
+.failed,
+.funnel-step {
+  border-color: var(--card-edge);
+  box-shadow: var(--shadow-card);
+}
+
+.kpi,
+.tile {
+  transition: transform 180ms ease, box-shadow 180ms ease;
+}
+
+.kpi:hover,
+.tile:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lift);
+}
+
+.multiple {
+  border-color: var(--card-edge);
+  border-radius: 12px;
+  box-shadow: var(--shadow-inner);
+  transition: transform 180ms ease, box-shadow 180ms ease, opacity 300ms;
+}
+
+.multiple:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-card);
+}
+
+.segmented {
+  padding: 4px;
+  border-radius: 999px;
+}
+
+.segmented button {
+  border-radius: 999px;
+  transition: background 140ms ease, color 140ms ease;
+}
+
+.segmented button[aria-pressed="true"] {
+  background: var(--pill-on-bg);
+  color: var(--pill-on-fg);
+  box-shadow: var(--shadow-pill);
+}
+
+.chip {
+  border-color: var(--card-edge);
+  border-radius: 999px;
+  box-shadow: var(--shadow-inner);
+}
+
+.chip[aria-pressed="true"] {
+  background: var(--pill-on-bg);
+  color: var(--pill-on-fg);
+  border-color: transparent;
+  box-shadow: var(--shadow-pill);
+}
+
+.chip[aria-pressed="true"]::after {
+  display: none;
+}
+
+.nav-item {
+  border-radius: 999px;
+}
+
+.nav-item.active {
+  background: var(--pill-on-bg);
+  color: var(--pill-on-fg);
+  box-shadow: var(--shadow-pill);
+}
+
+.nav-item.active .nav-phase {
+  color: inherit;
+}
+
+.btn-primary,
+.replay-btn,
+.btn-ghost {
+  border-radius: 999px;
+}
+
+.btn-primary,
+.replay-btn {
+  box-shadow: var(--shadow-pill);
+  transition: transform 120ms ease, box-shadow 120ms ease, opacity 120ms ease;
+}
+
+.btn-primary:not(:disabled):active,
+.replay-btn:active {
+  transform: translateY(1px);
+  box-shadow: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kpi:hover,
+  .tile:hover,
+  .multiple:hover {
+    transform: none;
   }
 }

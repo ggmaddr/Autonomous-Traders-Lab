@@ -23,7 +23,7 @@ from . import store
 
 load_dotenv(override=True)
 
-USER_AGENT = os.getenv("SEC_USER_AGENT") or "TradersLab research admin@traderslab.dev"
+USER_AGENT = os.getenv("SEC_USER_AGENT") or "Antimat Lab research admin@gtsupermarket.dev"
 TICKERS_URL = "https://www.sec.gov/files/company_tickers.json"
 FACTS_URL = "https://data.sec.gov/api/xbrl/companyfacts/CIK{cik:010d}.json"
 STALE = timedelta(days=7)

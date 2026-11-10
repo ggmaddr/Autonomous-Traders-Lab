@@ -21,7 +21,7 @@ import { PositionGauge, ProbRibbon } from "../components/RegimeCharts";
 import { MarketStory } from "./MarketStory";
 import { niceTicks, useWidth } from "../components/charts";
 import { host, money, pct, price, signedPct, time } from "../lib/format";
-import { MONTHS, bestSignal, dayLabel, deskRiskOn, fill, hmmPhrase, longDay } from "../lib/regime";
+import { MONTHS, bestSignal, dayLabel, deskRiskOn, fill, longDay } from "../lib/regime";
 
 const MODEL_NAME: Record<RegimeModel, string> = { rules: "Rules", hmm: "HMM" };
 const RANGE_NAME: Record<YearRange, string> = { ytd: "YTD", "2y": "2 y", "10y": "10 y" };
@@ -75,20 +75,30 @@ export function MarketYear() {
 function Finding({ year }: { year: Year }) {
   const { rules } = year.read;
   const best = bestSignal(year, "rules", rules.label);
-  const hmmText = hmmPhrase(year);
+  const hmmText = hmmShort(year);
   return (
     <>
-      {rules.label} for <span className="num">{rules.days}</span> trading days since {dayLabel(rules.since)}
+      <span className="strong">{rules.label}</span>, <span className="num">{rules.days}</span> days since {dayLabel(rules.since)}
       {hmmText && `; ${hmmText}`}.{" "}
       {best && (
         <>
-          In this regime {best.label.toLowerCase()} has paid best, Sharpe <span className="num">{signed(best.sharpe!)}</span> over{" "}
-          <span className="num">{best.n_days}</span> days.{" "}
+          Best signal {best.label.toLowerCase()}, Sharpe <span className="num">{signed(best.sharpe!)}</span>.{" "}
         </>
       )}
-      The desk is <span className="num">{pct(deskRiskOn(year))}</span> risk-on.
+      Desk <span className="num">{pct(deskRiskOn(year))}</span> risk-on.
     </>
   );
+}
+
+/** The HMM's read in a few words: agrees, disagrees, or leaning toward a turn. */
+function hmmShort(year: Year): string | null {
+  const { hmm, agree, raw, raw_days, dwell } = year.read;
+  if (!hmm) return null;
+  if (raw.hmm && raw.hmm !== hmm.label) {
+    const left = Math.max(0, (dwell ?? 5) - (raw_days?.hmm ?? 0));
+    return `HMM leaning ${raw.hmm}${left ? `, flips in ${left} days` : ""}`;
+  }
+  return agree ? "HMM agrees" : `HMM reads ${hmm.label}`;
 }
 
 function signed(v: number, digits = 2): string {
