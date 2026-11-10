@@ -2,7 +2,7 @@
 
 Seven paper traders report to a live web dashboard: five AI traders on a **local Ollama model**, plus two fast rule-based traders with no model or search calls. The AI traders use [MCP](https://modelcontextprotocol.io) servers as their tools.
 
-![Dashboard mockup](imgs/mockup.png)
+![Dashboard mockup](imgs/mockup-bright.png)
 
 | Trader | Temperament | Style |
 |---|---|---|
