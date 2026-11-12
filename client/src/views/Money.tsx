@@ -267,7 +267,7 @@ function MoneyBody({ desk }: { desk: Desk }) {
             focus={trader}
             lead={lead}
             onPick={setTrader}
-            bands={fold.breaks.map((b) => ({ ...b, fill: "var(--raised)", label: "engine off" }))}
+            bands={fold.breaks.map((b) => ({ ...b, fill: "var(--raised)", label: "data gap" }))}
             notes={notes}
             tooltip={(i) => (
               <>
@@ -306,13 +306,12 @@ function MoneyBody({ desk }: { desk: Desk }) {
             yDomain={[Math.min(-0.01, ...curves.drawdown, ...(trader ? drawdownOf(curves.byTrader[trader]) : [])) * 1.1, 0]}
             bands={fold.breaks.map((b) => ({ ...b, fill: "var(--raised)" }))}
           />
-          <p className="note">
-            {lead && !trader && `${cap(lead)} is drawn bold for moving the most; `}pick a trader (pill, line or label) to bring another
-            forward. Shaded columns are stretches the engine was off, folded to a short break.
-            {curves.suspect.length > 0 && (
-              <> One-sample jumps from mixed price sources are left out ({curves.suspect.length} points, D1).</>
-            )}
-          </p>
+          <ul className="note">
+            <li>Shaded columns — data gaps over 6 hours, compressed.</li>
+            {lead && !trader && <li>Bold line — {cap(lead)}, largest change since funding.</li>}
+            <li>Select a trader to highlight.</li>
+            {curves.suspect.length > 0 && <li>Filtered spikes — {curves.suspect.length} points omitted.</li>}
+          </ul>
         </Panel>
 
         <div className="stack">

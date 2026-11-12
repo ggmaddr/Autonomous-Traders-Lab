@@ -2,14 +2,22 @@
 // is the trader's own across every chart and swatch on every screen; the CSS
 // defines it per theme as --t-<name>.
 
+// Stable display order by intended trading activity, not accumulated fill count.
+export const ROSTER = ["zoro", "sanji", "luffy", "robin", "law", "nami", "jinbe"];
+
+export function activityOrder(name: string): number {
+  const index = ROSTER.indexOf(name.toLowerCase());
+  return index < 0 ? ROSTER.length : index;
+}
+
 export const ARCHETYPES: Record<string, string> = {
   robin: "Regime quant",
-  nami: "All weather, risk parity",
-  jinbe: "Value, patient",
-  law: "Macro, contrarian",
-  luffy: "Day trader, opening range breakout",
-  zoro: "Momentum sprinter · 1-min checks · no AI/search cost",
-  sanji: "Dip and rebound · all session · no AI/search cost",
+  nami: "Risk parity",
+  jinbe: "Value investing",
+  law: "Contrarian macro",
+  luffy: "Opening range breakout",
+  zoro: "Momentum scalping",
+  sanji: "Dip and rebound",
 };
 
 export function archetype(name: string): string {

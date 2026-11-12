@@ -6,9 +6,9 @@
 
 import { useSearchParams } from "react-router-dom";
 import { TraderName } from "../components/bits";
-import { archetype } from "./traders";
+import { archetype, ROSTER } from "./traders";
 
-export const ROSTER = ["robin", "nami", "jinbe", "law", "luffy", "zoro", "sanji"];
+export { ROSTER } from "./traders";
 
 export function useTraderFilter(): [string | null, (t: string | null) => void] {
   const [params, setParams] = useSearchParams();

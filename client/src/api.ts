@@ -1,6 +1,9 @@
 // Client for the trading floor HTTP API. All paths are relative; in dev the Vite
 // proxy forwards /api to the FastAPI backend, so the browser sees one origin.
 
+import { activityOrder } from "./lib/traders";
+import { VIEW_ONLY } from "./lib/access";
+
 export interface TraderInfo {
   name: string;
   lastname: string;
@@ -59,8 +62,9 @@ async function get<T>(path: string): Promise<T> {
   return r.json() as Promise<T>;
 }
 
-export function getTraders(): Promise<TraderInfo[]> {
-  return get("/api/traders");
+export async function getTraders(): Promise<TraderInfo[]> {
+  const traders = await get<TraderInfo[]>("/api/traders");
+  return traders.sort((a, b) => activityOrder(a.name) - activityOrder(b.name));
 }
 
 export function getTrader(name: string): Promise<TraderDetail> {
@@ -547,6 +551,7 @@ export interface TrialDetail {
 }
 
 async function send<T>(path: string, body?: unknown): Promise<T> {
+  if (VIEW_ONLY) throw new Error("This dashboard is view-only.");
   const r = await fetch(path, {
     method: "POST",
     headers: { "Content-Type": "application/json" },

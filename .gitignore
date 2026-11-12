@@ -7,6 +7,8 @@ __pycache__/
 node_modules/
 dist/
 *.tsbuildinfo
+.cloudflare-pages/
+.wrangler/
 
 # Secrets and local state
 .env

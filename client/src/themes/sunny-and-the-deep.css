@@ -1,0 +1,115 @@
+/* Archived palette: "Sunny and the deep" (retired 2026-11-11, kept to bring back).
+
+   Light: a lemon ground (#ffea00) with cards on pale cream, ink text and a cobalt
+   signal. Dark: a deep purple ground (#1c0030) with deeper purple cards, white text
+   and the sunflower as the signal. Covers every colour token: grounds, cards,
+   lines, text tiers, money (positive/negative/warn), the seven traders, the crew
+   props, the regime bands, card shadows and the selected-pill pair.
+
+   Not imported anywhere, so it changes nothing today. To switch it on:
+     1. client/src/main.tsx: add `import "./themes/sunny-and-the-deep.css";`
+        after `import "./styles.css";`
+     2. client/index.html: add `data-palette="sunny"` to the <html> tag.
+   The selectors below outrank the default palette in styles.css, so both themes
+   (light and dark) follow it, and the theme toggle keeps working.
+   Fonts, sizes, radii and spacing are not part of a palette; they stay in
+   styles.css. See ./README.md for the palette index. */
+
+:root[data-palette="sunny"]:not([data-theme="dark"]) {
+  --ground: #ffea00;
+  --surface: #fffce3;
+  --raised: #fff59c;
+  --active: #fff066;
+  --border: #e3cc1a;
+  --rule: #f3eba6;
+  --control: #8e99a8;
+  --text: #1a1500;
+  --muted: #4a3f00;
+  --faint: #5a4e0e;
+  --primary: #1a1500;
+  --accent-data: #1d4ed8;
+  --positive: #07642d;
+  --negative: #b01818;
+  --warn: #b45309;
+  --grid: #efe6ae;
+  --cash: #c4bfae;
+
+  /* Five hues kept apart on the wheel and in lightness, and away from the money
+     pair (green 145°, red 0°): violet (Robin), burnt orange (Nami), sea cyan
+     (Jinbe), ink (Law), magenta (Luffy). Cobalt stays the chrome signal, so no
+     trader wears it. */
+  --t-robin: #7e22ce;
+  --t-nami: #c2410c;
+  --t-jinbe: #0e7490;
+  --t-law: #262626;
+  --t-luffy: #be1287;
+  --t-zoro: #596f19;
+  --t-sanji: #9b5800;
+  /* Gold props sit on the cream cards; a deeper gold with a brown edge keeps
+     them from melting into the sunflower. */
+  --crew-gold: #ffc300;
+  --crew-edge: #5c3d00;
+
+  /* Regimes are data: pale bands under the SPY line and full strips under it. The
+     bulls take the positive hue (volatile also hatched, so it never rests on colour
+     alone), chop is sand, stress the negative hue. */
+  --rg-calm-bull: #bfe0c0;
+  --rg-volatile-bull: #dcefd6;
+  --rg-volatile-line: #84c193;
+  --rg-calm-chop: #e6dcb4;
+  --rg-stress: #f2bfc0;
+
+  /* Soft, layered shadows (a tight contact shadow and a long blurred drop) so the
+     cards sit above the page like pressed tiles; no glows, nothing coloured. */
+  --card-edge: rgb(92 61 0 / 0.1);
+  --shadow-card: inset 0 1px 0 rgb(255 255 255 / 0.8), 0 2px 4px rgb(92 61 0 / 0.1), 0 14px 30px -12px rgb(92 61 0 / 0.38);
+  --shadow-lift: inset 0 1px 0 rgb(255 255 255 / 0.8), 0 4px 8px rgb(92 61 0 / 0.12), 0 22px 40px -14px rgb(92 61 0 / 0.45);
+  --shadow-inner: inset 0 1px 0 rgb(255 255 255 / 0.7), 0 6px 14px -8px rgb(92 61 0 / 0.4);
+  --shadow-pill: 0 2px 0 rgb(0 0 0 / 0.25), 0 6px 12px -6px rgb(92 61 0 / 0.55);
+  /* A selected pill flips to the other theme's pair: ink on lemon, lemon on purple. */
+  --pill-on-bg: #1a1500;
+  --pill-on-fg: #ffea00;
+}
+
+:root[data-palette="sunny"][data-theme="dark"] {
+  --ground: #1c0030;
+  --surface: #2b0a4a;
+  --raised: #3b1463;
+  --active: #4b1c7c;
+  --border: #3e1868;
+  --rule: #36125c;
+  --control: #7d55b3;
+  --text: #fbf7ff;
+  --muted: #d6c6ea;
+  --faint: #bca7d8;
+  --primary: #fbf7ff;
+  --accent-data: #ffea00;
+  /* Money gets a bright mint and a coral on the navy, both apart from the
+     sunflower signal, so a gain or a loss reads at a glance. */
+  --positive: #3df29a;
+  --negative: #ff808b;
+  --warn: #ffb547;
+  --grid: #3a145f;
+  --cash: #5e4287;
+  --t-robin: #b98cff;
+  --t-nami: #ff9a3d;
+  --t-jinbe: #3fd0f0;
+  --t-law: #f1f4f8;
+  --t-luffy: #ff7ccf;
+  --t-zoro: #b6d669;
+  --t-sanji: #ffc36b;
+  --crew-gold: #ffea00;
+  --crew-edge: #24003d;
+  --rg-calm-bull: #1b4a50;
+  --rg-volatile-bull: #173f52;
+  --rg-volatile-line: #23917a;
+  --rg-calm-chop: #4d2c78;
+  --rg-stress: #7d1f3c;
+  --card-edge: rgb(255 255 255 / 0.07);
+  --shadow-card: inset 0 1px 0 rgb(255 255 255 / 0.06), 0 2px 6px rgb(0 0 0 / 0.35), 0 18px 40px -14px rgb(0 0 0 / 0.75);
+  --shadow-lift: inset 0 1px 0 rgb(255 255 255 / 0.08), 0 4px 10px rgb(0 0 0 / 0.4), 0 26px 50px -16px rgb(0 0 0 / 0.85);
+  --shadow-inner: inset 0 1px 0 rgb(255 255 255 / 0.05), 0 6px 16px -8px rgb(0 0 0 / 0.7);
+  --shadow-pill: 0 2px 0 rgb(0 0 0 / 0.35), 0 6px 14px -6px rgb(0 0 0 / 0.6);
+  --pill-on-bg: #ffea00;
+  --pill-on-fg: #1c0030;
+}

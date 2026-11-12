@@ -10,6 +10,7 @@ import { useTheme } from "../lib/theme";
 import { ROSTER, useTraderFilter } from "../lib/filter";
 import { GiMoon, GiSun } from "react-icons/gi";
 import { Crew } from "./Crew";
+import { VIEW_ONLY } from "../lib/access";
 
 export function Mark() {
   // Chopper's jolly roger; the browser tab uses the same picture (public/favicon.png).
@@ -73,7 +74,7 @@ export function Shell() {
             Antimat Lab<span className="dot">.</span>
           </span>
         </div>
-        <p className="scope">Paper desk · a crew of {ROSTER.length}</p>
+        <p className="scope">Paper desk · a crew of {ROSTER.length}{VIEW_ONLY ? " · View only" : ""}</p>
         <nav aria-label="Views">
           {NAV.map((group) => (
             <div className="nav-group" key={group.label}>

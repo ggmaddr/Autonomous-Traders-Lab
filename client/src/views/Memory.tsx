@@ -15,7 +15,7 @@ import { getMemory, getMemoryNode, type MemoryGraph, type MemoryNode } from "../
 import { Change, Failed, Loading, PageHeader, Panel, TraderName } from "../components/bits";
 import { useDesk, type Desk } from "../lib/desk";
 import { fillPnl } from "../lib/research";
-import { cssColor, hue, hueVar } from "../lib/traders";
+import { cssColor, hue, hueVar, ROSTER } from "../lib/traders";
 import { useTheme } from "../lib/theme";
 import { count, longDate, parseIso, stamp, time } from "../lib/format";
 
@@ -28,7 +28,7 @@ const WINDOWS = [
   { id: "1d", label: "24 hours", ms: DAY },
 ];
 const FIT_ZOOM = 1.25;
-const TRADERS = ["robin", "nami", "jinbe", "law", "luffy", "zoro", "sanji"];
+const TRADERS = ROSTER;
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 const plural = (n: number, one: string, many = `${one}s`) => `${count(n)} ${n === 1 ? one : many}`;
 

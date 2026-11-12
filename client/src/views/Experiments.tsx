@@ -45,6 +45,8 @@ import {
   varying,
 } from "../lib/lab";
 
+import { VIEW_ONLY } from "../lib/access";
+
 const MAX_TRIALS = 400;
 const GRADE_WORD: Record<Grade, string> = { pass: "Pass", partial: "Partial", fail: "Fail" };
 
@@ -76,8 +78,8 @@ export function Experiments() {
       {catalog.error && <Failed what="the lab catalog" error={catalog.error as Error} />}
       {!catalog.data && !catalog.error && <Loading rows={8} />}
       {catalog.data && (
-        <div className="lab">
-          <Rig catalog={catalog.data} onQueued={(id) => set({ exp: id, trial: null })} />
+        <div className="lab" style={VIEW_ONLY ? { gridTemplateColumns: "minmax(0, 1fr)" } : undefined}>
+          {!VIEW_ONLY && <Rig catalog={catalog.data} onQueued={(id) => set({ exp: id, trial: null })} />}
           <div className="stack lab-results">
             <ExperimentTabs
               list={list.data ?? []}
@@ -464,7 +466,7 @@ function Results({
             <span className="num">
               {count(done)} of {count(exp.cells.length)} done
             </span>
-            {live && (
+            {live && !VIEW_ONLY && (
               <button type="button" className="btn-ghost" onClick={() => cancel.mutate()} disabled={cancel.isPending}>
                 Cancel the rest
               </button>

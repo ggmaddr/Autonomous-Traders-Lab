@@ -188,3 +188,45 @@ Other settings: the model in `local_llm.py`, starting cash in `server/accounts.p
 MIT. Adapted from the MCP capstone of [Ed Donner's agents course](https://github.com/ed-donner/agents).
 
 The crew icons are from [game-icons.net](https://game-icons.net) (by Lorc, Delapouite and contributors, [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/)), through [react-icons](https://react-icons.github.io/react-icons/).
+
+
+## Public view-only sharing
+
+Ollama, the trading engine, the private API, and the database stay on the desktop.
+Cloudflare exposes only `server.public_web` on loopback port 8010. The gateway
+serves `client/dist` and an explicit allowlist of GET endpoints. All write methods
+are rejected before reaching the private API; the public UI hides experiment
+creation and cancellation. Local UI controls remain available on port 5173.
+Public GET responses share a 15-second cache (Market Year: five minutes), with
+coalesced requests and bounded concurrency. The public UI includes saved trading,
+research, memory, and experiment results. Configured credentials are redacted.
+
+With the private API already running on port 8000, build the UI:
+
+```sh
+npm run build --prefix client
+```
+
+Run each command in its own terminal, from the repository root:
+
+```sh
+uv run uvicorn server.public_web:app --host 127.0.0.1 --port 8010 --no-access-log
+cloudflared tunnel --url http://127.0.0.1:8010 --no-autoupdate
+```
+
+Install the tunnel client once with `brew install cloudflared`. Share the HTTPS
+`trycloudflare.com` URL printed by cloudflared. Only tunnel port 8010, not the
+private API, Vite development server, or Ollama. Stop cloudflared to end sharing.
+Keep the computer awake and connected. Quick Tunnel addresses change on restart;
+these processes are not configured to start at login. Rebuild the UI to publish
+later frontend edits. Saved account updates appear automatically.
+
+For the initial background session, process logs are in
+`/tmp/trading-public-web.log` and `/tmp/trading-cloudflare.log`. Check that an
+existing gateway/tunnel is stopped before starting another.
+
+Validate the public boundary offline with:
+
+```sh
+uv run python -m unittest server.test_public_web -v
+```
