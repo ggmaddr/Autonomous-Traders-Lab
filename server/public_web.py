@@ -18,7 +18,7 @@ from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Response
 ROOT = Path(__file__).resolve().parents[1]
 DIST = ROOT / "client" / "dist"
 ORIGIN = "http://127.0.0.1:8000"
-CREW = "(?i:robin|nami|jinbe|law|luffy|zoro|sanji)"
+CREW = "(?i:robin|nami|zoro|sanji|luffy|jinbe|law)"
 READ_PATHS = re.compile(
     rf"/api/(?:traders(?:/{CREW}(?:/logs)?)?|market|research|runs(?:/trace_[a-zA-Z0-9_-]+)?"
     rf"|health/activity|lessons|memory/{CREW}(?:/node/[^\x00-\x1f]+)?"

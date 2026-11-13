@@ -3,7 +3,7 @@
 // defines it per theme as --t-<name>.
 
 // Stable display order by intended trading activity, not accumulated fill count.
-export const ROSTER = ["zoro", "sanji", "luffy", "robin", "law", "nami", "jinbe"];
+export const ROSTER = ["jinbe", "law", "luffy", "robin", "sanji", "nami", "zoro"];
 
 export function activityOrder(name: string): number {
   const index = ROSTER.indexOf(name.toLowerCase());
@@ -13,11 +13,11 @@ export function activityOrder(name: string): number {
 export const ARCHETYPES: Record<string, string> = {
   robin: "Regime quant",
   nami: "Risk parity",
-  jinbe: "Value investing",
-  law: "Contrarian macro",
+  zoro: "Value investing",
+  sanji: "Contrarian macro",
   luffy: "Opening range breakout",
-  zoro: "Momentum scalping",
-  sanji: "Dip and rebound",
+  jinbe: "Momentum scalping",
+  law: "Dip and rebound",
 };
 
 export function archetype(name: string): string {

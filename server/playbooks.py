@@ -1,4 +1,4 @@
-"""Strategy playbooks (plan §4.4): Robin's, Jinbe's, Law's and Luffy's strategies as rules the
+"""Strategy playbooks (plan §4.4): Robin's, Zoro's, Sanji's and Luffy's strategies as rules the
 Quant computes and a check can verify. Each playbook is strategy text plus a rule list;
 the text is what the trader reads, and check() grades every order of a run against the
 rules from what the run actually saw (its Quant tool results) and did (its fills).
@@ -11,10 +11,10 @@ import json
 
 from .quant.universe import MACRO_UNIVERSE
 
-JINBE = {
-    "id": "jinbe-qarp-v1",
+ZORO = {
+    "id": "zoro-qarp-v1",
     "name": "Quality at a reasonable price",
-    "text": """Playbook jinbe-qarp-v1: quality at a reasonable price. You are Jinbe. You blend Buffett's focus on
+    "text": """Playbook zoro-qarp-v1: quality at a reasonable price. You are Zoro. You blend Buffett's focus on
 quality with Greenblatt's Magic Formula and the Piotroski F-score. These rules are fixed; follow them and name the
 rule you act on in every order rationale (for example "J2: margin of safety 31%").
 
@@ -43,10 +43,10 @@ verdict and the kill criteria; relations competes_with, supplies, held_by.""",
     },
 }
 
-LAW = {
-    "id": "law-macro-trend-v1",
+SANJI = {
+    "id": "sanji-macro-trend-v1",
     "name": "Global macro with trend confirmation",
-    "text": """Playbook law-macro-trend-v1: global macro with trend confirmation. You are Law. You join Soros-style
+    "text": """Playbook sanji-macro-trend-v1: global macro with trend confirmation. You are Sanji. You join Soros-style
 reflexivity (find the imbalance, size up when it proves right) with time-series momentum. Long only, through ETFs. These
 rules are fixed; follow them and name the rule you act on in every order rationale (for example "L2: trend confirmed").
 
@@ -120,7 +120,7 @@ macro releases) and to log the day's session in memory: the names, the catalyst,
     },
 }
 
-PLAYBOOKS = {"Robin": ROBIN, "Jinbe": JINBE, "Law": LAW, "Luffy": LUFFY}
+PLAYBOOKS = {"Robin": ROBIN, "Zoro": ZORO, "Sanji": SANJI, "Luffy": LUFFY}
 MIN_MARGIN = 0.25
 
 
@@ -132,7 +132,7 @@ def _status(ok: bool | None, evidence: str) -> dict:
     return {"status": "unknown" if ok is None else "pass" if ok else "fail", "evidence": evidence}
 
 
-def _jinbe(order: dict, seen: dict, after: dict) -> dict:
+def _zoro(order: dict, seen: dict, after: dict) -> dict:
     sym, out = order["symbol"], {}
     equity = after.get("equity") or 0
     if order["side"] == "buy":
@@ -165,7 +165,7 @@ def _jinbe(order: dict, seen: dict, after: dict) -> dict:
     return out
 
 
-def _law(order: dict, seen: dict, after: dict, before: dict) -> dict:
+def _sanji(order: dict, seen: dict, after: dict, before: dict) -> dict:
     sym, out = order["symbol"], {}
     out["L1"] = _status(sym in MACRO_UNIVERSE, f"{sym} is {'in' if sym in MACRO_UNIVERSE else 'outside'} the macro universe")
     if order["side"] != "buy":
@@ -252,7 +252,7 @@ def check(trader: str, orders: list[dict], seen: dict[str, list[dict]], before: 
         return []
     out = []
     for o in orders:
-        res = (_jinbe(o, seen, after) if pb is JINBE else _law(o, seen, after, before) if pb is LAW
+        res = (_zoro(o, seen, after) if pb is ZORO else _sanji(o, seen, after, before) if pb is SANJI
                else _luffy(o, seen, after) if pb is LUFFY else _robin(o, seen, after))
         out.append({"order": {k: o.get(k) for k in ("side", "symbol", "quantity", "price")},
                     "rules": [{"id": k, "text": pb["rules"][k], **v} for k, v in res.items()]})

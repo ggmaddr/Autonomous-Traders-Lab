@@ -16,7 +16,7 @@ class ArchitectureTraceTests(unittest.TestCase):
             {"id": "aa", "parent_id": "a", "started_at": "2026-01-01T00:00:03Z", "ended_at": "2026-01-01T00:00:08Z",
              "span_data": {"type": "function", "name": "child"}},
         ]
-        with patch.object(runs, "read_run", return_value=None), patch.object(runs, "read_spans", return_value=spans):
+        with patch.object(runs, "read_trace_traders", return_value={}), patch.object(runs, "read_run", return_value=None), patch.object(runs, "read_spans", return_value=spans):
             detail = runs.run_detail("trace_example")
         timeline = {span["id"]: span for span in detail["timeline"]}
         self.assertIsNone(timeline["root"]["parent_id"])

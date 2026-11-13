@@ -49,10 +49,10 @@ const SHAPES: Shape[] = ["circle", "square", "diamond", "triangle"];
 // The reference value in ink, the first alternative in the data accent, the rest in greys.
 const TONES = ["var(--text)", "var(--accent-data)", "var(--muted)", "var(--faint)"];
 const PERSONA: Record<string, string> = {
-  value: "jinbe",
-  value_playbook: "jinbe",
-  macro: "law",
-  macro_playbook: "law",
+  value: "zoro",
+  value_playbook: "zoro",
+  macro: "sanji",
+  macro_playbook: "sanji",
   risk_parity: "nami",
   robin: "robin",
 };

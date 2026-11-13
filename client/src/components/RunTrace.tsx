@@ -28,9 +28,9 @@ const SUBAGENTS = new Set(["Researcher", "Synthesizer"]);
 
 export const TRACE_KINDS = {
   think: { label: "model thinking", color: "var(--control)" },
-  research: { label: "research", color: "var(--t-jinbe)" },
-  search: { label: "web search / fetch", color: "color-mix(in srgb, var(--t-jinbe) 55%, var(--surface))" },
-  quant: { label: "quant tools", color: "var(--t-law)" },
+  research: { label: "research", color: "var(--t-zoro)" },
+  search: { label: "web search / fetch", color: "color-mix(in srgb, var(--t-zoro) 55%, var(--surface))" },
+  quant: { label: "quant tools", color: "var(--t-sanji)" },
   data: { label: "data lookups", color: "var(--muted)" },
   memory: { label: "memory", color: "var(--t-robin)" },
   account: { label: "account", color: "var(--faint)" },

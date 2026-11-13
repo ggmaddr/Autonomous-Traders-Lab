@@ -31,8 +31,8 @@ else:
     }
 
 # Traders whose playbooks are computed by the Quant, and those whose strategy is a fixed playbook (plan §4.4).
-QUANT_TRADERS = {"Robin", "Jinbe", "Law"}
-PLAYBOOK_TRADERS = {"Robin", "Jinbe", "Law", "Luffy"}
+QUANT_TRADERS = {"Robin", "Zoro", "Sanji"}
+PLAYBOOK_TRADERS = {"Robin", "Zoro", "Sanji", "Luffy"}
 # Luffy, the day trader, gets the Day-Trade desk (the opening range breakout) instead of the Quant.
 DAY_TRADERS = {"Luffy"}
 

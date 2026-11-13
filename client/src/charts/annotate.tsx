@@ -1,5 +1,5 @@
 // The annotation layer: a thin leader line from a point on the chart to a short
-// label, so a chart explains itself in place ("3 Nov · Jinbe breaks away").
+// label, so a chart explains itself in place ("3 Nov · Zoro breaks away").
 // annotate() turns a spec in chart pixels into the SVG; charts accept specs in
 // data units and call it after scaling.
 

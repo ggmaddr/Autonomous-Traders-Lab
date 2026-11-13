@@ -219,14 +219,16 @@ def read_researcher_trace_ids(trader: str | None = None, limit: int = 200) -> li
     with sqlite3.connect(DB) as conn:
         sql = '''
             SELECT s.trace_id, MAX(s.started_at) AS t FROM spans s
+            LEFT JOIN runs r ON r.trace_id = s.trace_id
+            LEFT JOIN traces tr ON tr.trace_id = s.trace_id
             WHERE json_extract(s.export, '$.span_data.type') = 'function'
               AND json_extract(s.export, '$.span_data.name') = 'Researcher'
               AND s.trace_id NOT LIKE 'trace_lab0%'
         '''
         args: tuple = ()
         if trader:
-            sql += " AND s.trace_id LIKE ?"
-            args = (f"trace_{trader.lower()}0%",)
+            sql += " AND LOWER(COALESCE(r.trader, json_extract(tr.metadata, '$.trader'), substr(s.trace_id, 7, instr(substr(s.trace_id, 7), '0') - 1))) = ?"
+            args = (trader.lower(),)
         sql += ' GROUP BY s.trace_id ORDER BY t DESC LIMIT ?'
         return [r[0] for r in conn.execute(sql, (*args, limit)).fetchall()]
 
@@ -272,13 +274,32 @@ def read_tool_spans(trader: str, tool_names: set[str]) -> list[dict]:
     marks = ",".join("?" * len(tool_names))
     with sqlite3.connect(DB) as conn:
         rows = conn.execute(f'''
-            SELECT export FROM spans
-            WHERE trace_id LIKE ?
-              AND json_extract(export, '$.span_data.type') = 'function'
-              AND json_extract(export, '$.span_data.name') IN ({marks})
-            ORDER BY started_at
-        ''', (f"trace_{trader.lower()}0%", *tool_names)).fetchall()
+            SELECT s.export FROM spans s
+            LEFT JOIN runs r ON r.trace_id = s.trace_id
+            LEFT JOIN traces tr ON tr.trace_id = s.trace_id
+            WHERE LOWER(COALESCE(r.trader, json_extract(tr.metadata, '$.trader'), substr(s.trace_id, 7, instr(substr(s.trace_id, 7), '0') - 1))) = ?
+              AND json_extract(s.export, '$.span_data.type') = 'function'
+              AND json_extract(s.export, '$.span_data.name') IN ({marks})
+            ORDER BY s.started_at
+        ''', (trader.lower(), *tool_names)).fetchall()
     return [json.loads(r[0]) for r in rows]
+
+
+def read_trace_traders(trace_ids: list[str]) -> dict[str, str]:
+    """Identity comes from stored metadata; historical trace IDs stay permanent."""
+    result = {}
+    ids = list(set(trace_ids))
+    with sqlite3.connect(DB) as conn:
+        for offset in range(0, len(ids), 500):
+            batch = ids[offset:offset + 500]
+            marks = ','.join('?' for _ in batch)
+            rows = conn.execute(f'''SELECT trace_id, json_extract(metadata, '$.trader') FROM traces
+                WHERE trace_id IN ({marks}) UNION ALL SELECT trace_id, trader FROM runs
+                WHERE trace_id IN ({marks})''', (*batch, *batch))
+            for trace_id, trader in rows:
+                if trader:
+                    result[trace_id] = trader.lower()
+    return result
 
 
 def read_spans_between(start: str, end: str) -> list[dict]:

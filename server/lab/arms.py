@@ -6,19 +6,19 @@ k times each.
 import requests
 
 from local_llm import MODEL_NAME, OLLAMA_BASE_URL
-from ..playbooks import LAW, ROBIN, JINBE
-from ..reset import jinbe_strategy, law_strategy, nami_strategy
+from ..playbooks import SANJI, ROBIN, ZORO
+from ..reset import zoro_strategy, sanji_strategy, nami_strategy
 
 STRATEGIES = {
-    "value": ("Jinbe", "Value, patient", jinbe_strategy),
-    "macro": ("Law", "Macro, contrarian", law_strategy),
+    "value": ("Zoro", "Value, patient", zoro_strategy),
+    "macro": ("Sanji", "Macro, contrarian", sanji_strategy),
     "risk_parity": ("Nami", "Risk parity, systematic", nami_strategy),
-    "value_playbook": ("Jinbe", "Value playbook", JINBE["text"]),
-    "macro_playbook": ("Law", "Macro playbook", LAW["text"]),
+    "value_playbook": ("Zoro", "Value playbook", ZORO["text"]),
+    "macro_playbook": ("Sanji", "Macro playbook", SANJI["text"]),
 }
 # Which playbook's rules an arm's orders are checked against (E14): a persona and its
 # playbook are held to the same rules, so the difference is the text alone.
-RULES_OF = {"value": JINBE, "value_playbook": JINBE, "macro": LAW, "macro_playbook": LAW}
+RULES_OF = {"value": ZORO, "value_playbook": ZORO, "macro": SANJI, "macro_playbook": SANJI}
 ROBIN_STRATEGY = ROBIN["text"]
 
 STATIC = [

@@ -4,7 +4,7 @@ Guidance for Claude Code when working in this repository.
 
 ## What this project is
 
-Five autonomous AI traders (in roster order: Robin, the regime quant; Nami, all weather; Jinbe, value; Law, macro; Luffy, the day trader) that research the market, trade stocks and report to a web dashboard. They run on a local Ollama model through the OpenAI Agents SDK, and use MCP servers as their tools.
+Five autonomous AI traders (in roster order: Robin, the regime quant; Nami, all weather; Zoro, value; Sanji, macro; Luffy, the day trader) that research the market, trade stocks and report to a web dashboard. They run on a local Ollama model through the OpenAI Agents SDK, and use MCP servers as their tools.
 
 It is being upgraded into **Antimat Lab**, a lab for building, explaining, stress-testing and comparing AI trading agents, aiming over time at reliable, risk-adjusted profit. The plan is [docs/V2_ARCHITECTURE_PLAN.md](docs/V2_ARCHITECTURE_PLAN.md). Work follows its roadmap (§16), one phase at a time.
 
@@ -24,7 +24,7 @@ uv run -m server.quant                           # Market Year: bars, regimes, s
 uv run -m server.lab.regime_scenarios            # rebuild the Lab's regime scenarios from the bars
 ```
 
-Needs Ollama with `qwen2.5-coder:32b` pulled, and `TAVILY_API_KEY` in `.env`. `MASSIVE_API_KEY` is optional (simulated prices without it). The Market Year needs `ALPACA_API_KEY` and `ALPACA_SECRET_KEY` (paper keys; history only) and, for Jinbe's fundamentals, `SEC_USER_AGENT`.
+Needs Ollama with `qwen2.5-coder:32b` pulled, and `TAVILY_API_KEY` in `.env`. `MASSIVE_API_KEY` is optional (simulated prices without it). The Market Year needs `ALPACA_API_KEY` and `ALPACA_SECRET_KEY` (paper keys; history only) and, for Zoro's fundamentals, `SEC_USER_AGENT`.
 
 ## Layout
 
@@ -39,8 +39,8 @@ Needs Ollama with `qwen2.5-coder:32b` pulled, and `TAVILY_API_KEY` in `.env`. `M
 - `server/review.py`: the post-cycle review. Traced decisions 3 and 10 days old get their return vs SPY and one local-model prompt turns them into lessons, saved to `lessons` and the trader's memory graph. Run by hand with `uv run -m server.review`.
 - `server/lab/`: the Experiment Lab (Phase 4). `scenarios/*.yaml` are frozen decision points (synthetic tickers, scripted price path, research documents, pass/partial rules); `scenarios.py` grades orders and computes the baselines; `env.py` is a trial's sandbox account and frozen research as SDK function tools; `prompts.py` holds the original (D11) and fixed prompts; `arms.py` the dimensions an experiment varies; `regime_scenarios.py` builds the real-bar `regime-*.yaml` scenarios for E12–E14 (agent dimension: trader, Robin, Robin without Synthesizer; playbook strategies); `runner.py` runs one trial as an SDK trace (`trace_lab0…`, grouped by experiment); `grading.py` and `stats.py` grade from the ledger and spans and summarise with bootstrap intervals; `routes.py` is the API (`/api/lab/catalog`, `/api/experiments`, the only writes are queue and cancel); `store.py` the `experiments`, `trials` and `lab_worker` tables.
 - `server/quant/`: the Market Year (Phase 5). `bars.py` loads adjusted daily bars from Alpaca (SIP, 2016 on) into `bars`; `features.py`, `regimes.py` (rules and a forward-filtered HMM), `signals.py` (the eight-signal scoreboard) compute everything as of a day; `events.py` has the Researcher explain each regime turn (`market_events`); `fundamentals.py` reads SEC EDGAR 10-K figures; `tools.py` is the Quant as plain functions of an as-of day; `year_graph.py` writes Robin's memory; `pipeline.py` runs it all; `routes.py` is `/api/market-year`.
-- `server/quant_server.py`: the Quant MCP server (no LLM), bound to an account and a day by its environment. Jinbe, Law and Robin get it.
-- `server/playbooks.py`: Robin's, Jinbe's, Law's and Luffy's fixed playbooks (strategy text plus rules) and the per-order playbook check shown on Decisions; `change_strategy` is filtered out for them.
+- `server/quant_server.py`: the Quant MCP server (no LLM), bound to an account and a day by its environment. Zoro, Sanji and Robin get it.
+- `server/playbooks.py`: Robin's, Zoro's, Sanji's and Luffy's fixed playbooks (strategy text plus rules) and the per-order playbook check shown on Decisions; `change_strategy` is filtered out for them.
 - `server/robin.py`: Robin, the fifth trader: the Synthesizer sub-agent and its `TradeThesis`, the cycle gate (thesis on a regime change or daily, otherwise a brake check), and the thesis memory. Groundedness of the thesis is computed in `runs.py`.
 - `server/luffy.py`, `server/orb.py`, `server/day_trade_server.py`: Luffy, the day trader: the opening range breakout computed from Alpaca IEX 5-minute bars, the Day-Trade desk MCP server (`opening_range`), and the 15:50 flatten the floor runs so he never holds overnight. His playbook rules are M1–M7 (D is taken by the defects).
 - `server/memory.py`: reads and writes `memory/<Name>.db` in the mcp-memory-libsql schema (`/api/memory`).

@@ -134,3 +134,14 @@
   .am-motion-control { display:none; }
   .am-reduced-note { display:inline; }
 }
+
+/* Parallel execution paths are siblings, outside the numbered AI story. */
+.am-parallel-paths { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:20px; }
+.am-parallel-paths>div { border:1px solid #354d60; border-radius:5px; padding:13px 15px; background:#101b26; }
+.am-parallel-paths>div+div { border-color:#497d73; }
+.am-parallel-paths .am-eyebrow { color:#9ccfc4; font-size:9px; }
+.am-parallel-paths strong { display:block; margin-top:7px; font-size:12px; font-weight:500; color:#e7eef3; }
+.am-parallel-paths p { margin:7px 0; font-size:11px; line-height:1.6; color:#adbfcd; }
+.am-parallel-paths button { border:0; padding:4px 0; background:none; color:#8bdfca; font-size:11px; text-align:left; }
+.am-node-label[data-parallel=true] span { display:block; color:#9ae4cd; font-size:8px; }
+@media(max-width:600px) { .am-parallel-paths { grid-template-columns:1fr; gap:8px; }.am-parallel-paths>div { padding:11px 12px; }.am-node-label[data-parallel=true] span { font-size:7px; } }

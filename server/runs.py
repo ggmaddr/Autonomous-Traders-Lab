@@ -11,7 +11,7 @@ import re
 from datetime import datetime
 
 from . import playbooks
-from .database import read_run, read_runs, read_researcher_trace_ids, read_spans, read_tool_spans
+from .database import read_run, read_runs, read_researcher_trace_ids, read_spans, read_tool_spans, read_trace_traders
 
 RESEARCHER = "Researcher"
 SEARCH_TOOLS = {"tavily_search", "search"}  # search: the lab's frozen corpus
@@ -26,8 +26,11 @@ URL = re.compile(r"https?://[^\s\"'<>\\)\]]+")
 TITLED = re.compile(r"Title:\s*(.+?)\s*(?:\\n|\n)\s*URL:\s*(https?://[^\s\"'<>\\]+)")
 
 
-def trader_of(trace_id: str) -> str | None:
-    """Traces are named trace_<trader>0<random> (tracers.make_trace_id)."""
+def trader_of(trace_id: str, owners: dict[str, str] | None = None) -> str | None:
+    """Prefer stored ownership; IDs retain their original tag across identity renames."""
+    owners = read_trace_traders([trace_id]) if owners is None else owners
+    if trace_id in owners:
+        return owners[trace_id]
     tag = trace_id.split("_", 1)[1] if "_" in trace_id else ""
     return tag.split("0")[0] if "0" in tag else None
 
@@ -119,7 +122,7 @@ def _sources(spans: list[dict]) -> list[dict]:
     return list(found.values())
 
 
-def research_item(span: dict, kids: dict) -> dict:
+def research_item(span: dict, kids: dict, owners: dict[str, str] | None = None) -> dict:
     d = _data(span)
     inner = _descendants(span["id"], kids)
     tools = [_data(s) for s in inner if _data(s).get("type") == "function"]
@@ -127,7 +130,7 @@ def research_item(span: dict, kids: dict) -> dict:
     return {
         "id": span["id"],
         "trace_id": span["trace_id"],
-        "trader": trader_of(span["trace_id"]),
+        "trader": trader_of(span["trace_id"], owners),
         "started_at": span.get("started_at"),
         "ended_at": span.get("ended_at"),
         "duration_ms": _ms(span.get("started_at"), span.get("ended_at")),
@@ -147,8 +150,9 @@ def research(trader: str | None = None, limit: int = 100) -> list[dict]:
     trace_ids = read_researcher_trace_ids(trader, limit)
     spans = read_spans(trace_ids)
     kids = _children(spans)
+    owners = read_trace_traders(trace_ids)
     items = [
-        research_item(s, kids)
+        research_item(s, kids, owners)
         for s in spans
         if _data(s).get("type") == "function" and _data(s).get("name") == RESEARCHER
     ]
@@ -389,6 +393,7 @@ def activity(minutes: int = 10) -> dict:
             end = datetime.fromisoformat(last)
             start = end - timedelta(minutes=minutes)
             spans = read_spans_between(start.isoformat(), end.isoformat())
+    owners = read_trace_traders([s.get("trace_id") or "" for s in spans])
     out, gen_ms, gen_tokens, errors = [], 0.0, 0, 0
     for s in spans:
         d = _data(s)
@@ -397,7 +402,7 @@ def activity(minutes: int = 10) -> dict:
             kind = "turn"
         if kind not in ACTIVITY_TYPES and kind != "turn":
             continue
-        trader = trader_of(s.get("trace_id") or "")
+        trader = trader_of(s.get("trace_id") or "", owners)
         if not trader or trader == "lab":
             continue
         if s.get("error"):

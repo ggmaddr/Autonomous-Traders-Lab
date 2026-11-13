@@ -21,7 +21,7 @@ function Miniature({mechanism}:{mechanism:Mechanism}) {
 function Inspector({mechanism,selected,onSelect,onFocus,navigate}:{mechanism:Mechanism;selected:string|null;onSelect:(id:string)=>void;onFocus:()=>void;navigate:(id:string)=>void}) {
   const node=selected?NODE[selected]:null;
   if(!node)return <aside className="am-inspector am-inspector-intro">
-    <span className="am-eyebrow">Field notes / {mechanism.number}</span><h3>{mechanism.question}</h3><p>{mechanism.description}</p>
+    <span className="am-eyebrow">Architecture / {mechanism.number}</span><h3>{mechanism.question}</h3><p>{mechanism.description}</p>
     <div className="am-inspector-rule"/><span className="am-eyebrow">Explore the instrument</span><ol><li><b>01</b><span>Select a component to inspect its contract.</span></li><li><b>02</b><span>Follow highlighted dependencies and named flows.</span></li><li><b>03</b><span>Play the walkthrough to see the mechanism unfold.</span></li></ol>
     <div className="am-status-key"><span><i/>Implemented code</span><span><i data-status="experimental"/>Experimental / limited</span><span><i data-status="planned"/>Planned</span></div>
     <p className="am-fine">Animation explains connections. It is not live telemetry or a claim that every configured service is online.</p>
@@ -95,7 +95,11 @@ export function Architecture() {
         <div><button onClick={()=>setExpanded(v=>!v)} aria-pressed={expanded}>{expanded?'▤ Assemble layers':'▱ Separate layers'}</button><button className="am-motion-control" onClick={()=>setMoving(v=>!v)} aria-pressed={moving}>{moving?'Ⅱ Pause motion':'▷ Animate'}</button><span className="am-reduced-note">Reduced-motion mode</span></div>
       </div>
       <div className="am-walkthrough">
-        <div className="am-walkthrough-top"><span className="am-eyebrow">Guided walkthrough</span><div><button onClick={()=>{setSelected(null);setLayer('all');if(step<0||step===mechanism.steps.length-1)setStep(0);setPlaying(p=>!p);}} aria-pressed={playing}>{playing?'Ⅱ Pause story':'▶ Play walkthrough'}</button>{step>=0&&<button onClick={()=>{setStep(-1);setPlaying(false);}}>Exit story</button>}</div></div>
+        {mechanism.id==='overview'&&<div className="am-parallel-paths" aria-label="Independent trading paths">
+          <div><span className="am-eyebrow">AI trading cycle · shown below</span><strong>Five AI traders → persist → review → wait</strong><p>Research and synthesis are nested AI tools. The cycle ends at the scheduler’s review-and-wait boundary.</p></div>
+          <div><span className="am-eyebrow">Parallel deterministic path</span><strong>{NODE.fast.name} · independent rules loop</strong><p>Own interval, signals and account writes. Shares the launcher, Alpaca data infrastructure, ledger storage and tracing—not an AI handoff.</p><button onClick={()=>navigate('fast-desk')}>Explore the independent loop ↗</button></div>
+        </div>}
+        <div className="am-walkthrough-top"><span className="am-eyebrow">{mechanism.id==='overview'?'AI cycle walkthrough':mechanism.id==='fast-desk'?'Independent rules-loop walkthrough':'Guided walkthrough'}</span><div><button onClick={()=>{setSelected(null);setLayer('all');if(step<0||step===mechanism.steps.length-1)setStep(0);setPlaying(p=>!p);}} aria-pressed={playing}>{playing?'Ⅱ Pause story':'▶ Play walkthrough'}</button>{step>=0&&<button onClick={()=>{setStep(-1);setPlaying(false);}}>Exit story</button>}</div></div>
         <div className="am-story-steps" aria-label="Walkthrough steps">{mechanism.steps.map((s,i)=><button key={s.title} aria-pressed={step===i} onClick={()=>{setPlaying(false);changeStep(i);}}><span>{String(i+1).padStart(2,'0')}</span><strong>{s.title}</strong></button>)}</div>
         <div className="am-story-caption" aria-live="polite"><span>{step>=0?`${step+1} / ${mechanism.steps.length}`:'READ THE SYSTEM'}</span><p>{stepData?.text??mechanism.insight}</p>{step>=0&&<div><button aria-label="Previous walkthrough step" disabled={step===0} onClick={()=>{setPlaying(false);changeStep(step-1);}}>←</button><button aria-label="Next walkthrough step" disabled={step===mechanism.steps.length-1} onClick={()=>{setPlaying(false);changeStep(step+1);}}>→</button></div>}</div>
       </div>

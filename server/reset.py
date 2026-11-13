@@ -1,11 +1,11 @@
 from .accounts import Account
-from .playbooks import JINBE, LAW, LUFFY, ROBIN
+from .playbooks import ZORO, SANJI, LUFFY, ROBIN
 
 # Persona strategies: a character and a style of investing, in plain words. Nami trades
-# hers live; Jinbe's and Law's stay for the Lab's persona arm (E14), against their playbooks.
+# hers live; Zoro's and Sanji's stay for the Lab's persona arm (E14), against their playbooks.
 
-jinbe_strategy = """
-You are Jinbe, the steady helmsman of the desk: calm water, long voyages.
+zoro_strategy = """
+You are Zoro, the disciplined swordsman of the desk: patient research, precise entries.
 You are a value-oriented investor who prioritizes long-term wealth creation.
 You identify high-quality companies trading below their intrinsic value.
 You invest patiently and hold positions through market fluctuations,
@@ -14,8 +14,8 @@ and competitive advantages. You rarely react to short-term market movements,
 trusting your deep research and value-driven strategy.
 """
 
-law_strategy = """
-You are Law, the desk's surgeon: you cut in precisely, at the moment the market is off balance.
+sanji_strategy = """
+You are Sanji, the desk's chef: you combine global ingredients and act when the macro recipe changes.
 You are an aggressive macro trader who actively seeks significant market
 mispricings. You look for large-scale economic and
 geopolitical events that create investment opportunities. Your approach is contrarian,
@@ -34,11 +34,11 @@ and economic cycles, adjusting your portfolio strategically to manage risk and p
 
 
 def reset_traders():
-    # Robin, Jinbe, Law and Luffy trade fixed playbooks (plan §4.4); Nami trades her persona.
+    # Robin, Zoro, Sanji and Luffy trade fixed playbooks (plan §4.4); Nami trades her persona.
     Account.get("Robin").reset(ROBIN["text"])
     Account.get("Nami").reset(nami_strategy)
-    Account.get("Jinbe").reset(JINBE["text"])
-    Account.get("Law").reset(LAW["text"])
+    Account.get("Zoro").reset(ZORO["text"])
+    Account.get("Sanji").reset(SANJI["text"])
     Account.get("Luffy").reset(LUFFY["text"])
     from .active_traders import NAMES, initialize
     for name in NAMES:

@@ -8,13 +8,13 @@ Seven paper traders report to a live web dashboard: five AI traders on a **local
 |---|---|---|
 | **Robin** | steady | The regime quant: reads the market's regime and the signals that have paid in it; a Synthesizer writes the trade thesis |
 | **Nami** | steady | All weather: risk parity across asset classes, a free-text persona she can rewrite |
-| **Jinbe** | steady | Value: quality at a reasonable price, a fixed playbook |
-| **Law** | wild | Macro: global macro with trend confirmation, a fixed playbook |
+| **Zoro** | steady | Value: quality at a reasonable price, a fixed playbook |
+| **Sanji** | wild | Macro: global macro with trend confirmation, a fixed playbook |
 | **Luffy** | wild | Day trader: the opening range breakout, flat every night, with his own Day-Trade Researcher |
-| **Zoro** | impatient | Momentum sprinter: one-minute checks, short holds, exits before the close |
-| **Sanji** | opportunistic | Dip-and-rebound trader: one-minute checks throughout the regular session, may hold overnight |
+| **Jinbe** | impatient | Momentum sprinter: one-minute checks, short holds, exits before the close |
+| **Law** | opportunistic | Dip-and-rebound trader: one-minute checks throughout the regular session, may hold overnight |
 
-### Fast desk: Zoro and Sanji
+### Fast desk: Jinbe and Law
 
 The main trading floor starts an independent fast desk, controlled by
 `ACTIVE_TRADER_INTERVAL_SECONDS` (default 60, minimum 30). It shares one batch of
@@ -22,9 +22,9 @@ Alpaca IEX minute bars and recent trades between the two members. Neither uses
 Ollama, Tavily, or the LLM lesson reviewer. Each starts with $10,000 paper cash;
 initialization preserves all existing accounts and trading history.
 
-- Zoro buys five-minute momentum breakouts (+0.15% and above prior bar highs),
+- Jinbe buys five-minute momentum breakouts (+0.15% and above prior bar highs),
   exits at +0.8%, -0.5%, 20 elapsed minutes, or 10 minutes before the exchange close.
-- Sanji buys dips 0.3% below rolling volume-weighted price after an uptick,
+- Law buys dips 0.3% below rolling volume-weighted price after an uptick,
   exits at the mean, +0.9%, -0.7%, or 90 elapsed minutes. Overnight exits wait for
   fresh prices next session.
 - Both use 15% positions, at most four holdings, a five-minute cooldown after a
@@ -57,15 +57,15 @@ cannot run when the engine is stopped or fresh data is unavailable.
         │
         ▼ each trader = one agent on Ollama (OpenAI Agents SDK)
    Researcher (sub-agent as a tool)       MCP servers it can call
-     Fetch · Tavily search · Memory         Accounts · Market prices · Push · Quant (Robin, Jinbe, Law)
+     Fetch · Tavily search · Memory         Accounts · Market prices · Push · Quant (Robin, Zoro, Sanji)
    Synthesizer (Robin only)                 Day-Trade desk (Luffy)
 ```
 
 - **Engine** (`server/trading_floor.py`): loops forever. Each cycle runs every trader, then the post-cycle review, then sleeps. Once a day after the close it also runs the Market Year pipeline.
-- **Traders** (`server/traders.py`): agents with their own strategy. Jinbe (quality at a reasonable price) and Law (global macro with trend confirmation) trade fixed playbooks (`server/playbooks.py`) and cannot rewrite them. Nami keeps a persona strategy.
+- **Traders** (`server/traders.py`): agents with their own strategy. Zoro (quality at a reasonable price) and Sanji (global macro with trend confirmation) trade fixed playbooks (`server/playbooks.py`) and cannot rewrite them. Nami keeps a persona strategy.
 - **Robin** (`server/robin.py`): the regime quant. Robin reads the market regime and the signal scoreboard from the Quant, asks the Researcher only for catalysts, and a Synthesizer sub-agent turns both into a structured trade thesis. A full thesis runs on a regime change or once a day; other cycles only check the drawdown brake.
 - **Luffy** (`server/luffy.py`, `server/orb.py`, `server/day_trade_server.py`): the day trader. One technique, the opening range breakout: the first 5-minute bar from 9:30 New York sets the range, and a stock in play (opening volume 1.5x its 14-day average) that closed that bar up and trades above its high is bought, 1% of equity at risk to the range low. The Day-Trade desk (an MCP server, no LLM) computes it all from Alpaca's real-time IEX minute bars; his Researcher only looks for today's catalysts. The floor sells whatever he still holds at 15:50, so he never holds overnight.
-- **Quant** (`server/quant_server.py`, `server/quant/`): a deterministic MCP server with no LLM: regimes, signal scoreboard and scans, portfolio risk, position sizing, Jinbe's quality screen and DCF, Law's macro dashboard.
+- **Quant** (`server/quant_server.py`, `server/quant/`): a deterministic MCP server with no LLM: regimes, signal scoreboard and scans, portfolio risk, position sizing, Zoro's quality screen and DCF, Sanji's macro dashboard.
 - **Market Year pipeline** (`server/quant/pipeline.py`): adjusted daily bars from Alpaca (2016 on), features, two regime models (rules and a forward-filtered HMM), the eight-signal scoreboard, the news behind each regime turn, SEC EDGAR fundamentals, and Robin's memory graph.
 - **Experiment Lab** (`server/lab/`): runs queued experiments on frozen scenarios, including real-bar regime scenarios for E12–E14.
 - **Accounts** (`server/accounts*.py`): balance, holdings, transactions and the portfolio value history, stored in `accounts.db`.
@@ -174,7 +174,7 @@ Set in `.env` (see `.env.example`):
 |---|---|
 | `TAVILY_API_KEY` | **Required.** Web search for the researcher |
 | `ALPACA_API_KEY`, `ALPACA_SECRET_KEY` | **Required for the Market Year.** Daily bar history from Alpaca's data API. Use paper keys; nothing trades through them |
-| `SEC_USER_AGENT` | For Jinbe's fundamentals from SEC EDGAR, which asks clients to name themselves: `Your Name you@example.com` |
+| `SEC_USER_AGENT` | For Zoro's fundamentals from SEC EDGAR, which asks clients to name themselves: `Your Name you@example.com` |
 | `MASSIVE_API_KEY` | Optional. Live prices and the real market-open check; simulated prices without it. Orders for unknown tickers are rejected, never filled at a made-up price |
 | `RUN_EVERY_N_MINUTES` | Pause between cycles (default 60) |
 | `RUN_EVEN_WHEN_MARKET_IS_CLOSED` | Set `true` to trade outside market hours. With a Massive key and the market closed, the engine skips each cycle |

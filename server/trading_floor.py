@@ -22,7 +22,7 @@ RUN_EVEN_WHEN_MARKET_IS_CLOSED = (
 )
 
 # The quant first, then the two steady traders, then the two wild ones.
-names = ["Robin", "Nami", "Jinbe", "Law", "Luffy", *active_traders.NAMES]
+names = ["Robin", "Nami", "Zoro", "Sanji", "Luffy", *active_traders.NAMES]
 lastnames = ["Regime quant", "All weather", "Value", "Macro", "Day trader", "Momentum sprinter", "Dip and rebound"]
 
 model_names = [MODEL_NAME] * len(names)

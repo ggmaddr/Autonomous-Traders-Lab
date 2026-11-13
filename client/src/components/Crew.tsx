@@ -109,14 +109,14 @@ const TRADER: Record<string, { icon: ReactNode; motion: Motion; title: string }>
   robin: { icon: <Book />, motion: "flip", title: "the archaeologist" },
   // Nami navigates the weather: a portfolio for every season.
   nami: { icon: <Compass />, motion: "swing", title: "the navigator" },
-  // Jinbe keeps the helm steady: long voyages, calm water.
+  // Jinbe follows the deterministic momentum rules.
   jinbe: { icon: <Wheel />, motion: "spin", title: "the helmsman" },
-  // Law cuts in precisely when the market is off balance.
+  // Law follows the deterministic dip-and-rebound rules.
   law: { icon: <Scalpel />, motion: "slice", title: "the surgeon" },
   // Luffy bounces in and out the same day.
   luffy: { icon: <StrawHat />, motion: "bounce", title: "the captain" },
-  zoro: { icon: <GiCrossedSwords />, motion: "slice", title: "the momentum swordsman" },
-  sanji: { icon: <GiChefToque />, motion: "bob", title: "the rebound cook" },
+  zoro: { icon: <GiCrossedSwords />, motion: "slice", title: "the value swordsman" },
+  sanji: { icon: <GiChefToque />, motion: "bob", title: "the macro cook" },
 };
 
 export const ICONS = {

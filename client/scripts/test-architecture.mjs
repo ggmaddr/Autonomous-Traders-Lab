@@ -28,8 +28,20 @@ for(const m of MECHANISMS){
   m.related.forEach(id=>assert.ok(MECHANISMS.some(x=>x.id===id),`${m.id}: broken related link`));
   for(const edge of m.flows){assert.ok(neighbors(m,edge.from).has(edge.to));assert.ok(neighbors(m,edge.to).has(edge.from));}
 }
+const overview=getMechanism('overview'), fast=getMechanism('fast-desk');
+assert.ok(overview.nodes.includes('fast'),'The parallel desk remains visible');
+assert.ok(overview.steps.every(s=>!s.nodes.includes('fast')),'The AI story cannot sequence into the parallel desk');
+assert.match(overview.steps.at(-1).title,/review.*wait/i,'AI cycle ends at review and scheduler wait');
+assert.ok(overview.flows.some(e=>e.from==='runtime'&&e.to==='floor'));
+assert.ok(overview.flows.some(e=>e.from==='runtime'&&e.to==='fast'));
+for(const m of [overview,fast]){
+  assert.ok(m.flows.filter(e=>e.from==='fast'||e.to==='fast').every(e=>['runtime','alpaca','ledger','traces','fast'].includes(e.from)&&['runtime','alpaca','ledger','traces','fast'].includes(e.to)),'Rules desk connects only to its launcher and genuine shared infrastructure');
+}
+assert.ok(fast.steps.length>1&&fast.steps[0].nodes.includes('runtime'));
+assert.equal(NODE.zoro.subtitle,'Value investing');assert.equal(NODE.sanji.subtitle,'Global macro');
+assert.equal(NODE.fast.name,'Jinbe + Law');
 assert.equal(getMechanism('missing').id,'overview');
-assert.equal(STRATEGIES.length,5);assert.deepEqual(STRATEGIES.map(s=>s.name),['Robin','Nami','Jinbe','Law','Luffy']);
+assert.equal(STRATEGIES.length,5);assert.deepEqual(STRATEGIES.map(s=>s.name),['Robin','Nami','Zoro','Sanji','Luffy']);
 assert.equal(NODE.failure.status,'planned');assert.equal(NODE.learning.status,'planned');assert.equal(NODE.validation.status,'limited');
 assert.ok(NODE.fast.caveat.includes('No model'));
 const nav=readFileSync(resolve(root,'client/src/nav.ts'),'utf8');

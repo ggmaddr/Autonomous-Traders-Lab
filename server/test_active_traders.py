@@ -39,8 +39,8 @@ class ActiveDeskTests(unittest.TestCase):
                  "h": 100.1, "v": 100, "vw": 100.} for i in range(20)]
 
     def test_momentum_entry_and_snapshot_mark(self):
-        account = Account.get("Zoro")
-        desk.decide(account, "Zoro", self.snapshot, self.now, "test")
+        account = Account.get("Jinbe")
+        desk.decide(account, "Jinbe", self.snapshot, self.now, "test")
         self.assertEqual(account.holdings, {"SPY": 14})
         self.assertAlmostEqual(account.transactions[0].price, 101 * 1.002)
         self.assertLessEqual(account.holdings["SPY"] * 101, 1500)
@@ -51,71 +51,71 @@ class ActiveDeskTests(unittest.TestCase):
         rows = self.bars()
         rows[-2]["c"], rows[-1]["c"] = 99.5, 99.6
         snap = {**self.snapshot, "prices": {"SPY": 99.6}, "bars": {"SPY": rows}}
-        sanji, zoro = Account.get("Sanji"), Account.get("Zoro")
-        desk.decide(sanji, "Sanji", snap, self.now, "test")
-        desk.decide(zoro, "Zoro", snap, self.now, "test")
-        self.assertIn("SPY", sanji.holdings)
-        self.assertFalse(zoro.holdings)
+        law, jinbe = Account.get("Law"), Account.get("Jinbe")
+        desk.decide(law, "Law", snap, self.now, "test")
+        desk.decide(jinbe, "Jinbe", snap, self.now, "test")
+        self.assertIn("SPY", law.holdings)
+        self.assertFalse(jinbe.holdings)
 
     def test_time_exit_does_not_reenter_until_cooldown(self):
-        account = Account.get("Zoro")
-        desk.decide(account, "Zoro", self.snapshot, self.now, "test")
+        account = Account.get("Jinbe")
+        desk.decide(account, "Jinbe", self.snapshot, self.now, "test")
         later = self.now + timedelta(minutes=21)
-        desk.decide(account, "Zoro", self.snapshot, later, "test2")
+        desk.decide(account, "Jinbe", self.snapshot, later, "test2")
         self.assertFalse(account.holdings)
         self.assertEqual(len(account.transactions), 2)
         self.assertGreater(account.balance, 0)
         self.assertLess(account.balance, 10000)  # unchanged market still pays round-trip costs
 
     def test_flatten_before_early_close(self):
-        account = Account.get("Zoro")
-        desk.decide(account, "Zoro", self.snapshot, self.now, "test")
+        account = Account.get("Jinbe")
+        desk.decide(account, "Jinbe", self.snapshot, self.now, "test")
         snap = {**self.snapshot, "close": self.now + timedelta(minutes=5)}
-        desk.decide(account, "Zoro", snap, self.now, "test2")
+        desk.decide(account, "Jinbe", snap, self.now, "test2")
         self.assertFalse(account.holdings)
         self.assertIn("flatten", account.transactions[-1].rationale)
 
-    def test_sanji_rebound_exit(self):
-        account = Account.get("Sanji")
+    def test_law_rebound_exit(self):
+        account = Account.get("Law")
         desk.fill(account, "SPY", 10, 99.6, "entry", "test", self.now)
         snap = {**self.snapshot, "prices": {"SPY": 100.}}
-        desk.decide(account, "Sanji", snap, self.now, "test2")
+        desk.decide(account, "Law", snap, self.now, "test2")
         self.assertFalse(account.holdings)
         self.assertIn("VWAP", account.transactions[-1].rationale)
 
     def test_missing_quotes_never_fill(self):
-        account = Account.get("Zoro")
-        desk.decide(account, "Zoro", {**self.snapshot, "prices": {}}, self.now, "test")
+        account = Account.get("Jinbe")
+        desk.decide(account, "Jinbe", {**self.snapshot, "prices": {}}, self.now, "test")
         self.assertFalse(account.transactions)
 
     def test_stale_bars_never_enter(self):
-        self.assertFalse(desk.signal("Zoro", self.bars(), 101, self.now + timedelta(minutes=10))[0])
+        self.assertFalse(desk.signal("Jinbe", self.bars(), 101, self.now + timedelta(minutes=10))[0])
 
     def test_daily_cap_does_not_block_exits(self):
-        account = Account.get("Zoro")
+        account = Account.get("Jinbe")
         for i in range(30):
             at = self.now - timedelta(minutes=100-i)
             desk.fill(account, "SPY", 1, 100, "entry", "test", at)
             if i < 29:
                 desk.fill(account, "SPY", -1, 100, "exit", "test", at)
-        desk.decide(account, "Zoro", self.snapshot, self.now, "test")
+        desk.decide(account, "Jinbe", self.snapshot, self.now, "test")
         self.assertFalse(account.holdings)
         self.assertEqual(sum(t.quantity > 0 for t in account.transactions), 30)
 
     def test_four_position_limit(self):
-        account = Account.get("Zoro")
+        account = Account.get("Jinbe")
         snap = {**self.snapshot, "prices": {s: 101 for s in desk.UNIVERSE},
                 "bars": {s: self.bars() for s in desk.UNIVERSE}}
-        desk.decide(account, "Zoro", snap, self.now, "test")
+        desk.decide(account, "Jinbe", snap, self.now, "test")
         self.assertEqual(len(account.holdings), 4)
         self.assertGreaterEqual(account.balance, 0)
 
     def test_initialization_preserves_existing_money(self):
-        account = Account.get("Zoro")
+        account = Account.get("Jinbe")
         account.balance = 9876
         account.save()
         desk.initialize()
-        self.assertEqual(Account.get("Zoro").balance, 9876)
+        self.assertEqual(Account.get("Jinbe").balance, 9876)
 
     def test_quote_age_guard(self):
         data = [{"is_open": True, "next_close": self.snapshot["close"].isoformat()},
@@ -130,7 +130,7 @@ class ActiveDeskTests(unittest.TestCase):
             with patch.object(desk, "market_snapshot", return_value=snapshot, side_effect=error), \
                  patch.object(desk, "trace", return_value=nullcontext()):
                 desk.run_once(self.now)
-            self.assertFalse(Account.get("Zoro").transactions)
+            self.assertFalse(Account.get("Jinbe").transactions)
         with sqlite3.connect(database.DB) as conn:
             self.assertEqual(conn.execute("SELECT count(*) FROM runs WHERE error IS NOT NULL").fetchone()[0], 2)
 
@@ -141,11 +141,11 @@ class ActiveDeskTests(unittest.TestCase):
         with patch.object(desk, "market_snapshot", return_value=self.snapshot), \
              patch.object(desk, "trace", return_value=nullcontext()), patch.object(desk, "custom_span", side_effect=span):
             desk.run_once(self.now)
-        account = Account.get("Zoro")
+        account = Account.get("Jinbe")
         self.assertTrue(account.transactions[0].trace_id)
         self.assertEqual(len(account.portfolio_value_time_series), 2)
         with sqlite3.connect(database.DB) as conn:
-            row = conn.execute("SELECT output, error FROM runs WHERE trader='zoro'").fetchone()
+            row = conn.execute("SELECT output, error FROM runs WHERE trader='jinbe'").fetchone()
         self.assertIn("Bought SPY", row[0])
         self.assertIsNone(row[1])
 

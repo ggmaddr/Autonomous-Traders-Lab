@@ -25,3 +25,6 @@ memory/*
 # Handoff docs (local only)
 traders-lab-redesign-handoff/
 *-handoff/
+
+# Private docs (local only)
+privateDocs/

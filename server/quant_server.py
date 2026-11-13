@@ -108,7 +108,7 @@ async def size_positions(target_weights: dict[str, float], target_vol: float = 0
 
 @mcp.tool()
 async def quality_screen(symbols: list[str] | None = None) -> str:
-    """Jinbe's quality screen on SEC 10-K figures: 5-year average ROIC above 15%, free cash flow
+    """Zoro's quality screen on SEC 10-K figures: 5-year average ROIC above 15%, free cash flow
     positive in each of the last 5 years, net debt / EBITDA below 2, Piotroski F-score 7 or more,
     and earnings yield (EBIT / EV) in the top third. A test a company's filings cannot answer is
     "unknown"; only five known passes pass.
@@ -132,7 +132,7 @@ async def owner_earnings_dcf(symbol: str) -> str:
 
 @mcp.tool()
 async def macro_dashboard() -> str:
-    """Law's macro dashboard: the growth × inflation quadrant (Goldilocks, Reflation, Stagflation,
+    """Sanji's macro dashboard: the growth × inflation quadrant (Goldilocks, Reflation, Stagflation,
     Deflation) from market proxies, and for each ETF in his universe its 12-1 month momentum, whether
     it is above its 100-day average (trend confirmed), RSI(14), ATR(14) and any volatility spike."""
     return out(quant().macro_dashboard())

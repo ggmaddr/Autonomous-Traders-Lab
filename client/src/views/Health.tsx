@@ -24,9 +24,9 @@ const WINDOWS = [
 
 const KINDS = {
   turn: { label: "turn", color: "var(--control)", backdrop: true },
-  generation: { label: "model call", color: "var(--t-jinbe)" },
+  generation: { label: "model call", color: "var(--t-zoro)" },
   function: { label: "tool call", color: "var(--accent-data)" },
-  mcp_tools: { label: "MCP listing", color: "var(--t-law)" },
+  mcp_tools: { label: "MCP listing", color: "var(--t-sanji)" },
 };
 const ROW: Record<string, number> = { generation: 0, function: 1, mcp_tools: 2 };
 

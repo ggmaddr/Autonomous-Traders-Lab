@@ -47,7 +47,7 @@ class PublicWebTests(unittest.IsolatedAsyncioTestCase):
         def upstream_client(**kwargs):
             return RealClient(transport=httpx.MockTransport(lambda _: httpx.Response(200, json={"balance": 10000})))
         with patch.object(web.httpx, "AsyncClient", upstream_client):
-            for name in ("Zoro", "Sanji", "Luffy", "Robin", "Law", "Nami", "Jinbe"):
+            for name in ("Jinbe", "Law", "Luffy", "Robin", "Sanji", "Nami", "Zoro"):
                 self.assertEqual((await self.client.get(f"/api/traders/{name}")).status_code, 200)
 
     async def test_shared_cache_coalesces_visitors_and_redacts(self):

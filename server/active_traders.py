@@ -19,12 +19,12 @@ from .orb import UNIVERSE, BARS_URL, LATEST_URL, _get
 from .quant.bars import NY
 from .tracers import make_trace_id, LogTracer, SpanStore
 
-NAMES = ["Zoro", "Sanji"]
+NAMES = ["Jinbe", "Law"]
 STRATEGIES = {
-    "Zoro": "Rules v1 · Momentum sprinter · checks every 60 seconds. Buy a 0.15% five-minute rise "
+    "Jinbe": "Rules v1 · Momentum sprinter · checks every 60 seconds. Buy a 0.15% five-minute rise "
     "above the prior five bars' highs. Exit at +0.8%, -0.5%, after 20 minutes, or 10 minutes before "
     "the session closes. No overnight positions intended; missed exits retry next session.",
-    "Sanji": "Rules v1 · Dip and rebound · checks every 60 seconds throughout the regular session. "
+    "Law": "Rules v1 · Dip and rebound · checks every 60 seconds throughout the regular session. "
     "Buy 0.3% below the trailing 20-minute volume-weighted price when the latest minute turns up. "
     "Exit at the moving average, +0.9%, -0.7%, or after 90 elapsed minutes. May hold overnight.",
 }
@@ -73,7 +73,7 @@ def signal(name: str, bars: list[dict], price: float, now: datetime) -> tuple[bo
                   key=lambda b: b["t"])
     if len(rows) < 6 or (now - stamp(rows[-1]["t"])).total_seconds() > 180:
         return False, None, "waiting for fresh completed minute bars"
-    if name == "Zoro":
+    if name == "Jinbe":
         recent = rows[-6:]
         move = price / recent[0]["c"] - 1
         high = max(b["h"] for b in recent[:-1])
@@ -109,7 +109,7 @@ def decide(account: Account, name: str, snapshot: dict, now: datetime, run_id: s
     account.last_quotes.update(prices)
     account.quotes_as_of = now.isoformat()
     close = snapshot["close"]
-    flatten = name == "Zoro" and now >= close - timedelta(minutes=10)
+    flatten = name == "Jinbe" and now >= close - timedelta(minutes=10)
     today = now.astimezone(NY).date()
     # Exits are never blocked by the entry cap or cooldown.
     for symbol, qty in list(account.holdings.items()):
@@ -119,12 +119,12 @@ def decide(account: Account, name: str, snapshot: dict, now: datetime, run_id: s
         held_minutes = (now - stamp(buy.timestamp)).total_seconds() / 60
         change = prices[symbol] / (buy.price / (1 + SPREAD)) - 1
         _, mean, _ = signal(name, snapshot["bars"].get(symbol, []), prices[symbol], now)
-        carried = name == "Zoro" and stamp(buy.timestamp).astimezone(NY).date() < today
+        carried = name == "Jinbe" and stamp(buy.timestamp).astimezone(NY).date() < today
         reason = ("session flatten" if flatten or carried else
-                  "stop loss" if change <= (-.005 if name == "Zoro" else -.007) else
-                  "profit target" if change >= (.008 if name == "Zoro" else .009) else
-                  "rebound to VWAP" if name == "Sanji" and mean and prices[symbol] >= mean else
-                  "time exit" if held_minutes >= (20 if name == "Zoro" else 90) else None)
+                  "stop loss" if change <= (-.005 if name == "Jinbe" else -.007) else
+                  "profit target" if change >= (.008 if name == "Jinbe" else .009) else
+                  "rebound to VWAP" if name == "Law" and mean and prices[symbol] >= mean else
+                  "time exit" if held_minutes >= (20 if name == "Jinbe" else 90) else None)
         if reason:
             fill(account, symbol, -qty, prices[symbol], f"{name}: {reason}; move {change:.2%}", run_id, now)
             actions.append(f"Sold {symbol}: {reason}")
@@ -194,7 +194,7 @@ async def run_forever():
         try:
             fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
         except BlockingIOError:
-            print("Zoro and Sanji already have an active worker; skipping duplicate.", flush=True)
+            print("Jinbe and Law already have an active worker; skipping duplicate.", flush=True)
             return
         await _loop()
 
@@ -214,5 +214,5 @@ async def _loop():
 if __name__ == "__main__":
     add_trace_processor(LogTracer())
     add_trace_processor(SpanStore())
-    print("Zoro and Sanji: one-minute rules desk; no model or Tavily calls.", flush=True)
+    print("Jinbe and Law: one-minute rules desk; no model or Tavily calls.", flush=True)
     asyncio.run(run_forever())

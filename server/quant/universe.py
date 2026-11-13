@@ -12,7 +12,7 @@ LARGE_CAPS = [
     "AAPL", "MSFT", "NVDA", "AMZN", "GOOGL", "META", "AVGO", "TSLA", "BRK.B", "JPM",
     "LLY", "V", "XOM", "UNH", "MA", "COST", "WMT", "HD", "PG", "JNJ",
 ]
-# Jinbe's screen universe (§4.4.1): large S&P 500 companies outside financials and
+# Zoro's screen universe (§4.4.1): large S&P 500 companies outside financials and
 # REITs, whose accounts break these screens. Today's names, not a point-in-time list.
 QUALITY = [
     "AAPL", "MSFT", "GOOGL", "META", "NVDA", "AVGO", "ADBE", "CRM", "ORCL", "CSCO", "TXN", "QCOM", "INTU", "ACN", "IBM",
@@ -22,7 +22,7 @@ QUALITY = [
 ]
 SYMBOLS = list(dict.fromkeys(INDICES + SECTORS + RATES + CREDIT + MACRO + LARGE_CAPS + QUALITY))
 
-# Law's universe (§4.4.2): equity indices, sectors, rates, credit, the dollar, gold
+# Sanji's universe (§4.4.2): equity indices, sectors, rates, credit, the dollar, gold
 # and oil, long only; SH only as a short-lived hedge.
 MACRO_UNIVERSE = INDICES + SECTORS + ["TLT", "IEF", "SHY", "HYG", "LQD", "UUP", "GLD", "USO", "SH"]
 

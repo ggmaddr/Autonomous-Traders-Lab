@@ -12,18 +12,19 @@ interface Props {
 }
 type Part = { object: THREE.Group; materials: THREE.MeshStandardMaterial[]; halo: THREE.Mesh; position: THREE.Vector3; labelHeight: number };
 const systemPositions: Record<string, [number, number, number]> = {
-  robin:[-10,2,-9],nami:[-5,2,-9],jinbe:[0,2,-9],law:[5,2,-9],luffy:[10,2,-9],
+  robin:[-10,2,-9],nami:[-5,2,-9],zoro:[0,2,-9],sanji:[5,2,-9],luffy:[10,2,-9],
   floor:[-13,0,-3],research:[-6,0,-2],model:[0,0.6,-2],synth:[6,0,-2],fast:[13,0,-3],
   quant:[-10,0,4],web:[-5,0,4],graph:[0,0,4],daydesk:[5,0,4],accounts:[10,0,4],
   alpaca:[-13,0,10],traces:[-7,0,10],ledger:[-1,0,10],api:[5,0,10],client:[12,0,10],gateway:[14,0,4],
   fundamentals:[-8,0,3],market:[-15,0,2],
+  runtime:[-15,0,-8],
 };
 // Identity accents are independent of the layer legend (labels retain layer colors).
 const identityColors: Record<string,string> = {
-  robin:'#b897f5',nami:'#ffb85c',jinbe:'#53c7ed',law:'#72dbc2',luffy:'#ff746c',
+  robin:'#b897f5',nami:'#ffb85c',zoro:'#91ce68',sanji:'#f3c36c',luffy:'#ff746c',
   research:'#75d8ef',synth:'#f2bb70',graph:'#73d7c2',api:'#4b9bd3',client:'#61dafb',quant:'#a998f5',alpaca:'#53d5ce',
   review:'#efb55c',lesson:'#cb9bfa',recall:'#6fc6ff',learning:'#ed8db7',
-  web:'#6ebdf5',accounts:'#b28bf2',fast:'#83d99a',daydesk:'#f3aa63',market:'#62d6c5',
+  web:'#6ebdf5',accounts:'#b28bf2',fast:'#65bde7',daydesk:'#f3aa63',market:'#62d6c5',
 };
 const memoryPositions: Record<string,[number,number,number]> = {
   web:[-12,0,-7],research:[-7,1,-3],robin:[-9,.6,6],graph:[0,1.5,0],
@@ -33,7 +34,7 @@ export function positionsFor(mechanism: Mechanism, expanded: boolean): Map<strin
   const count = mechanism.nodes.length;
   return new Map(mechanism.nodes.map((id,i)=> {
     let p: [number,number,number];
-    if(mechanism.layout==='system') p=systemPositions[id]??[(i%4-1.5)*7,0,(Math.floor(i/4)-1)*7];
+    if(mechanism.layout==='system') p=mechanism.id==='overview'&&id==='fast'?[21,0,-4]:systemPositions[id]??[(i%4-1.5)*7,0,(Math.floor(i/4)-1)*7];
     else if(mechanism.layout==='map') p=memoryPositions[id]??[0,0,0];
     else if(mechanism.layout==='orbit') {
       const hub=mechanism.id==='memory'?'graph':'model';
@@ -81,9 +82,11 @@ export const ArchitectureScene = forwardRef<SceneHandle, Props>(function Archite
     root.appendChild(renderer.domElement);
     const scene=new THREE.Scene();
     const camera=new THREE.PerspectiveCamera(38,1,.1,200);
-    const home=new THREE.Vector3(9,30,39);
+    const home=new THREE.Vector3(9,30,39).multiplyScalar(props.mechanism.id==='overview'?1.1:1);
+    const homeTarget=new THREE.Vector3(props.mechanism.id==='overview'?3:0,0,0);
+    const portraitScale=props.mechanism.id==='overview'?1.6:1.35;
     const controls=new OrbitControls(camera,renderer.domElement);
-    camera.position.copy(home); controls.target.set(0,0,0);
+    camera.position.copy(home); controls.target.copy(homeTarget);
     controls.enableDamping=true;controls.dampingFactor=.09;
     controls.minDistance=12;controls.maxDistance=88;
     controls.maxPolarAngle=Math.PI*.46;controls.minPolarAngle=.15;
@@ -192,6 +195,12 @@ export const ArchitectureScene = forwardRef<SceneHandle, Props>(function Archite
       }
       grid=new THREE.GridHelper(32,32,0x34485a,0x1a2c3b);grid.scale.z=.76;grid.position.y=-1.95;objects.add(grid);
     }
+    if(props.mechanism.id==='overview') {
+      // A detached platform makes the rules desk a sibling path, not the last AI stage.
+      mesh(objects,box,bench,21,-2.15,-4,6,.35,7);
+      mesh(objects,box,edgeMetal,21,-2.37,-4,6.2,.14,7.2);
+      for(const x of [18.4,23.6])mesh(objects,box,graphColors[0],x,-1.94,-4,.055,.05,6.4);
+    }
     const parts=new Map<string,Part>(); const labels=new Map<string,HTMLButtonElement>();
     const initialPositions=positionsFor(props.mechanism,props.expanded);
     const clickables: THREE.Object3D[]=[];
@@ -200,7 +209,7 @@ export const ArchitectureScene = forwardRef<SceneHandle, Props>(function Archite
         mesh(group,cylinder,dark,0,.19,0,.42,.3,.42);
         mesh(group,cylinder,signal,0,.35,0,.5,.1,.5);
         const head=new THREE.Group();head.position.y=1.18;head.rotation.x=-.3;group.add(head);
-        const broad=id==='jinbe'?1.12:1;
+        const broad=1;
         mesh(head,headSphere,porcelain,0,0,0,broad,.87,.78);
         mesh(head,headSphere,visor,0,-.02,.62,.84,.64,.28);
         for(const side of [-1,1]) {
@@ -221,15 +230,15 @@ export const ArchitectureScene = forwardRef<SceneHandle, Props>(function Archite
           mesh(head,cylinder,graphColors[2],0,.63,-.04,1.16,.09,.96);
           mesh(head,headSphere,graphColors[2],0,.71,-.06,.75,.3,.62);
           mesh(head,cylinder,signal,0,.7,-.06,.76,.09,.63);
-        } else if(id==='law') {
-          mesh(head,cylinder,signal,0,.68,-.02,.9,.22,.76);
-          mesh(head,cylinder,porcelain,0,.81,-.02,.92,.06,.78);
+        } else if(id==='sanji') {
+          mesh(head,roundedBox,signal,0,.7,-.04,1.6,.26,1.2);
+          mesh(head,roundedBox,signal,.48,.32,.78,.32,.75,.13).rotation.z=-.23;
         } else if(id==='robin') {
           for(const side of [-1,1])mesh(head,headSphere,signal,side*.67,.62,-.12,.16,.35,.24);
         } else if(id==='nami') {
           for(const side of [-1,1])mesh(head,headSphere,signal,side*.88,-.05,-.24,.22,.65,.44);
-        } else if(id==='jinbe') {
-          mesh(head,box,signal,0,.82,-.12,.15,.24,.55);
+        } else if(id==='zoro') {
+          for(let j=-1;j<=1;j++)mesh(head,roundedBox,signal,j*.3,.84,-.12,.24,.32,.55).rotation.z=-j*.15;
         } else {
           // The Synthesizer's three-contact crest distinguishes the structured-output role.
           for(let i=-1;i<=1;i++)mesh(head,box,signal,i*.22,.86,0,.1,.18+(.12*(1-Math.abs(i))),.12);
@@ -265,7 +274,7 @@ export const ArchitectureScene = forwardRef<SceneHandle, Props>(function Archite
       } else if(shape==='duo') {
         // Two compact rule-driven robots share one module, not two extra AI agents.
         for(const [i,x] of [-.65,.65].entries()) {
-          const accent=i===0?graphColors[0]:graphColors[2];
+          const accent=i===0?graphColors[3]:porcelain;
           const bot=new THREE.Group();bot.position.set(x,.13,0);bot.rotation.x=-.18;group.add(bot);
           for(const side of [-1,1]) {
             mesh(bot,roundedBox,dark,side*.2,.12,.06,.25,.22,.4);
@@ -277,13 +286,12 @@ export const ArchitectureScene = forwardRef<SceneHandle, Props>(function Archite
           for(const side of [-1,1])mesh(bot,headSphere,accent,side*.21,1.15,.43,.075,.12,.035);
           const mouth=mesh(bot,smile,accent,0,.95,.43,.55,.4,.5);mouth.rotation.z=Math.PI;
           if(i===0) {
-            mesh(bot,box,accent,0,1.48,.02,1.04,.14,.72);
-            for(let j=-1;j<=1;j++)mesh(bot,roundedBox,accent,j*.23,1.64,-.03,.19,.23,.4).rotation.z=-j*.18;
-            mesh(bot,box,pythonGold,-.39,.99,.43,.035,.16,.025);
+            mesh(bot,roundedBox,accent,0,1.56,-.04,.14,.2,.44);
+            for(const side of [-1,1])mesh(bot,roundedBox,accent,side*.52,1.12,0,.17,.35,.35);
           } else {
-            mesh(bot,roundedBox,accent,.08,1.52,.03,.93,.18,.72);
-            mesh(bot,roundedBox,accent,.32,1.32,.41,.25,.44,.1).rotation.z=-.25;
-            for(const side of [-1,1])mesh(bot,box,accent,side*.09,.65,.23,.15,.11,.04).rotation.z=side*.35;
+            mesh(bot,cylinder,porcelain,0,1.57,0,.58,.23,.42);
+            for(let j=-1;j<=1;j++)mesh(bot,sphere,dark,j*.25,1.57,.4,.055,.055,.025);
+            mesh(bot,box,pythonGold,0,.57,.25,.12,.17,.025);
           }
           mesh(bot,box,porcelain,0,.43,.24,.12,.035,.025);
         }
@@ -503,6 +511,7 @@ export const ArchitectureScene = forwardRef<SceneHandle, Props>(function Archite
       const button=document.createElement('button');
       button.type='button';button.className='am-node-label';button.dataset.node=id;
       button.style.setProperty('--node-color',LAYERS[n.layer].color);button.dataset.status=n.status;
+      if(id==='fast')button.dataset.parallel='true';
       const title=document.createElement('strong');title.textContent=n.name;
       const sub=document.createElement('span');sub.textContent=n.status==='planned'?'Planned':n.status==='limited'?'Known limitation':n.status==='experimental'?'Experimental comparison':n.subtitle;
       button.append(title,sub);button.setAttribute('aria-label',`${n.name}: ${n.subtitle}. Inspect component`);
@@ -544,7 +553,7 @@ export const ArchitectureScene = forwardRef<SceneHandle, Props>(function Archite
       if(width<1||height<1)return;
       camera.aspect=width/height;camera.updateProjectionMatrix();renderer.setSize(width,height);needsDraw=true;
       // Keep a readable full-system framing at portrait aspect ratios.
-      if(!latest.current.selected)camera.position.copy(home).multiplyScalar(width<600?1.35:1);
+      if(!latest.current.selected){camera.position.copy(home).multiplyScalar(width<600?portraitScale:1);controls.target.copy(homeTarget);}
     });resize.observe(root);
     const observer=new IntersectionObserver(entries=>{visible=entries[0].isIntersecting;needsDraw=true;});observer.observe(root);
     const motionChange=()=>{needsDraw=true;};reduced.addEventListener('change',motionChange);
@@ -553,7 +562,7 @@ export const ArchitectureScene = forwardRef<SceneHandle, Props>(function Archite
       else flight={position,target};
     }
     actions.current={
-      reset(){travel(home.clone().multiplyScalar(root.clientWidth<600?1.35:1),new THREE.Vector3());},
+      reset(){travel(home.clone().multiplyScalar(root.clientWidth<600?portraitScale:1),homeTarget.clone());},
       focus(id){const p=parts.get(id)?.object.position;if(p)travel(p.clone().add(new THREE.Vector3(5,10,15)),p.clone());},
       zoom(d){const offset=camera.position.clone().sub(controls.target).multiplyScalar(d>0?.8:1.25);offset.clampLength(controls.minDistance,controls.maxDistance);travel(controls.target.clone().add(offset),controls.target.clone());},
       rotate(d){const offset=camera.position.clone().sub(controls.target).applyAxisAngle(new THREE.Vector3(0,1,0),d*.25);travel(controls.target.clone().add(offset),controls.target.clone());},
