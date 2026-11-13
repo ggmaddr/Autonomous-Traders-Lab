@@ -1,11 +1,19 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { ArchitectureScene, type SceneHandle } from '../architecture/ArchitectureScene';
+import { ArchitectureScene, positionsFor, type SceneHandle } from '../architecture/ArchitectureScene';
 import { MechanismDetails, StrategyComparison } from '../architecture/MechanismDetails';
 import { COMPONENTS, LAYERS, MECHANISMS, NODE, STATUS, getMechanism, type Layer, type Mechanism } from '../architecture/model';
 import '../architecture/architecture.css';
 
 function Miniature({mechanism}:{mechanism:Mechanism}) {
+  if(mechanism.layout==='map') {
+    const positions=positionsFor(mechanism,false);
+    const at=(id:string)=>{const p=positions.get(id)!;return [60+p.x*3.5,38+p.z*2.5];};
+    const colors=['#67dac5','#ac92f5','#ffbc64','#6cbef6'];
+    return <svg viewBox="0 0 120 76" aria-hidden="true">{mechanism.flows.map((f,i)=>{
+      const a=at(f.from),b=at(f.to);return <path key={i} d={`M${a[0]} ${a[1]}L${b[0]} ${b[1]}`} stroke={colors[i%4]} opacity=".5"/>;
+    })}{mechanism.nodes.map((id,i)=>{const [x,y]=at(id);return <circle key={id} cx={x} cy={y} r={id==='graph'?5:3} fill={colors[i%4]}/>;})}</svg>;
+  }
   const pts=mechanism.nodes.slice(0,10).map((_,i,a)=>mechanism.layout==='orbit'?[60+Math.cos(i/a.length*Math.PI*2)*38,37+Math.sin(i/a.length*Math.PI*2)*24]:[20+(i%5)*20,23+Math.floor(i/5)*29]);
   return <svg viewBox="0 0 120 76" aria-hidden="true"><path d="M4 60L60 74L116 60L60 46Z" fill="currentColor" opacity=".05"/>{pts.slice(1).map((p,i)=><path key={`e${i}`} d={`M${pts[i][0]} ${pts[i][1]} Q60 40 ${p[0]} ${p[1]}`} stroke="currentColor" opacity=".3" fill="none"/>)}{pts.map(([x,y],i)=><g key={i}><path d={`M${x-6} ${y}l6 -4 6 4v5l-6 4 -6 -4Z`} fill="var(--raised)" stroke="currentColor" strokeWidth=".8"/><path d={`M${x-6} ${y}l6 4 6 -4m-6 4v5`} fill="none" stroke="currentColor" strokeWidth=".6"/><circle cx={x} cy={y} r="1.4" fill="currentColor"/></g>)}</svg>;
 }
@@ -96,7 +104,7 @@ export function Architecture() {
     <details className="am-component-index"><summary>Component index <span>Keyboard-friendly alternative · {mechanism.nodes.length} components</span></summary><label className="am-field">Find a component<input type="search" placeholder="Search names or roles…" value={query} onChange={e=>setQuery(e.target.value)}/></label><div>{filtered.map(id=><button key={id} aria-pressed={selected===id} onClick={()=>{select(id);exhibit.current?.scrollIntoView({behavior:'instant',block:'start'});}}><strong>{NODE[id].name}</strong><span>{NODE[id].subtitle}</span><small>{STATUS[NODE[id].status]}</small></button>)}{!filtered.length&&<p>No matching components.</p>}</div></details>
     <MechanismDetails key={mechanism.id} mechanism={mechanism} onSelect={select}/>
     <div className="am-related"><span className="am-eyebrow">Continue the thread</span>{mechanism.related.map(id=>{const m=getMechanism(id);return <button onClick={()=>navigate(id)} key={id}>{m.short} ↗</button>;})}{mechanism.destination&&<Link to={mechanism.destination.path}>{mechanism.destination.label} ↗</Link>}</div>
-    <section className="am-catalog" aria-labelledby="catalog-heading"><div className="am-section-heading"><div><span className="am-eyebrow">The mechanism collection</span><h2>Zoom into the engineering.</h2></div><p>Different mechanisms. Different ways to see them.</p></div><div className="am-catalog-grid">{MECHANISMS.slice(1).map(m=><button key={m.id} className="am-mechanism-card" aria-pressed={mechanism.id===m.id} onClick={()=>navigate(m.id)}><div><span>{m.number}</span><Miniature mechanism={m}/><span>↗</span></div><h3>{m.short}</h3><p>{m.question}</p><small>{m.nodes.length} components · {m.layout==='orbit'?'Spatial constellation':m.layout==='tree'?'Execution tree':m.layout==='matrix'?'Experiment matrix':m.layout==='pipeline'?'Transformation circuit':'Layered infrastructure'}</small></button>)}</div></section>
+    <section className="am-catalog" aria-labelledby="catalog-heading"><div className="am-section-heading"><div><span className="am-eyebrow">The mechanism collection</span><h2>Zoom into the engineering.</h2></div><p>Different mechanisms. Different ways to see them.</p></div><div className="am-catalog-grid">{MECHANISMS.slice(1).map(m=><button key={m.id} className="am-mechanism-card" aria-pressed={mechanism.id===m.id} onClick={()=>navigate(m.id)}><div><span>{m.number}</span><Miniature mechanism={m}/><span>↗</span></div><h3>{m.short}</h3><p>{m.question}</p><small>{m.nodes.length} components · {m.layout==='map'?'Connected memory atlas':m.layout==='orbit'?'Spatial constellation':m.layout==='tree'?'Execution tree':m.layout==='matrix'?'Experiment matrix':m.layout==='pipeline'?'Transformation circuit':'Layered infrastructure'}</small></button>)}</div></section>
     <StrategyComparison navigate={navigate}/>
     <footer className="am-footer"><span>Architecture, with a source for every claim.</span><p>{COMPONENTS.length} source-backed component contracts · <code>server/</code> + <code>client/</code> · Architecture audit: <code>cdde9d2</code>. This curated map should be reviewed when the implementation changes.</p></footer>
   </div>;

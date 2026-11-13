@@ -58,7 +58,12 @@ export interface MarketInfo {
 
 async function get<T>(path: string): Promise<T> {
   const r = await fetch(path);
-  if (!r.ok) throw new Error(`${path} failed: ${r.status}`);
+  if (!r.ok) {
+    const body: unknown = await r.json().catch(() => null);
+    const detail = body && typeof body === "object" && "detail" in body && typeof body.detail === "string"
+      ? `: ${body.detail}` : "";
+    throw new Error(`${path} failed: ${r.status}${detail}`);
+  }
   return r.json() as Promise<T>;
 }
 

@@ -4,6 +4,7 @@
 import type { ReactNode } from "react";
 import { signedMoney, signedPct, tone } from "../lib/format";
 import { hueVar } from "../lib/traders";
+import { VIEW_ONLY } from "../lib/access";
 
 export function PageHeader(props: { kicker: string; title: string; finding: ReactNode; aside?: ReactNode }) {
   return (
@@ -77,7 +78,8 @@ export function Loading(_props: { rows?: number }) {
 export function Failed({ what, error }: { what: string; error: Error | null }) {
   return (
     <p className="failed" role="alert">
-      Couldn't load {what}. {error?.message ?? ""} Is the API running on port 8000?
+      Couldn't load {what}. {error?.message ?? ""}{" "}
+      {VIEW_ONLY ? "Please try again shortly." : "Check that the local API is running on port 8000."}
     </p>
   );
 }

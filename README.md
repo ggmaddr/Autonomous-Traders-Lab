@@ -126,6 +126,10 @@ The Experiment Lab worker, which runs experiments queued from the Experiments vi
 uv run -m server.lab
 ```
 
+### Publish the public dashboard
+
+See [docs/deploy.md](docs/deploy.md) for pushing code, publishing to Cloudflare Pages, and fixing public API connection errors.
+
 ### By hand
 
 The engine runs these on its own; run them yourself to refresh now.

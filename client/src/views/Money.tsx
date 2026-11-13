@@ -22,7 +22,7 @@ import {
   type StoryStep,
 } from "../charts";
 import { useDesk, type Desk } from "../lib/desk";
-import { INITIAL_BALANCE, drawdownOf, maxDrawdown, traderCorrelation, tradeRecord, valueAt, type Book } from "../lib/ledger";
+import { INITIAL_BALANCE, drawdownOf, maxDrawdown, tradeRecord, valueAt, type Book } from "../lib/ledger";
 import { useQuery } from "@tanstack/react-query";
 import { getMarketYear } from "../api";
 import { count, longDate, money, pct, price, shortDay, signedMoney, signedPct, stamp, time, tone } from "../lib/format";
@@ -42,15 +42,14 @@ function finding(desk: Desk) {
   const rest = change - lead.change;
   return (
     <>
-      Desk <Change value={change} ratio={change / funded} /> on <span className="num">{money(funded)}</span>.{" "}
+      Desk <Change value={change} ratio={change / funded} /> on <span className="num">{money(funded)}</span> capital.{" "}
       {change > 0 && rest < 0 ? (
         <>
-          <span className="strong">{cap(lead.trader.name)}</span> <Ratio value={lead.change / INITIAL_BALANCE} /> carries it; other{" "}
-          {ranked.length - 1} <Change value={rest} />.
+          <span className="strong">{cap(lead.trader.name)}</span> <Ratio value={lead.change / INITIAL_BALANCE} /> leads; rest <Change value={rest} />.
         </>
       ) : (
         <>
-          Best {cap(lead.trader.name)} <Ratio value={lead.change / INITIAL_BALANCE} />; worst {cap(last.trader.name)}{" "}
+          Top {cap(lead.trader.name)} <Ratio value={lead.change / INITIAL_BALANCE} />; bottom {cap(last.trader.name)}{" "}
           <Ratio value={last.change / INITIAL_BALANCE} />.
         </>
       )}
@@ -178,28 +177,28 @@ function MoneyBody({ desk }: { desk: Desk }) {
       <section className="kpis" aria-label="Key numbers">
         <div className="kpi">
           <Crew icon={ICONS.chest} motion="bob" corner />
-          <p className="kpi-label">Desk equity</p>
+          <p className="kpi-label">Equity</p>
           <p className="kpi-value num money-tone" data-tone={tone(change)}>
             <CountUp value={equity} format={(v) => money(v).replace(/\.\d\d$/, "")} />
           </p>
           <Spark values={curves.desk} />
           <p className="kpi-sub num money-tone" data-tone={tone(change)}>
-            {signedPct(change / funded)} since funding
+            {signedPct(change / funded)} since inception
           </p>
         </div>
         <div className="kpi">
           <Crew icon={ICONS.spyglass} motion="rock" corner delay={400} />
-          <p className="kpi-label">Today</p>
+          <p className="kpi-label">Day P&amp;L</p>
           <p className="kpi-value num money-tone" data-tone={tone(today)}>
             <CountUp value={today} format={signedMoney} />
           </p>
           <p className="kpi-sub">
-            Past 7 days <Change value={week} />
+            7D <Change value={week} />
           </p>
         </div>
         <div className="kpi">
           <Crew icon={ICONS.map} motion="wave" corner delay={800} />
-          <p className="kpi-label">Realized / unrealized</p>
+          <p className="kpi-label">Realized P&amp;L</p>
           {banked !== null ? (
             <>
               <p className="kpi-value num">
@@ -211,7 +210,7 @@ function MoneyBody({ desk }: { desk: Desk }) {
                 <span style={{ flex: banked }} data-part="real" />
                 <span style={{ flex: 1 - banked }} data-part="open" />
               </div>
-              <p className="kpi-sub">% of the gain that is banked</p>
+              <p className="kpi-sub">% of gain realized</p>
             </>
           ) : (
             <>
@@ -219,18 +218,18 @@ function MoneyBody({ desk }: { desk: Desk }) {
                 <Change value={realized} />
               </p>
               <p className="kpi-sub">
-                realized · <Change value={unrealized} /> open
+                Unrealized <Change value={unrealized} />
               </p>
             </>
           )}
         </div>
         <div className="kpi">
           <Crew icon={ICONS.anchor} motion="swing" corner delay={1200} />
-          <p className="kpi-label">Worst desk drawdown</p>
+          <p className="kpi-label">Max drawdown</p>
           <p className="kpi-value num money-tone" data-tone={worstDD < -0.0001 ? "bad" : "flat"}>
             {signedPct(worstDD)}
           </p>
-          <p className="kpi-sub">{worstAt ? `from its peak, at ${stamp(worstAt * 1000)}` : "no drawdown yet"}</p>
+          <p className="kpi-sub">{worstAt ? `Trough ${stamp(worstAt * 1000)}` : "None"}</p>
         </div>
       </section>
 
@@ -238,15 +237,15 @@ function MoneyBody({ desk }: { desk: Desk }) {
 
       <div className="grid-lead">
         <Panel
-          title="Return since funding"
+          title="Performance"
           id="equity"
           meta={
             <div className="segmented" role="group" aria-label="Scale">
               <button aria-pressed={scale === "pct"} onClick={() => setScale("pct")}>
-                % return
+                Return
               </button>
               <button aria-pressed={scale === "usd"} onClick={() => setScale("usd")}>
-                $ equity
+                Equity
               </button>
               <button aria-pressed={scale === "log"} onClick={() => setScale("log")}>
                 Log
@@ -307,18 +306,18 @@ function MoneyBody({ desk }: { desk: Desk }) {
             bands={fold.breaks.map((b) => ({ ...b, fill: "var(--raised)" }))}
           />
           <ul className="note">
-            <li>Shaded columns — data gaps over 6 hours, compressed.</li>
-            {lead && !trader && <li>Bold line — {cap(lead)}, largest change since funding.</li>}
-            <li>Select a trader to highlight.</li>
-            {curves.suspect.length > 0 && <li>Filtered spikes — {curves.suspect.length} points omitted.</li>}
+            <li>Shaded: data gaps over 6h, compressed.</li>
+            {lead && !trader && <li>Bold: {cap(lead)}, top mover.</li>}
+            <li>Select an agent to highlight.</li>
+            {curves.suspect.length > 0 && <li>{curves.suspect.length} outlier points omitted.</li>}
           </ul>
         </Panel>
 
         <div className="stack">
-          <Panel title={`Where the ${money(equity).replace(/\.\d\d$/, "")} comes from`} id="waterfall">
+          <Panel title="Equity bridge" id="waterfall">
             <WaterfallPanel funded={funded} realized={realized} unrealized={unrealized} equity={equity} spread={spreadPaid} />
           </Panel>
-          <Panel title="Who made the gain" id="contribution">
+          <Panel title="P&amp;L" id="contribution" meta="By agent, since inception">
             <DivergingBars
               rows={[...books]
                 .sort((a, b) => b.change - a.change)
@@ -337,12 +336,12 @@ function MoneyBody({ desk }: { desk: Desk }) {
         </div>
       </div>
 
-      <Panel title="Each trader, same scale" id="multiples" className="multiples-panel">
+      <Panel title="Agents" id="multiples" className="multiples-panel" meta="Common scale">
         <SmallMultiples desk={desk} focus={trader} />
       </Panel>
 
       <div className="grid-halves">
-        <Panel title="Return against worst drawdown" id="risk" meta="Since funded">
+        <Panel title="Risk / return" id="risk" meta="Since inception">
           <RiskScatter
             points={traders.map((t) => ({
               trader: t,
@@ -350,21 +349,20 @@ function MoneyBody({ desk }: { desk: Desk }) {
               drawdown: maxDrawdown(curves.byTrader[t]),
             }))}
           />
-          <p className="note">Return up, worst drawdown right; up and left is better. Ten days of samples is too few to call it skill.</p>
+          <p className="note">Return vs max drawdown; top-left is best. Short sample.</p>
         </Panel>
         <LatestDecision desk={desk} />
       </div>
 
+      {/* Hidden for now: correlation ("Are the traders one bet?") and desk exposure.
+          To bring them back, restore traderCorrelation in the ledger import and uncomment:
       <div className="grid-halves">
-        <Panel title="Are the traders one bet?" id="correlation" meta="Correlation of equity changes">
+        <Panel title="Correlation" id="correlation" meta="Equity changes">
           <CorrelationTable traders={traders} matrix={traderCorrelation(curves, traders)} />
-          <p className="note">
-            Each cell compares two traders' equity changes between samples. Near +1 they move together, so the desk is one bet in several
-            accounts; a dash means one of them never moved (all cash) or there are too few samples.
-          </p>
         </Panel>
         <DeskExposure />
       </div>
+      */}
     </>
   );
 }
@@ -421,7 +419,7 @@ function WaterfallPanel(props: { funded: number; realized: number; unrealized: n
   return (
     <Waterfall
       steps={[
-        { id: "funded", label: "Funded", value: funded, kind: "total" },
+        { id: "funded", label: "Capital", value: funded, kind: "total" },
         { id: "realized", label: "Realized", value: realized, kind: "delta", note: `Realized on closed lots: ${signedMoney(realized)}` },
         {
           id: "unrealized",
@@ -430,13 +428,13 @@ function WaterfallPanel(props: { funded: number; realized: number; unrealized: n
           kind: "delta",
           note: `Unrealized on open lots: ${signedMoney(unrealized)}`,
         },
-        { id: "now", label: "Now", value: equity, kind: "total" },
+        { id: "now", label: "Equity", value: equity, kind: "total" },
       ]}
       label={`Waterfall: funded ${money(funded)}, realized ${signedMoney(realized)}, unrealized ${signedMoney(unrealized)}, now ${money(equity)}`}
       format={(v) => money(v).replace(/\.\d\d$/, "")}
       signed={(v) => signedMoney(v).replace(/\.\d\d$/, "")}
       floor={floor}
-      note={`axis starts at ${money(floor).replace(/\.\d\d$/, "")} · fills already net ${money(props.spread).replace(/\.\d\d$/, "")} of spread`}
+      note={`Axis from ${money(floor).replace(/\.\d\d$/, "")} · net of ${money(props.spread).replace(/\.\d\d$/, "")} spread`}
     />
   );
 }
@@ -519,7 +517,7 @@ function SmallMultiples({ desk, focus }: { desk: Desk; focus: string | null }) {
               </span>
             </span>
             <span className="multiple-arch">{archetype(name)}</span>
-            <span className="multiple-holds num">{top.length ? top.join(" · ") : "all cash"}</span>
+            <span className="multiple-holds num">{top.length ? top.join(" · ") : "Cash"}</span>
             <svg viewBox={`0 0 ${w} ${h + 24}`} width="100%" aria-hidden="true">
               <line x1={0} x2={w} y1={y(0)} y2={y(0)} className="kit-zero" />
               <path d={line} className="kit-line" style={{ stroke: hueVar(name), strokeWidth: 1.6 }} />
@@ -528,8 +526,8 @@ function SmallMultiples({ desk, focus }: { desk: Desk; focus: string | null }) {
             <span className="multiple-foot num">
               <span>{money(b.equity).replace(/\.\d\d$/, "")}</span>
               <span>
-                {count(b.fills.length)} fills · DD {signedPct(maxDrawdown(curves.byTrader[name]), 1)}
-                {rec.closes ? ` · ${rec.wins}/${rec.closes} won` : ""}
+                {count(b.fills.length)} trades · MDD {signedPct(maxDrawdown(curves.byTrader[name]), 1)}
+                {rec.closes ? ` · ${Math.round((rec.wins / rec.closes) * 100)}% win` : ""}
               </span>
             </span>
           </Link>
@@ -542,7 +540,7 @@ function SmallMultiples({ desk, focus }: { desk: Desk; focus: string | null }) {
 function LatestDecision({ desk }: { desk: Desk }) {
   const latest = desk.fills[0];
   return (
-    <Panel title="Latest decision" id="latest" meta={latest && <span className="num">{stamp(latest.time)}</span>}>
+    <Panel title="Latest trade" id="latest" meta={latest && <span className="num">{stamp(latest.time)}</span>}>
       {latest ? (
         <div className="decision">
           <p className="decision-head">
@@ -553,18 +551,18 @@ function LatestDecision({ desk }: { desk: Desk }) {
           <p className="decision-foot">
             {latest.realized !== undefined ? (
               <span>
-                Closed lots for <Change value={latest.realized} />
+                Realized <Change value={latest.realized} />
               </span>
             ) : (
-              <span className="muted">Position still open</span>
+              <span className="muted">Open position</span>
             )}
             <Link to={`/decisions?fill=${latest.id}`} className="text-link">
-              Why it traded
+              Rationale
             </Link>
           </p>
         </div>
       ) : (
-        <p className="empty">No trades yet. The first fill will appear here with the agent's reason.</p>
+        <p className="empty">No trades yet.</p>
       )}
     </Panel>
   );
@@ -575,7 +573,7 @@ function signedCorr(v: number): string {
   return (r > 0 ? "+" : r < 0 ? "−" : "") + Math.abs(r).toFixed(2);
 }
 
-function CorrelationTable({ traders, matrix }: { traders: string[]; matrix: (number | null)[][] }) {
+export function CorrelationTable({ traders, matrix }: { traders: string[]; matrix: (number | null)[][] }) {
   const tint = (v: number | null) =>
     v === null
       ? undefined
@@ -616,7 +614,7 @@ function CorrelationTable({ traders, matrix }: { traders: string[]; matrix: (num
 }
 
 /** The whole desk's money by what it is positioned for, from the Market Year read. */
-function DeskExposure() {
+export function DeskExposure() {
   const q = useQuery({ queryKey: ["market-year", "ytd"], queryFn: () => getMarketYear("ytd"), refetchInterval: 300_000 });
   const year = q.data?.ready ? q.data : null;
   if (!year) {
