@@ -21,7 +21,8 @@ import { Health } from "./views/Health";
 import { MarketYear } from "./views/MarketYear";
 import { NAV } from "./nav";
 
-// The memory graph brings Cytoscape; only its own view loads it.
+// Heavy visualization libraries load only on their own routes: Three.js and Cytoscape.
+const Architecture = lazy(() => import("./views/Architecture").then((m) => ({ default: m.Architecture })));
 const Memory = lazy(() => import("./views/Memory").then((m) => ({ default: m.Memory })));
 
 const queries = new QueryClient({ defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: false } } });
@@ -52,6 +53,7 @@ createRoot(document.getElementById("root")!).render(
                 <Route key={item.path} path={item.path.slice(1)} element={<Coming item={item} />} />
               ))}
               <Route path="market-year" element={<MarketYear />} />
+              <Route path="architecture" element={<Suspense fallback={<Loading rows={8} />}><Architecture /></Suspense>} />
               <Route path="experiments" element={<Experiments />} />
               <Route path="health" element={<Health />} />
               <Route path="*" element={<Navigate to="/" replace />} />

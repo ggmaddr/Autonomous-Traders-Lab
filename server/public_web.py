@@ -24,7 +24,7 @@ READ_PATHS = re.compile(
     rf"|health/activity|lessons|memory/{CREW}(?:/node/[^\x00-\x1f]+)?"
     r"|market-year|lab/catalog|lab/trials/[0-9]+|experiments(?:/exp_[a-zA-Z0-9_-]+)?)"
 )
-PAGES = {"", "trades", "researcher", "decisions", "lessons", "memory", "market-year", "experiments", "failures", "health"}
+PAGES = {"", "trades", "researcher", "decisions", "lessons", "memory", "market-year", "experiments", "failures", "health", "architecture"}
 # Trace text is public, but configured credentials must never appear in it.
 SECRETS = [v.encode() for k, v in dotenv_values(ROOT / ".env").items()
            if v and len(v) >= 8 and re.search(r"KEY|TOKEN|SECRET|PASSWORD", k, re.I)]

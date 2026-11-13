@@ -128,6 +128,7 @@ export interface ToolCall {
 
 export interface TimelineSpan {
   id: string;
+  parent_id?: string | null; // Additive: older servers still provide chronological depth-only timelines.
   type: string;
   name: string;
   depth: number;

@@ -33,7 +33,7 @@ class PublicWebTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual((await self.client.get(path)).status_code, 404, path)
 
     async def test_ui_is_marked_view_only_and_deep_links_work(self):
-        for path in ("/", "/trades", "/experiments"):
+        for path in ("/", "/trades", "/experiments", "/architecture", "/architecture?mechanism=memory"):
             response = await self.client.get(path)
             self.assertEqual(response.status_code, 200)
             self.assertIn('<meta name="view-only" content="true">', response.text)

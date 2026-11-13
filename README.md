@@ -75,6 +75,8 @@ cannot run when the engine is stopped or fresh data is unavailable.
 
 A guided tour of the dashboard (the Money tab's Dashboard and Story modes, the chart system and the architecture in depth) is in [docs/first look.md](docs/first%20look.md).
 
+**Architectural Mechanisms** (`/architecture`) is a separate Engineering section with a source-backed 3D system overview, eleven focused mechanisms, guided walkthroughs, a saved-trace inspector, and the five-agent strategy comparison. Use **Present** for recording. Implementation notes and status caveats are in [docs/ARCHITECTURAL_MECHANISMS.md](docs/ARCHITECTURAL_MECHANISMS.md).
+
 ## Requirements
 
 [uv](https://docs.astral.sh/uv/) (installs Python 3.12 for you), Node 18+, [Ollama](https://ollama.com), and git.

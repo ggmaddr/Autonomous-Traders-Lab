@@ -1,0 +1,16 @@
+.visitor-checkin { width:min(440px,calc(100vw - 32px)); box-sizing:border-box; border:1px solid #667f8880; border-radius:18px; padding:30px; background:#101e24; color:#edf5f5; box-shadow:0 24px 100px #0008; }
+.visitor-checkin::backdrop { background:#031018bb; backdrop-filter:blur(5px); }
+.visitor-checkin h2 { font-size:26px; line-height:1.2; margin:8px 0 14px; color:#fff; }
+.visitor-checkin p { line-height:1.55; }
+.visitor-checkin .checkin-eyebrow { font-size:11px; letter-spacing:.16em; color:#87d4be; }
+.visitor-checkin label { display:block; font-size:13px; margin:22px 0 8px; }
+.visitor-checkin input { box-sizing:border-box; width:100%; padding:12px; border:1px solid #78918b; border-radius:8px; background:#1a2c33; color:white; font:inherit; }
+.visitor-checkin .checkin-note { font-size:12px; color:#bdcdcf; }
+.visitor-checkin button { font:inherit; cursor:pointer; border-radius:8px; width:100%; padding:12px; }
+.visitor-checkin .checkin-submit { background:#a9e5cc; color:#10271e; border:0; font-weight:600; margin-top:8px; }
+.visitor-checkin button:disabled { opacity:.55; cursor:wait; }
+.visitor-checkin .checkin-skip { color:#cfdddf; background:none; border:0; margin-top:6px; font-size:13px; text-decoration:underline; }
+.visitor-checkin .checkin-session { font-size:11px; color:#a6bcbd; text-align:center; margin-bottom:0; }
+.visitor-checkin .checkin-error { color:#ffc5b3; font-size:13px; }
+.visitor-checkin :focus-visible { outline:2px solid #b3f4d2; outline-offset:3px; }
+.visitor-checkin .checkin-note { margin:12px 0; }

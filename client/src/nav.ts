@@ -33,6 +33,12 @@ export const NAV: NavGroup[] = [
     ],
   },
   {
+    label: "Engineering",
+    items: [
+      { path: "/architecture", label: "Architectural Mechanisms", question: "How does the multi-agent system actually work?" },
+    ],
+  },
+  {
     label: "Lab",
     items: [
       { path: "/experiments", label: "Experiments", question: "Which configuration is better, by how much, at what cost?" },

@@ -209,6 +209,7 @@ def run_detail(trace_id: str) -> dict | None:
     timeline = [
         {
             "id": s["id"],
+            "parent_id": s.get("parent_id"),
             "type": _data(s).get("type"),
             "name": _name(s),
             "depth": depth.get(s["id"], 0),

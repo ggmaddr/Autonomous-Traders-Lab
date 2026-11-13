@@ -1,7 +1,9 @@
+import { checkIn } from './checkins.mjs';
 // Pages hosts the UI; only read requests reach the desktop's view-only gateway.
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
+    if (url.pathname === '/api/check-in') return checkIn(request, env);
     if (!['GET', 'HEAD'].includes(request.method)) {
       return Response.json({ detail: 'Public dashboard is view-only' }, {
         status: 405, headers: { Allow: 'GET, HEAD' },

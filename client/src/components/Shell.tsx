@@ -10,6 +10,7 @@ import { useTheme } from "../lib/theme";
 import { ROSTER, useTraderFilter } from "../lib/filter";
 import { GiMoon, GiSun } from "react-icons/gi";
 import { Crew } from "./Crew";
+import { VisitorCheckIn } from "./VisitorCheckIn";
 import { VIEW_ONLY } from "../lib/access";
 
 export function Mark() {
@@ -46,7 +47,8 @@ export function Shell() {
   const next = theme === "light" ? "dark" : "light";
 
   return (
-    <div className="app">
+    <div className="app" data-view={location.pathname === "/architecture" ? "architecture" : undefined}>
+      <VisitorCheckIn />
       <button className="theme-icon" onClick={toggle} title={`Switch to ${next} theme`} aria-label={`Switch to ${next} theme`}>
         <Crew icon={theme === "light" ? <GiMoon /> : <GiSun />} motion="bob" size={34} play="hover" />
       </button>
