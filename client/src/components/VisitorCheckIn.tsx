@@ -32,7 +32,7 @@ export function VisitorCheckIn() {
   return <dialog ref={dialog} className="visitor-checkin" aria-labelledby="checkin-title" aria-describedby="checkin-note" onCancel={(event) => event.preventDefault()}>
     <form onSubmit={submit}>
       <p className="checkin-eyebrow">WELCOME ABOARD</p>
-      <h2 id="checkin-title">Who are you cutie😌?</h2>
+      <h2 id="checkin-title">Hello buddy, Nihao pengyou, Bonjour les amis, ¡Hola amigos!, こんにちは、友達！</h2>
       <p>Leave any name so I can show off to my parents I got friends.</p>
       <label htmlFor="visitor-name">Name or nickname</label>
       <input id="visitor-name" autoFocus autoComplete="off" required maxLength={80} value={name} onChange={(event) => setName(event.target.value)} placeholder="What should I call you?" />
