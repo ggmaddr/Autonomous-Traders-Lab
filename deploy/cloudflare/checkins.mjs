@@ -21,9 +21,8 @@ export async function checkIn(request, env) {
   try { body = JSON.parse(new TextDecoder().decode(await new Blob(chunks).arrayBuffer())); }
   catch { return reply({ detail: 'Invalid JSON' }, 400); }
   if (!body || typeof body.name !== 'string' || typeof body.session_id !== 'string' || typeof body.entry_path !== 'string') return reply({ detail: 'Invalid check-in' }, 400);
-  const anonymous = body.anonymous === true;
-  const name = anonymous ? '' : body.name.trim().replace(/\s+/g, ' ');
-  if ((!anonymous && !name) || name.length > 80 || /[\x00-\x1f\x7f]/.test(body.name) ||
+  const name = body.name.trim().replace(/\s+/g, ' ');
+  if (body.anonymous === true || !name || name.length > 80 || /[\x00-\x1f\x7f]/.test(body.name) ||
       !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(body.session_id) ||
       !/^\/[a-zA-Z0-9/_-]{0,199}$/.test(body.entry_path)) return reply({ detail: 'Invalid check-in' }, 400);
   if (!env.CHECKINS) return reply({ detail: 'Check-in is temporarily unavailable' }, 503);

@@ -33,10 +33,14 @@ test('missing storage, failure and write ceiling have explicit responses', async
   assert.equal((await worker.fetch(request(), { CHECKINS })).status, 429);
 });
 
-test('explicit anonymous check-ins store an empty name and stable session ID', async () => {
-  let values;
-  const CHECKINS = { prepare() { return { bind(...args) { values = args; return { run: async () => ({ meta: { changes: 1 } }) }; } }; } };
-  assert.equal((await worker.fetch(request({ ...data, name: '', anonymous: true }), { CHECKINS })).status, 200);
-  assert.deepEqual(values, [data.session_id, '', data.entry_path]);
-  assert.equal((await worker.fetch(request({ ...data, name: '', anonymous: 'true' }), { CHECKINS })).status, 400);
+test('requires a nonblank nickname and rejects anonymous check-ins before storage', async () => {
+  const CHECKINS = { prepare() { assert.fail('Invalid check-ins must not reach storage'); } };
+  for (const body of [
+    { ...data, name: '   ' },
+    { ...data, name: '', anonymous: true },
+    { ...data, anonymous: true },
+    { ...data, name: '', anonymous: 'true' },
+  ]) {
+    assert.equal((await worker.fetch(request(body), { CHECKINS })).status, 400);
+  }
 });

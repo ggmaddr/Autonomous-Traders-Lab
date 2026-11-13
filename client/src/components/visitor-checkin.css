@@ -9,7 +9,6 @@
 .visitor-checkin button { font:inherit; cursor:pointer; border-radius:8px; width:100%; padding:12px; }
 .visitor-checkin .checkin-submit { background:#a9e5cc; color:#10271e; border:0; font-weight:600; margin-top:8px; }
 .visitor-checkin button:disabled { opacity:.55; cursor:wait; }
-.visitor-checkin .checkin-skip { color:#cfdddf; background:none; border:0; margin-top:6px; font-size:13px; text-decoration:underline; }
 .visitor-checkin .checkin-session { font-size:11px; color:#a6bcbd; text-align:center; margin-bottom:0; }
 .visitor-checkin .checkin-error { color:#ffc5b3; font-size:13px; }
 .visitor-checkin :focus-visible { outline:2px solid #b3f4d2; outline-offset:3px; }
