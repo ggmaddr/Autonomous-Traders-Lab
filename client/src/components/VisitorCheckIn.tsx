@@ -36,7 +36,7 @@ export function VisitorCheckIn() {
       <p>Leave any name so I can show off to my parents I got friends.</p>
       <label htmlFor="visitor-name">Name or nickname</label>
       <input id="visitor-name" autoFocus autoComplete="off" required maxLength={80} value={name} onChange={(event) => setName(event.target.value)} placeholder="What should I call you?" />
-      <p id="checkin-note" className="checkin-note">Enter a name or nickname to explore. Your name, visit time, and entry page are saved privately for Grady to review. This isn’t an account or identity verification.</p>
+      <p id="checkin-note" className="checkin-note">Enter a name or nickname to explore.</p>
       {error && <p role="alert" className="checkin-error">{error}</p>}
       <button type="submit" className="checkin-submit" disabled={busy || !name.trim()}>{busy ? "Checking in…" : "Check in & explore"}</button>
     </form>
