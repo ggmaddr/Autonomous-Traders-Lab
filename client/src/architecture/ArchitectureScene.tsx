@@ -10,7 +10,7 @@ interface Props {
   mechanism: Mechanism; selected: string | null; layer: Layer | 'all'; moving: boolean;
   expanded: boolean; active: string[]; onSelect: (id: string) => void; onInteract: () => void;
 }
-type Part = { object: THREE.Group; materials: THREE.MeshStandardMaterial[]; halo: THREE.Mesh; position: THREE.Vector3 };
+type Part = { object: THREE.Group; materials: THREE.MeshStandardMaterial[]; halo: THREE.Mesh; position: THREE.Vector3; labelHeight: number };
 const systemPositions: Record<string, [number, number, number]> = {
   robin:[-10,2,-9],nami:[-5,2,-9],jinbe:[0,2,-9],law:[5,2,-9],luffy:[10,2,-9],
   floor:[-13,0,-3],research:[-6,0,-2],model:[0,0.6,-2],synth:[6,0,-2],fast:[13,0,-3],
@@ -193,11 +193,6 @@ export const ArchitectureScene = forwardRef<SceneHandle, Props>(function Archite
       grid=new THREE.GridHelper(32,32,0x34485a,0x1a2c3b);grid.scale.z=.76;grid.position.y=-1.95;objects.add(grid);
     }
     const parts=new Map<string,Part>(); const labels=new Map<string,HTMLButtonElement>();
-    const leaderSvg=document.createElementNS('http://www.w3.org/2000/svg','svg');
-    leaderSvg.classList.add('am-label-leaders');leaderSvg.setAttribute('aria-hidden','true');root.appendChild(leaderSvg);
-    const leaders=new Map<string,SVGLineElement>();
-    const labelSizes=new Map<string,[number,number]>();
-    const labelPositions=new Map<string,{x:number;y:number}>();
     const initialPositions=positionsFor(props.mechanism,props.expanded);
     const clickables: THREE.Object3D[]=[];
     function core(group:THREE.Group,shape:Shape,signal:THREE.MeshStandardMaterial,id:string) {
@@ -503,7 +498,8 @@ export const ArchitectureScene = forwardRef<SceneHandle, Props>(function Archite
         pieces.forEach(g=>g.dispose());
       }
       group.traverse(o=>{if(o instanceof THREE.Mesh){o.userData.node=id;clickables.push(o);}});
-      parts.set(id,{object:group,materials:moduleMaterials,halo,position:group.position.clone()});
+      const labelHeight=n.shape==='agent'||n.shape==='researcher'?2.8:['graph','python','react','math','dashboard','globe','wallet','duo','candles-clock','ticker'].includes(n.shape)?2.6:1.8;
+      parts.set(id,{object:group,materials:moduleMaterials,halo,position:group.position.clone(),labelHeight});
       const button=document.createElement('button');
       button.type='button';button.className='am-node-label';button.dataset.node=id;
       button.style.setProperty('--node-color',LAYERS[n.layer].color);button.dataset.status=n.status;
@@ -512,7 +508,6 @@ export const ArchitectureScene = forwardRef<SceneHandle, Props>(function Archite
       button.append(title,sub);button.setAttribute('aria-label',`${n.name}: ${n.subtitle}. Inspect component`);
       button.onclick=()=>{latest.current.onInteract();latest.current.onSelect(id);};
       root.appendChild(button);labels.set(id,button);
-      const leader=document.createElementNS('http://www.w3.org/2000/svg','line');leaderSvg.appendChild(leader);leaders.set(id,leader);
     }
     const flowObjects=props.mechanism.flows.map((e,i)=> {
       const color={call:'#7d9baf',data:'#77b6ed',write:'#67d9c5',control:'#eac078'}[e.kind];
@@ -547,7 +542,7 @@ export const ArchitectureScene = forwardRef<SceneHandle, Props>(function Archite
     const resize=new ResizeObserver(()=>{
       const {width,height}=root.getBoundingClientRect();
       if(width<1||height<1)return;
-      camera.aspect=width/height;camera.updateProjectionMatrix();renderer.setSize(width,height);labelSizes.clear();needsDraw=true;
+      camera.aspect=width/height;camera.updateProjectionMatrix();renderer.setSize(width,height);needsDraw=true;
       // Keep a readable full-system framing at portrait aspect ratios.
       if(!latest.current.selected)camera.position.copy(home).multiplyScalar(width<600?1.35:1);
     });resize.observe(root);
@@ -621,37 +616,19 @@ export const ArchitectureScene = forwardRef<SceneHandle, Props>(function Archite
       if(flight){camera.position.lerp(flight.position,1-Math.exp(-5*dt));controls.target.lerp(flight.target,1-Math.exp(-5*dt));if(camera.position.distanceTo(flight.position)<.02)flight=null;needsDraw=true;}
       settling=transitioning;
       controls.update(dt);
-      // Keep HTML labels readable even on phones. Displaced labels retain a leader
-      // to their true 3D anchor; no dependency or position is invented by this layout.
-      const placed:{left:number;right:number;top:number;bottom:number}[]=[];
-      const labelOrder=[...parts].sort(([a],[b])=>Number(b===p.selected)-Number(a===p.selected));
-      for(const [id,part] of labelOrder) {
-        const label=labels.get(id)!,leader=leaders.get(id)!;
-        const shape=NODE[id].shape;
-        projected.copy(part.object.position).add(new THREE.Vector3(0,shape==='agent'||shape==='researcher'?2.8:['graph','python','react','math','dashboard','globe','wallet','duo','candles-clock','ticker'].includes(shape)?2.6:1.8,0)).project(camera);
-        const ax=(projected.x*.5+.5)*root.clientWidth,ay=(-projected.y*.5+.5)*root.clientHeight;
-        const inView=projected.z<=1&&projected.z>=-1&&ax>=-40&&ax<=root.clientWidth+40&&ay>=-30&&ay<=root.clientHeight+30;
-        label.style.visibility=inView?'visible':'hidden';leader.style.display=inView?'':'none';
-        if(!inView)continue;
-        if(!labelSizes.has(id))labelSizes.set(id,[label.offsetWidth,label.offsetHeight]);
-        const [w,h]=labelSizes.get(id)!;
-        const clampX=(x:number)=>Math.max(w/2+5,Math.min(root.clientWidth-w/2-5,x));
-        const clampY=(y:number)=>Math.max(38+h,Math.min(root.clientHeight-12,y));
-        const candidates:{x:number;y:number;cost:number}[]=[];
-        for(let dy=-5;dy<=5;dy++)for(let dx=-2;dx<=2;dx++) {
-          const x=clampX(ax+dx*(w+7)),y=clampY(ay+dy*(h+6));
-          const overlaps=placed.reduce((total,r)=>total+Math.max(0,Math.min(x+w/2+3,r.right)-Math.max(x-w/2-3,r.left))*Math.max(0,Math.min(y+3,r.bottom)-Math.max(y-h-3,r.top)),0);
-          candidates.push({x,y,cost:overlaps*100+Math.hypot(x-ax,(y-ay)*.8)});
+      // Fixed anchors above each module; HTML keeps labels facing the viewer.
+      // Overlap and viewport clipping are intentional: never shuffle or clamp tags.
+      // Bead-only animation needs no label projection or DOM position updates.
+      if(transitioning||needsDraw) {
+        const width=root.clientWidth,height=root.clientHeight;
+        for(const [id,part] of parts) {
+          const label=labels.get(id)!;
+          projected.copy(part.object.position);projected.y+=part.labelHeight;projected.project(camera);
+          label.style.visibility=projected.z>=-1&&projected.z<=1?'visible':'hidden';
+          const x=(projected.x*.5+.5)*width,y=(-projected.y*.5+.5)*height;
+          label.style.transform=`translate(${x}px,${y}px) translate(-50%,-100%)`;
+          label.style.zIndex=String(Math.round((1-projected.z)*10000)+(id===p.selected?1000:0));
         }
-        candidates.sort((a,b)=>a.cost-b.cost);let {x,y}=candidates[0];
-        placed.push({left:x-w/2-2,right:x+w/2+2,top:y-h-2,bottom:y+2});
-        const previousLabel=labelPositions.get(id);
-        if(previousLabel&&!reduced.matches){if(Math.hypot(previousLabel.x-x,previousLabel.y-y)>.25)settling=true;const follow=1-Math.exp(-18*dt);x=previousLabel.x+(x-previousLabel.x)*follow;y=previousLabel.y+(y-previousLabel.y)*follow;}
-        labelPositions.set(id,{x,y});
-        label.style.transform=`translate(${x}px,${y}px) translate(-50%,-100%)`;
-        label.style.zIndex=String(Math.round((1-projected.z)*10000)+(id===p.selected?1000:0));
-        leader.setAttribute('x1',String(ax));leader.setAttribute('y1',String(ay+6));leader.setAttribute('x2',String(x));leader.setAttribute('y2',String(y));
-        leader.style.opacity=Math.hypot(x-ax,y-ay)>8?'0.55':'0';
       }
       if(anim||transitioning||needsDraw||flight){renderer.render(scene,camera);needsDraw=false;}
       if(time-measuredAt>1000){root.dataset.drawCalls=String(renderer.info.render.calls);measuredAt=time;}
@@ -663,7 +640,7 @@ export const ArchitectureScene = forwardRef<SceneHandle, Props>(function Archite
       renderer.domElement.removeEventListener('pointerdown',onDown);renderer.domElement.removeEventListener('pointerup',onUp);
       controls.dispose();geometries.forEach(g=>g.dispose());allMaterials.forEach(m=>m.dispose());
       if(grid){if(grid.material instanceof THREE.Material)grid.material.dispose();grid.geometry.dispose();}
-      sharedNeutral.length=0;renderer.forceContextLoss();renderer.dispose();renderer.domElement.remove();labels.forEach(label=>label.remove());leaderSvg.remove();
+      sharedNeutral.length=0;renderer.forceContextLoss();renderer.dispose();renderer.domElement.remove();labels.forEach(label=>label.remove());
     };
   },[props.mechanism]);
   return <div className="am-scene-wrap">

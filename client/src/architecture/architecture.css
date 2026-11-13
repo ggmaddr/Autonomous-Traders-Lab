@@ -124,8 +124,6 @@
   .am-node-label strong { font-size:9px; }
 }
 
-.am-label-leaders { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; overflow:hidden; }
-.am-label-leaders line { stroke:#8fa7bb; stroke-width:.75; }
 
 .am-reduced-note { display:none; font-size:10px; color:#a6b5c4; align-self:center; padding:6px; }
 .am-exhibit:has(.am-fallback) .am-focus-button,

@@ -53,6 +53,7 @@ The source audit is based on repository revision `cdde9d2`. `client/src/architec
 - Day-trade MCP uses a colorful candle chart with a raised clock. Market MCP uses a ticker board with geometric SPY/QQQ/IWM lettering and illustrative direction marks. These static icon details are not current quotes, signals or wall-clock time; no fonts, textures or live feeds are loaded.
 - Rendering pauses offscreen or in a hidden document; reduced motion disables continuous animation. Controls support pause, reset, rotate, zoom, focus and presentation mode. Presentation mode supports Escape and confines keyboard focus.
 - HTML component buttons, contracts, a searchable component index and step controls remain accessible. A WebGL failure renders a component explorer rather than a blank panel.
+- Component labels face the viewer at fixed anchors above their modules. They may overlap or leave the viewport while orbiting; no collision avoidance, viewport clamping, leader lines or independent position smoothing moves them around. Labels are projected only when the view or module positions change.
 - Desktop and mobile use the same data model. Explanations follow the website's existing light/dark palette; the 3D instrument remains a dark technical surface.
 - `parent_id` is an additive field in run timelines. The tree uses actual parent IDs, so concurrent child spans cannot be assigned to the wrong parent by chronological adjacency. Older servers still display depth-only timelines without inventing expandable relationships.
 
