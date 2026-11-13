@@ -79,7 +79,7 @@ const f = (from: string, to: string, label: string, kind: FlowKind = 'call'): Fl
 const s = (title: string, text: string, ...nodes: string[]): Step => ({ title, text, nodes });
 export const MECHANISMS: Mechanism[] = [
   {
-    id: 'overview', number: '00', title: 'The whole system', short: 'Overall architecture', layout: 'system',
+    id: 'overview', number: '00', title: 'Multi-Agent Systems - LLM Workflow Orchestration', short: 'Overall architecture', layout: 'system',
     question: 'Seven agents. One auditable ledger.',
     description: 'Five LLM agents reason on a single local model with quant tools, live research and long-term memory. A deterministic intraday desk runs alongside on minute bars. Every order settles in one paper ledger, and every decision is traced end to end.',
     nodes: ['runtime','floor','robin','nami','zoro','sanji','luffy','model','research','synth','web','quant','daydesk','accounts','graph','ledger','traces','api','client','alpaca','fast','gateway','market'],
